@@ -3,6 +3,7 @@ import { SCALE_SERVICES } from '../constants/ScaleServices';
 import MockScaleService from './MockScaleService';
 import EtekcityScaleService from './EtekcityBluetoothService';
 import BluetoothScaleService from './BluetoothScaleService';
+import LefuScaleService from './LefuScaleService';
 import EventEmitterService from './EventEmitterService';
 
 class ScaleServiceFactory {
@@ -10,7 +11,8 @@ class ScaleServiceFactory {
   static services = {
     [SCALE_SERVICES.MOCK]: null,
     [SCALE_SERVICES.ETEKCITY]: null,
-    [SCALE_SERVICES.BLUETOOTH]: null
+    [SCALE_SERVICES.BLUETOOTH]: null,
+    [SCALE_SERVICES.LEFU]: null
   };
   static currentDevice = null;
   static isConnected = false;
@@ -27,6 +29,9 @@ class ScaleServiceFactory {
             break;
           case SCALE_SERVICES.BLUETOOTH:
             this.services[selectedScale] = BluetoothScaleService;
+            break;
+          case SCALE_SERVICES.LEFU:
+            this.services[selectedScale] = LefuScaleService;
             break;
           default:
             this.services[selectedScale] = MockScaleService;

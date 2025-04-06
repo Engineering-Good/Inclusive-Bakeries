@@ -120,16 +120,16 @@ android {
         jniLibs {
             useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)
         }
+   
+      exclude 'AndroidManifest.xml'
+      exclude 'R.txt'
+      exclude 'classes.jar'
+      exclude 'proguard.txt'
+  
+
     }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
-    }
-    sourceSets {
-        main {
-            jniLibs.srcDirs = ['libs']
-            java.srcDirs = ['src/main/java']
-            assets.srcDirs = ['src/main/assets']
-        }
     }
 }
 
@@ -157,11 +157,6 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 
-    // // Replace implementation with api for the Lefu SDK
-    api(files("libs/ppbasekit-4.1.4.aar"))
-    api(files("libs/ppbluetoothkit-4.1.4.aar"))
-    api(files("libs/ppcalculatekit-4.1.4.aar"))
-
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";
     def isWebpAnimatedEnabled = (findProperty('expo.webp.animated') ?: "") == "true";
@@ -185,7 +180,4 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-
-
 }
-

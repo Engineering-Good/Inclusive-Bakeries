@@ -62,13 +62,18 @@ export default function RecipeListScreen({ navigation }) {
   useEffect(() => {
     // Set up the header right button
     navigation.setOptions({
+      headerTitle: () => <View><Text>My Recipes</Text></View>, // Empty view as header title
       headerRight: () => (
+        
+        <View>
+          
         <IconButton
           icon="cog"
-          size={24}
+          size={48}
           onPress={() => navigation.navigate('SettingsScreen')}
           style={styles.headerButton}
         />
+        </View>
       ),
     });
   }, [navigation]);
@@ -130,7 +135,7 @@ export default function RecipeListScreen({ navigation }) {
       <FAB
         style={styles.fab}
         icon="plus"
-        onPress={() => navigation.navigate('CreateRecipe')}
+        onPress={() => navigation.navigate('SettingsScreen')}
         label="Add Recipe"
       />
     </View>

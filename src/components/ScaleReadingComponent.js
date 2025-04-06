@@ -39,6 +39,7 @@ const ScaleReadingComponent = ({ targetIngredient, onWeightUpdate }) => {
   }, []);
 
   const handleWeightUpdate = (weightData) => {
+    console.log('[ScaleReadingComponent] Weight update:', weightData);
     setWeight(weightData.value);
     checkTargetWeight(weightData.value);
     

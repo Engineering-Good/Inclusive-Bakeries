@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { List, Switch, Button, Text, Divider } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Text } from 'react-native';
+import { List, Switch, Button, Divider } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SCALE_SERVICES } from '../constants/ScaleServices';
 import ScaleServiceFactory from '../services/ScaleServiceFactory';
 import ScaleConnectButton from '../components/ScaleConnectButton';
+
 
 const SettingsScreen = ({ navigation }) => {
   const [selectedScale, setSelectedScale] = useState(SCALE_SERVICES.MOCK);
@@ -68,6 +69,10 @@ const SettingsScreen = ({ navigation }) => {
     }
   };
 
+  const handleScaleLoad = ({ nativeEvent }) => {
+    console.log('Scale view loaded:', nativeEvent.url);
+  };
+
   return (
     <ScrollView style={styles.container}>
       <List.Section>
@@ -105,6 +110,17 @@ const SettingsScreen = ({ navigation }) => {
             />
           )}
         />
+        {/* <List.Item
+          title="Lefu Kitchen Scale"
+          description="Use Lefu Kitchen Scale"
+          left={(props) => <List.Icon {...props} icon="scale" />}
+          right={() => (
+            <Switch
+              value={selectedScale === SCALE_SERVICES.LEFU}
+              onValueChange={() => handleScaleChange(SCALE_SERVICES.LEFU)}
+            />
+          )}
+        /> */}
       </List.Section>
 
       <Divider />
@@ -141,13 +157,22 @@ const SettingsScreen = ({ navigation }) => {
         <List.Subheader>Appearance</List.Subheader>
         <List.Item
           title="Dark Mode"
-          description="Use dark theme"
+          description="Use dark theme (Just for illustration, not working)"
           left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
           right={() => (
             <Switch value={isDarkMode} onValueChange={handleThemeChange} />
           )}
         />
       </List.Section>
+{/*   // Uncomment if you want to add Lefu scale configuration (example )
+      <View style={styles.scaleContainer}>
+        <Text style={styles.sectionTitle}>Scale Configuration</Text>
+        <LefuScaleView 
+          style={styles.scaleView}
+          url="about:blank" // Replace with actual configuration URL if needed
+          onLoad={handleScaleLoad}
+        />
+      </View> */}
     </ScrollView>
   );
 };
@@ -160,6 +185,22 @@ const styles = StyleSheet.create({
   connectContainer: {
     padding: 16,
   },
+  scaleContainer: {
+    flex: 1,
+    marginVertical: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  scaleView: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
 });
 
-export default SettingsScreen; 
+export default SettingsScreen;

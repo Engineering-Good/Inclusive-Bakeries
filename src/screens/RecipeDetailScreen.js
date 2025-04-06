@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { IconButton, Divider, Button } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SpeechService from '../services/SpeechService';
-import ScaleReadingComponent from '../components/ScaleReadingComponent';
 
 export default function RecipeDetailScreen({ route, navigation }) {
   const { recipeId } = route.params;
@@ -55,9 +54,11 @@ export default function RecipeDetailScreen({ route, navigation }) {
     );
   };
 
-  const selectIngredient = (ingredient) => {
-    setCurrentIngredient(ingredient);
-    announceIngredient(ingredient);
+  const selectIngredient = (ingredientIndex) => {
+    navigation.navigate('IngredientScreen', {
+      ingredientIndex,
+      recipe,
+    });
   };
 
   if (loading) {
@@ -105,9 +106,18 @@ export default function RecipeDetailScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      {currentIngredient && (
-        <ScaleReadingComponent targetIngredient={currentIngredient} />
-      )}
+      
+      <TouchableOpacity 
+        style={styles.startButton} 
+        onPress={() => {
+          if (recipe.ingredients && recipe.ingredients.length > 0) {
+            selectIngredient(0); // Pass index 0 instead of the ingredient
+            SpeechService.speak("Let's start baking! First ingredient.");
+          }
+        }}
+      >
+        <Text style={styles.startButtonText}>Start Baking</Text>
+      </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>Ingredients</Text>
       <View style={styles.ingredientsContainer}>
@@ -115,7 +125,7 @@ export default function RecipeDetailScreen({ route, navigation }) {
           <TouchableOpacity 
             key={index} 
             style={styles.ingredientItem}
-            onPress={() => selectIngredient(ingredient)}
+            onPress={() => selectIngredient(index)} // Pass index instead of ingredient
           >
             <Text style={styles.ingredientText}>
               {ingredient.name}: {ingredient.amount} {ingredient.unit}
@@ -238,5 +248,25 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginTop: 16,
+  },
+  startButton: {
+    backgroundColor: '#4CAF50',
+    padding: 16,
+    margin: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  startButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

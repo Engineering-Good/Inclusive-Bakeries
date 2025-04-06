@@ -8,6 +8,7 @@ class MockScaleService extends ScaleInterface {
     this.weightUpdateInterval = null;
     this.currentWeight = 0;
     this.deviceId = '';
+    this.needsTare = false;
   }
 
   startScan(onDeviceFound) {
@@ -57,17 +58,28 @@ class MockScaleService extends ScaleInterface {
   startWeightUpdates(onWeightUpdate) {
     // Send weight updates every second
     this.weightUpdateInterval = setInterval(() => {
-      // Increase weight by 10-50g each update
-      this.currentWeight += Math.floor(Math.random() * 40) + 10;
-      // Cap at 1000g
-      this.currentWeight = Math.min(this.currentWeight, 500);
+      // If weight reaches max, reset to 0 and set needsTare flag
+      if (this.currentWeight >= 200) {
+        this.currentWeight = 0;
+        this.needsTare = true;
+      } else {
+        // Increase weight by 10-50g each update
+        this.currentWeight += Math.floor(Math.random() * 40) + 10;
+        // Cap at 200
+        this.currentWeight = Math.min(this.currentWeight, 200);
+      }
       
       onWeightUpdate({
         value: this.currentWeight,
         unit: 'g',
-        stable: true,
-        timestamp: new Date().getTime()
+        isStable: true,
+        isTare: this.needsTare
       });
+
+      // Reset tare flag after sending it once
+      if (this.needsTare) {
+        this.needsTare = false;
+      }
     }, 1000);
   }
 
@@ -93,4 +105,4 @@ class MockScaleService extends ScaleInterface {
   }
 }
 
-export default new MockScaleService(); 
+export default new MockScaleService();

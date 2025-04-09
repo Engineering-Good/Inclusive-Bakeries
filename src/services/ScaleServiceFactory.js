@@ -141,6 +141,16 @@ class ScaleServiceFactory {
       currentDevice: this.currentDevice
     };
   }
+
+  static unsubscribeAll() {
+    // Clean up all subscriptions
+    if (this.weightUpdateSubscribers) {
+      this.weightUpdateSubscribers = [];
+    }
+    if (this.connectionSubscribers) {
+      this.connectionSubscribers = [];
+    }
+  }
 }
 
 export default ScaleServiceFactory; 

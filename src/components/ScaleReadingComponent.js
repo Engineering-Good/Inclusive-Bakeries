@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { ProgressBar } from "react-native-paper";
 import SpeechService from "../services/SpeechService";
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import ScaleConnectButton from "./ScaleConnectButton";
+
+
+// Add at the top of the file, after imports
+const screenWidth = Dimensions.get('window').width;
 
 const ScaleReadingComponent = ({ 
   targetIngredient, 
@@ -15,15 +19,31 @@ const ScaleReadingComponent = ({
   const [error, setError] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isTared, setIsTared] = useState(false);
+  const [shouldTare, setShouldTare] = useState(requireTare);
   const hasSpokenRef = useRef(false);
   const targetWeight = targetIngredient?.amount || 0;
 
   // Reset states when ingredient changes
   useEffect(() => {
+    // Reset states but don't unsubscribe from scale
     hasSpokenRef.current = false;
     setIsTared(false);
     setCurrentWeight(0);
   }, [targetIngredient]);
+
+  // Replace the cleanup effect with this updated version
+  useEffect(() => {
+    return () => {
+      // Always do full cleanup on unmount
+      ScaleServiceFactory.unsubscribeAll();
+      setIsConnected(false);
+      setCurrentWeight(0);
+      setIsTared(false);
+      hasSpokenRef.current = false;
+      SpeechService.stop();
+    };
+  }, []); // Empty dependency array ensures this runs only on unmount
+
 
   // Check connection status periodically
   useEffect(() => {
@@ -41,31 +61,33 @@ const ScaleReadingComponent = ({
   }, []);
 
   useEffect(() => {
-    const checkTargetWeight = (currentWeight) => {
-      if (currentWeight >= targetWeight && !hasSpokenRef.current) {
-        SpeechService.speak('Target weight reached');
-        hasSpokenRef.current = true;
-      }
-    };
-
     const handleWeightUpdate = (weightData) => {
       console.log('[ScaleReadingComponent] Weight update:', weightData);
-      
+      if(!targetIngredient){
+        console.log('[ScaleReadingComponent] No target ingredient, ignoring weight update');
+        return;
+      }
       // Handle tare event
       if (weightData.isTare) {
         console.log('[ScaleReadingComponent] Tare detected');
         setIsTared(true);
         return;
       }
+
+      // Announce tare needed if there's weight and not tared
+      if (requireTare && !isTared && weightData.value > 0 && (!hasSpokenRef.current || hasSpokenRef.current !== 'tare')) {
+        SpeechService.speak('Please tare the scale');
+        hasSpokenRef.current = 'tare';
+        return;
+      }
   
       console.log('[ScaleReadingComponent] Tare:', requireTare, 'Is Tared:', isTared);
       
       if (!requireTare || isTared) {
-        console.log('[ScaleReadingComponent] Processing weight after tare check');
+        console.log('[ScaleReadingComponent] Processing weight after tare check, targetIngredient:', targetIngredient);
         setCurrentWeight(weightData.value);
-        checkTargetWeight(weightData.value);
         
-        const newProgress = Math.min(weightData.value / targetIngredient?.amount || 0, 1);
+        const newProgress = weightData.value / targetIngredient?.amount || 0;
         onProgressUpdate(newProgress);
       }
   
@@ -74,49 +96,31 @@ const ScaleReadingComponent = ({
   
     // Subscribe to weight updates
     const unsubscribe = ScaleServiceFactory.subscribeToWeightUpdates(handleWeightUpdate);
-    return () => unsubscribe();
+     // Only unsubscribe from weight updates if component is being unmounted completely
+     return () => {
+        unsubscribe();
+     };
   }, [isTared, requireTare, targetIngredient, onProgressUpdate, onWeightData]);
 
+  // Update shouldTare when requireTare or isTared changes
+  useEffect(() => {
+    setShouldTare(requireTare && !isTared);
+  }, [requireTare, isTared]);
 
-  // useEffect(() => {
-  //   // Subscribe to weight updates from ScaleServiceFactory
-  //   const unsubscribe = ScaleServiceFactory.subscribeToWeightUpdates(handleWeightUpdate);
-  //   return () => unsubscribe();
-  // }, []);
+  // Reset states when ingredient changes
+  useEffect(() => {
+    hasSpokenRef.current = false;
+    setIsTared(false);
+    setCurrentWeight(0);
+    setShouldTare(requireTare);
+  }, [targetIngredient, requireTare]);
 
-  // const handleWeightUpdate = (weightData) => {
-  //   console.log('[ScaleReadingComponent] Weight update:', weightData);
-    
-  //   // Handle tare event
-  //   if (weightData.isTare) {
-  //     console.log('[ScaleReadingComponent] Tare detected');
-  //     setIsTared(true);
-  //     // Don't process weight on tare event
-  //     return;
-  //   }
-  //   console.log('[ScaleReadingComponent] Tare:', requireTare, 'Is Tared:', isTared);
-  //   // Process weight only if already tared or tare not required
-  //   if (!requireTare || isTared) {
-  //     console.log('[ScaleReadingComponent] Processing weight after tare check');
-  //     setCurrentWeight(weightData.value);
-  //     checkTargetWeight(weightData.value);
-      
-  //     const newProgress = Math.min(weightData.value / targetIngredient.amount, 1);
-  //     console.log('[ScaleReadingComponent] Progress callback:', newProgress);
-  //     onProgressUpdate(newProgress);
-  //   }
+  const progress = (!requireTare || isTared) ? (currentWeight / targetWeight) : 0;
 
-  //   // Always pass weight data to parent
-  //   onWeightData?.(weightData);
-  // };
-
-
-
-  const progress = (!requireTare || isTared) ? Math.min(currentWeight / targetWeight, 1) : 0;
-
+  
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Scale Reading</Text>
+      <Text style={styles.title}>Weight</Text>
 
       {error && <Text style={styles.error}>{error}</Text>}
 
@@ -129,18 +133,23 @@ const ScaleReadingComponent = ({
         <>
           <View style={styles.weightContainer}>
             <Text style={styles.weightText}>
-              {(requireTare && !isTared) ? 'TARE NEEDED' : `${currentWeight}${targetIngredient.unit}`}
+              {targetIngredient && shouldTare ? 'TARE NEEDED' : `${currentWeight}${targetIngredient.unit}`}
             </Text>
           </View>
-
+          {targetIngredient && !shouldTare && (
           <View style={styles.progressContainer}>
             <ProgressBar
               progress={progress}
-              color={progress >= 1 ? '#4CAF50' : '#2196F3'}
+              color={
+                progress > 1.05 ? '#FF1111' :  // Red for overweight (blue background)
+                progress >= 0.95 ? '#4CAF50' : // Green for perfect
+                '#2196F3'                      // Default blue for underweight
+              }
               style={styles.progressBar}
             />
             
           </View>
+          )}
         </>
       )}
     </View>
@@ -185,6 +194,8 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     marginBottom: 16,
+    width: screenWidth * 0.25, // 1/4 of screen width
+    alignSelf: 'center',
   },
   progressBar: {
     height: 10,

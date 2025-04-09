@@ -55,7 +55,7 @@ export default function RecipeDetailScreen({ route, navigation }) {
   };
 
   const selectIngredient = (ingredientIndex) => {
-    navigation.navigate('IngredientScreen', {
+    navigation.navigate('Ingredient', {
       ingredientIndex,
       recipe,
     });

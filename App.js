@@ -14,10 +14,16 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator>
         <Stack.Screen name="Recipes" component={RecipeListScreen} />
-        <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
-        <Stack.Screen name="SettingsScreen" component={SettingsScreen} />
-        <Stack.Screen name="IngredientScreen" component={IngredientScreen} />
-        <Stack.Screen name="CelebrationScreen" component={CelebrationScreen} /> 
+        <Stack.Screen name="Recipe Details" component={RecipeDetailScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Ingredient" component={IngredientScreen} />
+        <Stack.Screen name="Celebration" component={CelebrationScreen} 
+          options={{
+            headerLeft: () => null, // Remove back button
+            gestureEnabled: false,  // Disable swipe back gesture
+            headerBackVisible: false,
+            headerTitle: 'Completed!',
+          }}/> 
       </Stack.Navigator>
       
     </NavigationContainer>

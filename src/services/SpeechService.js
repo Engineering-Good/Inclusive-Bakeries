@@ -1,11 +1,26 @@
 import * as Speech from 'expo-speech';
 
 class SpeechService {
+  constructor() {
+    // Initialize with a female voice if available
+    this.initVoice();
+  }
+
+  async initVoice() {
+    const voices = await Speech.getAvailableVoicesAsync();
+    // Find a female English voice
+    this.preferredVoice = voices.find(voice => 
+      voice.language.startsWith('en') && 
+      voice.identifier.toLowerCase().includes('female')
+    );
+  }
+
   speak(text, options = {}) {
     const defaultOptions = {
       language: 'en-US',
       pitch: 1.0,
       rate: 0.9,
+      voice: this.preferredVoice?.identifier,
       ...options
     };
     

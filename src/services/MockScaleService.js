@@ -80,7 +80,7 @@ class MockScaleService extends ScaleInterface {
       if (this.needsTare) {
         this.needsTare = false;
       }
-    }, 1000);
+    }, 1500);
   }
 
   async disconnect() {

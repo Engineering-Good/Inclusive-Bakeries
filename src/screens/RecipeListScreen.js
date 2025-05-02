@@ -141,9 +141,9 @@ export default function RecipeListScreen({ navigation }) {
       
       <FAB
         style={styles.fab}
-        icon="plus"
-        onPress={() => navigation.navigate('Settings')}
-        label="Add Recipe"
+        icon="account-circle"
+        onPress={() => navigation.navigate('Instructor')}
+        label="Instructor View"
       />
     </View>
   );
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#878787',
   },
   headerButton: {
     marginRight: 8,

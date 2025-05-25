@@ -11,6 +11,8 @@ class EventEmitterService {
       this.listeners.set(event, new Set());
     }
     this.listeners.get(event).add(callback);
+    // Return an unsubscribe function
+    return () => this.off(event, callback);
   }
 
   off(event, callback) {
@@ -26,6 +28,14 @@ class EventEmitterService {
       });
     }
   }
+
+  removeAllListeners(event) {
+    if (event) {
+      this.listeners.delete(event);
+    } else {
+      this.listeners.clear();
+    }
+  }
 }
 
-export default new EventEmitterService(); 
+export default new EventEmitterService();

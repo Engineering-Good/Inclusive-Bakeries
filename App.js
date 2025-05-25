@@ -12,7 +12,13 @@ const Stack = createNativeStackNavigator();
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator
+       screenOptions={{
+        
+        contentStyle: {
+          zIndex: 0, // Keep screen content below header
+        },
+      }}>
         <Stack.Screen name="Recipes" component={RecipeListScreen} />
         <Stack.Screen name="Recipe Details" component={RecipeDetailScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />

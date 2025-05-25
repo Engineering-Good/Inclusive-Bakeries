@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { IconButton, Divider, Button } from 'react-native-paper';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import SpeechService from '../services/SpeechService';
+import RecipeService from '../services/RecipeService';
+import { RECIPE_MESSAGES } from '../constants/speechText';
 
 export default function RecipeDetailScreen({ route, navigation }) {
   const { recipeId } = route.params;
@@ -16,17 +17,13 @@ export default function RecipeDetailScreen({ route, navigation }) {
 
   const loadRecipe = async () => {
     try {
-      const savedRecipes = await AsyncStorage.getItem('recipes');
-      if (savedRecipes !== null) {
-        const recipes = JSON.parse(savedRecipes);
-        const foundRecipe = recipes.find(r => r.id === recipeId);
-        
-        if (foundRecipe) {
-          setRecipe(foundRecipe);
-        } else {
-          Alert.alert('Error', 'Recipe not found');
-          navigation.goBack();
-        }
+      const foundRecipe = await RecipeService.getRecipeById(recipeId);
+      
+      if (foundRecipe) {
+        setRecipe(foundRecipe);
+      } else {
+        Alert.alert('Error', 'Recipe not found');
+        navigation.goBack();
       }
     } catch (error) {
       console.error('Error loading recipe:', error);
@@ -88,22 +85,7 @@ export default function RecipeDetailScreen({ route, navigation }) {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{recipe.title}</Text>
-        
-        <View style={styles.metaContainer}>
-          <Text style={styles.metaText}>Prep: {recipe.prepTime}</Text>
-          <Text style={styles.metaText}>Cook: {recipe.cookTime}</Text>
-          <Text style={styles.metaText}>Difficulty: {recipe.difficulty}</Text>
-        </View>
-      </View>
-
-      <View style={styles.audioControls}>
-        <TouchableOpacity style={styles.button} onPress={readInstructions}>
-          <Text style={styles.buttonText}>Read Instructions</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.button} onPress={stopSpeech}>
-          <Text style={styles.buttonText}>Stop Audio</Text>
-        </TouchableOpacity>
+  
       </View>
 
       
@@ -111,8 +93,8 @@ export default function RecipeDetailScreen({ route, navigation }) {
         style={styles.startButton} 
         onPress={() => {
           if (recipe.ingredients && recipe.ingredients.length > 0) {
-            selectIngredient(0); // Pass index 0 instead of the ingredient
-            SpeechService.speak("Let's start baking! First ingredient.");
+            selectIngredient(0);
+            SpeechService.speak(RECIPE_MESSAGES.START_BAKING);
           }
         }}
       >

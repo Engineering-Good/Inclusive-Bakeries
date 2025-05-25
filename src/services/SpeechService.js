@@ -19,7 +19,7 @@ class SpeechService {
     const defaultOptions = {
       language: 'en-US',
       pitch: 1.0,
-      rate: 0.9,
+      rate: 0.8,
       voice: this.preferredVoice?.identifier,
       ...options
     };

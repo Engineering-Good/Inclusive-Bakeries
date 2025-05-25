@@ -2,10 +2,12 @@ import { PermissionsAndroid, Platform } from 'react-native';
 import { Buffer } from 'buffer';
 import { ScaleInterface } from './ScaleInterface';
 import { BleManager, Device } from 'react-native-ble-plx';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ETEKCITY_SERVICE_UUID = 'FFF0';
 const ETEKCITY_CHARACTERISTIC_UUID = 'FFF1';
 const DEVICE_NAME = 'Etekcity Nutrition Scale';
+const LAST_CONNECTED_DEVICE_ID_KEY = 'lastConnectedEtekcityScaleDeviceId';
 
 class EtekcityScaleService extends ScaleInterface {
   constructor() {
@@ -19,6 +21,37 @@ class EtekcityScaleService extends ScaleInterface {
     this.device = null;
     this.weightCharacteristic = null;
   }
+
+  // --- AsyncStorage Helpers ---
+  async saveLastConnectedDeviceId(deviceId) {
+    try {
+      await AsyncStorage.setItem(LAST_CONNECTED_DEVICE_ID_KEY, deviceId);
+      console.log(`[EtekcityScale] Saved last connected device ID: ${deviceId}`);
+    } catch (error) {
+      console.error('[EtekcityScale] Error saving last connected device ID:', error);
+    }
+  }
+
+  async retrieveLastConnectedDeviceId() {
+    try {
+      const deviceId = await AsyncStorage.getItem(LAST_CONNECTED_DEVICE_ID_KEY);
+      console.log(`[EtekcityScale] Retrieved last connected device ID: ${deviceId}`);
+      return deviceId;
+    } catch (error) {
+      console.error('[EtekcityScale] Error retrieving last connected device ID:', error);
+      return null;
+    }
+  }
+
+  async clearLastConnectedDeviceId() {
+    try {
+      await AsyncStorage.removeItem(LAST_CONNECTED_DEVICE_ID_KEY);
+      console.log('[EtekcityScale] Cleared last connected device ID');
+    } catch (error) {
+      console.error('[EtekcityScale] Error clearing last connected device ID:', error);
+    }
+  }
+  // --- End AsyncStorage Helpers ---
 
   async requestPermissions() {
     console.log('[EtekcityScale] Requesting permissions');
@@ -76,6 +109,46 @@ class EtekcityScaleService extends ScaleInterface {
     }
   }
 
+  async reconnectToLastDevice(onWeightUpdate) {
+    console.log('[EtekcityScale] Attempting to reconnect to last device...');
+    const lastDeviceId = await this.retrieveLastConnectedDeviceId();
+    if (lastDeviceId) {
+      try {
+        console.log(`[EtekcityScale] Found last device ID: ${lastDeviceId}. Attempting direct connection.`);
+        // Attempt to connect directly without scanning
+        this.device = await this.manager.connectToDevice(lastDeviceId);
+        console.log('[EtekcityScale] Reconnected to last device successfully.');
+        
+        // Discover services and characteristics and set up notifications
+        await this.device.discoverAllServicesAndCharacteristics();
+        const service = await this.device.services().then(services => 
+          services.find(service => service.uuid.toLowerCase().includes('fff0'))
+        );
+        if (!service) {
+          throw new Error('[EtekcityScale] Required service FFF0 not found during reconnection.');
+        }
+        this.weightCharacteristic = await service.characteristics().then(characteristics =>
+          characteristics.find(char => char.uuid.toLowerCase().includes('fff1'))
+        );
+        if (!this.weightCharacteristic) {
+          throw new Error('[EtekcityScale] Required characteristic FFF1 not found during reconnection.');
+        }
+        await this.setupWeightNotifications(onWeightUpdate);
+
+        return true; // Reconnection successful
+      } catch (error) {
+        console.warn(`[EtekcityScale] Failed to reconnect to ${lastDeviceId}. Error: ${error.message}. Please ensure the scale is on and within range.`, error);
+        // Clear the stored ID if reconnection fails, so it doesn't keep trying a non-existent connection
+        await this.clearLastConnectedDeviceId();
+        this.device = null;
+        this.weightCharacteristic = null;
+        return false; // Reconnection failed
+      }
+    }
+    console.log('[EtekcityScale] No last connected device ID found.');
+    return false; // No device ID to reconnect to
+  }
+
   async startScan(callback) {
     console.log('[EtekcityScale] Starting device scan');
     if (!this.manager) {
@@ -88,6 +161,21 @@ class EtekcityScaleService extends ScaleInterface {
       await this.requestPermissions();
       console.log('[EtekcityScale] Permissions granted, starting scan');
 
+      // First, try to reconnect to the last known device
+      const reconnected = await this.reconnectToLastDevice(callback); // Pass callback for weight updates
+      if (reconnected) {
+        console.log('[EtekcityScale] Reconnected to previous device, skipping scan.');
+        // If reconnected, we should notify the app that a device is connected.
+        // The `reconnectToLastDevice` already sets up notifications, so we just need to pass the device.
+        // However, the `callback` in `startScan` expects a `device` object.
+        // We can pass the currently connected device.
+        if (this.device) {
+          callback(this.device);
+        }
+        return;
+      }
+
+      console.log('[EtekcityScale] No previous device found or reconnection failed. Starting new scan.');
       this.manager.startDeviceScan(
         null, // null means scan for all services
         { allowDuplicates: false },
@@ -133,6 +221,9 @@ class EtekcityScaleService extends ScaleInterface {
       this.device = await this.manager.connectToDevice(deviceId);
       console.log('[EtekcityScale] Connected to device');
       
+      // Save the device ID upon successful connection
+      await this.saveLastConnectedDeviceId(deviceId);
+
       console.log('[EtekcityScale] Discovering services and characteristics');
       await this.device.discoverAllServicesAndCharacteristics();
       
@@ -271,6 +362,7 @@ class EtekcityScaleService extends ScaleInterface {
         console.log('[EtekcityScale] Successfully disconnected');
         this.device = null;
         this.weightCharacteristic = null;
+        await this.clearLastConnectedDeviceId(); // Clear stored ID on explicit disconnect
       }
     } catch (error) {
       console.error('[EtekcityScale] Disconnect error:', error);

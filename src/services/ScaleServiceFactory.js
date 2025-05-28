@@ -71,45 +71,50 @@ class ScaleServiceFactory {
   }
 
   static async connectToScale() {
-    try {
-      const scaleService = await this.getScaleService();
-      
-      // Don't scan if already connected
-      if (this.isConnected) {
-        return;
-      }
-
-      scaleService.startScan((device) => {
-        console.log("Found scale:", device.name, device.id);
-        scaleService.stopScan();
-        this.connectToDevice(device);
-      });
-    } catch (error) {
-      console.error("Failed to connect to scale:", error);
-      throw error;
-    }
-  }
-
-  static async connectToDevice(discoveredDevice) {
-    try {
-      const scaleService = await this.getScaleService();
-      
-      const connectedDevice = await scaleService.connect(
-        discoveredDevice.id,
-        (weightData) => {
-          this.emitWeightUpdate(weightData);
+    return new Promise(async (resolve, reject) => {
+      try {
+        const scaleService = await this.getScaleService();
+        
+        if (this.isConnected) {
+          EventEmitterService.emit('connectionStatus', 'connected');
+          resolve(this.currentDevice);
+          return;
         }
-      );
-      
-      this.currentDevice = connectedDevice;
-      this.isConnected = true;
-      return connectedDevice;
-    } catch (error) {
-      console.error("Connection failed:", error);
-      this.isConnected = false;
-      this.currentDevice = null;
-      throw error;
-    }
+
+        EventEmitterService.emit('connectionStatus', 'connecting');
+        
+        // The startScan method in EtekcityBluetoothService now handles reconnection logic
+        scaleService.startScan(async (device) => {
+          console.log("Found scale or reconnected:", device.name, device.id);
+          scaleService.stopScan(); // Stop scan once device is found/reconnected
+          
+          try {
+            const connectedDevice = await scaleService.connect(
+              device.id,
+              (weightData) => {
+                this.emitWeightUpdate(weightData);
+              }
+            );
+            this.currentDevice = connectedDevice;
+            this.isConnected = true;
+            EventEmitterService.emit('connectionStatus', 'connected');
+            resolve(connectedDevice);
+          } catch (connectError) {
+            console.error("Failed to connect to device after scan/reconnect attempt:", connectError);
+            this.isConnected = false;
+            this.currentDevice = null;
+            EventEmitterService.emit('connectionStatus', 'reconnectionFailed'); // Or 'connectionFailed'
+            reject(connectError);
+          }
+        });
+      } catch (error) {
+        console.error("Failed to initiate scale connection:", error);
+        this.isConnected = false;
+        this.currentDevice = null;
+        EventEmitterService.emit('connectionStatus', 'connectionFailed');
+        reject(error);
+      }
+    });
   }
 
   static async disconnectFromScale() {
@@ -119,9 +124,14 @@ class ScaleServiceFactory {
         await scaleService.disconnect();
         this.currentDevice = null;
         this.isConnected = false;
+        EventEmitterService.emit('connectionStatus', 'disconnected');
       }
     } catch (error) {
       console.error("Error disconnecting from scale:", error);
+      // Even if disconnect fails, we should update the status
+      this.isConnected = false;
+      this.currentDevice = null;
+      EventEmitterService.emit('connectionStatus', 'disconnected');
       throw error;
     }
   }
@@ -135,6 +145,11 @@ class ScaleServiceFactory {
     EventEmitterService.emit('weightUpdate', weightData);
   }
 
+  static subscribeToConnectionStatus(callback) {
+    EventEmitterService.on('connectionStatus', callback);
+    return () => EventEmitterService.off('connectionStatus', callback);
+  }
+
   static getConnectionStatus() {
     return {
       isConnected: this.isConnected,
@@ -144,13 +159,9 @@ class ScaleServiceFactory {
 
   static unsubscribeAll() {
     // Clean up all subscriptions
-    if (this.weightUpdateSubscribers) {
-      this.weightUpdateSubscribers = [];
-    }
-    if (this.connectionSubscribers) {
-      this.connectionSubscribers = [];
-    }
+    EventEmitterService.removeAllListeners('weightUpdate');
+    EventEmitterService.removeAllListeners('connectionStatus');
   }
 }
 
-export default ScaleServiceFactory; 
+export default ScaleServiceFactory;

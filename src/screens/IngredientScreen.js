@@ -2,16 +2,16 @@ import React, { useEffect, useLayoutEffect, useState, useRef, useCallback } from
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Divider, TouchableRipple } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import ScaleReadingComponent from '../components/ScaleReadingComponent'; // Assuming this is the correct path
+import ScaleReadingComponent from '../components/ScaleReadingComponent';
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import SpeechService from '../services/SpeechService';
+import { INGREDIENT_MESSAGES } from '../constants/speechText';
 
 const IngredientScreen = ({ route, navigation }) => {
   const { ingredientIndex, recipe } = route.params;
   const ingredient = recipe.ingredients[ingredientIndex];
   const [progress, setProgress] = useState(0);
   const [weightReached, setWeightReached] = useState(false);
-  const [isTared, setIsTared] = useState(false);
   const hasSpokenRef = useRef(false);
     
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
@@ -22,7 +22,6 @@ const IngredientScreen = ({ route, navigation }) => {
     // Reset states when component mounts or ingredient changes
     setProgress(0);
     setWeightReached(false);
-    setIsTared(false);
     hasSpokenRef.current = false; // Reset the spoken ref
     
     // Announce the new ingredient
@@ -33,7 +32,6 @@ const IngredientScreen = ({ route, navigation }) => {
 
       setProgress(0);
       setWeightReached(false);
-      setIsTared(false);
       SpeechService.stop();
     }
 }, [ingredient]);
@@ -47,6 +45,7 @@ const IngredientScreen = ({ route, navigation }) => {
   }, [ingredient]);
 
   const handleNext = () => {
+    console.log('[IngredientScreen] Next button pressed');
     if (isLastIngredient) {
       SpeechService.stop();
       ScaleServiceFactory.unsubscribeAll();
@@ -64,48 +63,47 @@ const IngredientScreen = ({ route, navigation }) => {
     if (progress >= 0.95) return '#4CAF50'; // Green
     if (progress >= 0.8) return '#FF9800'; // Yellow
     if (progress >= 0.01) return '#F44336'; // Red
+    return '#F44336'; // Red for empty scale
   };
 
 
-  const handleProgressUpdate = (currentProgress) => {
+  const handleProgressUpdate = (currentProgress, isStable) => {
     console.log('[IngredientScreen] Ingregient Progress update:', ingredient, currentProgress);
     // Only update progress if scale has been tared
     setProgress(currentProgress);
     
     // Perfect weight range
-    if (currentProgress >= 0.95 && currentProgress <= 1.05) {
+    if (isStable && currentProgress >= 0.95 && currentProgress <= 1.05) {
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'perfect') {
         setWeightReached(true);
-        SpeechService.speak('Stop. Well done! Click Next');
+        SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT);
         hasSpokenRef.current = 'perfect';
       }
     }
     // Underweight range
-    else if (currentProgress < 0.95 && currentProgress >= 0.05) {
+    else if (isStable && currentProgress < 0.95 && currentProgress >= 0.05) {
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'under') {
         setWeightReached(false);
-        SpeechService.speak('Add more');
+        SpeechService.speak(INGREDIENT_MESSAGES.ADD_MORE);
         hasSpokenRef.current = 'under';
       }
     }
     // Overweight range
     else if (currentProgress > 1.05) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'over') {
+      if (isStable && !hasSpokenRef.current || hasSpokenRef.current !== 'over') {
         setWeightReached(false);
-        SpeechService.speak('Too much. Take. Some. Out'); //make it speak slower
+        SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
         hasSpokenRef.current = 'over';
       }
     }
     // Starting/empty scale
-    else if (currentProgress < 0.01) {
+    else if (isStable && currentProgress < 0.01) {
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'start') {
         setWeightReached(false);
-        SpeechService.speak('Put the ingredient on the scale');
+        SpeechService.speak(INGREDIENT_MESSAGES.START_WEIGHING);
         hasSpokenRef.current = 'start';
       }
     }
-  
-
   };
 
   useLayoutEffect(() => {
@@ -119,8 +117,21 @@ const IngredientScreen = ({ route, navigation }) => {
       ),
       headerTitleAlign: 'center', // This centers the entire header title component
       headerRight: () => (
-        <TouchableOpacity 
-          style={[styles.nextButton, !weightReached && styles.nextButtonDisabled]}
+        <Text>Next Button tmp</Text>
+      ),
+    });
+  }, [navigation, ingredient, weightReached, isLastIngredient]);
+
+
+
+  return (
+    <View style={styles.container}>
+      
+      <TouchableOpacity 
+          style={[
+            styles.nextButton, 
+            !weightReached && styles.nextButtonDisabled
+          ]}
           onPress={handleNext}
           disabled={!weightReached}
         >
@@ -133,15 +144,7 @@ const IngredientScreen = ({ route, navigation }) => {
             color="white" 
           />
         </TouchableOpacity>
-      ),
-    });
-  }, [navigation, ingredient, weightReached, isLastIngredient]);
 
-
-
-  return (
-    <View style={styles.container}>
-      
       {/* Middle Section */}
       <View style={[
         styles.middleSection, 
@@ -150,7 +153,7 @@ const IngredientScreen = ({ route, navigation }) => {
         <ScaleReadingComponent 
           targetIngredient={ingredient}
           onProgressUpdate={handleProgressUpdate}
-          requireTare={!isTared}
+          requireTare={ingredient.requireTare}
         />
         
         <Divider style={{ height: 1, backgroundColor: 'black' }} />
@@ -162,12 +165,13 @@ const IngredientScreen = ({ route, navigation }) => {
             progress >= 0.05 ? 'Add more' : ''
             }  
           </Text>
+          <Divider style={{ height: 1, backgroundColor: 'black' }} />
 
       </View>
 
       {/* Bottom Section */}
-      <View style={styles}>
-      <Text style={styles.addMoreText}>
+      <View style={styles.bottomSection}>
+      < Text style={styles.addMoreText}>
           '.'
         </Text>
       </View>
@@ -201,14 +205,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   nextButton: {
+    position: 'absolute',
+    top: 10,
+    right: 16,
     backgroundColor: '#007AFF',
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16, // Add right margin to move away from screen edge
-    paddingRight: 8, // Adjust padding for icon
+    zIndex: 999, // Ensure button is above other content
+    elevation: 5, // Add elevation for Android
+    shadowColor: '#000', // Add shadow for iOS
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   nextButtonDisabled: {
     backgroundColor: '#cccccc',
@@ -221,13 +235,15 @@ const styles = StyleSheet.create({
   },
   middleSection: {
     flex: 1,
-    backgroundColor: 'red',
+    backgroundColor: '#F44336',
     justifyContent: 'center',
     alignItems: 'center',
+    verticalAlign: 'middle',
+    
   },
   addMoreText: {
     color: 'white',
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 10,
   },
@@ -238,7 +254,7 @@ const styles = StyleSheet.create({
   },
   bottomSection: {
     backgroundColor: 'white', // Or any color for the bottom section
-    padding: 20,
+    padding: 0,
     alignItems: 'flex-end',
   }
 });

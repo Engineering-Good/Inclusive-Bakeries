@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar, Image } from 'react-native';
 import { Searchbar, FAB, IconButton } from 'react-native-paper';
 import RecipeService from '../services/RecipeService'; // Import RecipeService
 
@@ -64,6 +64,13 @@ export default function RecipeListScreen({ navigation }) {
       onPress={() => navigation.navigate('Recipe Details', { recipeId: item.id })}
     >
       <View style={styles.recipeInfo}>
+        {item.imageUri && (
+          <Image
+            source={item.imageUri}
+            style={styles.recipeImage}
+            defaultSource={require('../assets/placeholder.png')}
+          />
+        )}
         <Text style={styles.recipeTitle}>{item.title}</Text>
         {/* Removed recipeMetaContainer as sample recipes don't have prepTime, cookTime, difficulty */}
       </View>
@@ -122,6 +129,12 @@ const styles = StyleSheet.create({
   },
   recipeInfo: {
     flex: 1,
+  },
+  recipeImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 4,
+    marginBottom: 8,
   },
   recipeTitle: {
     fontSize: 18,

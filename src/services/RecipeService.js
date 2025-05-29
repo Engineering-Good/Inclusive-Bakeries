@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import sampleRecipes from '../data/sampleRecipes';
+import { sampleRecipes } from '../data/sampleRecipes';
 
 const RECIPES_STORAGE_KEY = 'app_recipes';
 
@@ -14,7 +14,8 @@ class RecipeService {
         return sampleRecipes;
       }
       console.log('Recipes already initialized.');
-      return JSON.parse(storedRecipes);
+      const parsedRecipes = JSON.parse(storedRecipes);
+      return this.rehydrateRecipeImages(parsedRecipes);
     } catch (error) {
       console.error('Error initializing recipes:', error);
       return sampleRecipes; // Fallback to sample data on error
@@ -25,7 +26,8 @@ class RecipeService {
     try {
       const storedRecipes = await AsyncStorage.getItem(RECIPES_STORAGE_KEY);
       if (storedRecipes !== null) {
-        return JSON.parse(storedRecipes);
+        const parsedRecipes = JSON.parse(storedRecipes);
+        return this.rehydrateRecipeImages(parsedRecipes);
       }
       // If no recipes are stored, initialize and return sample recipes
       return await this.initializeRecipes();
@@ -33,6 +35,20 @@ class RecipeService {
       console.error('Error getting recipes:', error);
       return []; // Return empty array on error
     }
+  }
+
+  static rehydrateRecipeImages(recipes) {
+    // Map through recipes and rehydrate image URIs from sampleRecipes
+    return recipes.map(recipe => {
+      const sampleRecipe = sampleRecipes.find(sample => sample.id === recipe.id);
+      if (sampleRecipe) {
+        return {
+          ...recipe,
+          imageUri: sampleRecipe.imageUri
+        };
+      }
+      return recipe;
+    });
   }
 
   static async saveRecipes(recipes) {

@@ -1,0 +1,19 @@
+{
+    "android": {
+      "gradleAarProjects": [
+        {
+          "name": "ppbasekit",
+          "aarFilePath": "android/libs/ppbasekit-4.1.4.aar"
+        },
+        {
+          "name": "ppbluetoothkit",
+          "aarFilePath": "android/libs/ppbluetoothkit-4.1.4.aar"
+        },
+        {
+          "name": "ppcalculatekit",
+          "aarFilePath": "android/libs/ppcalculatekit-4.1.4.aar"
+        }
+        
+      ]
+    }
+  }

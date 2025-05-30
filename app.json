@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "InclusiveBakerApp",
+    "slug": "InclusiveBakerApp",
+    "version": "1.0.0",
+    "platforms": [
+      "android",
+      "web"
+    ],
+    "orientation": "landscape",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.inclusivebakerapp",
+      "maven": [
+        {
+          "url": "https://raw.githubusercontent.com/LefuHengqi/PPBaseKit-Android/main/"
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "react-native-ble-plx",
+      "expo-build-properties"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.anonymous.InclusiveBakerApp"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "46d48457-3d50-40e2-8a3f-011aa2939a79"
+      }
+    }
+  }
+}

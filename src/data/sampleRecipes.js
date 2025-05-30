@@ -26,9 +26,9 @@ export const sampleRecipes = [
     id: '2',
     title: 'Banana Cake',
     ingredients: [
-      { id: '2001', name: 'Flour', amount: 150, unit: 'g' },
-      { id: '2002', name: 'Sugar', amount: 100, unit: 'g' },
-      { id: '2003', name: 'Butter', amount: 120, unit: 'g' }
+      { id: '2001', name: 'Flour', amount: 150, unit: 'g', requireTare: true },
+      { id: '2002', name: 'Sugar', amount: 100, unit: 'g', requireTare: true },
+      { id: '2003', name: 'Butter', amount: 120, unit: 'g', requireTare: true }
     ],
     imageUri: recipeImages.bananacake,
   },
@@ -36,9 +36,9 @@ export const sampleRecipes = [
     id: '3',
     title: 'Brownies',
     ingredients: [
-      { id: '3001', name: 'Flour', amount: 150, unit: 'g' },
-      { id: '3002', name: 'Sugar', amount: 100, unit: 'g' },
-      { id: '3003', name: 'Butter', amount: 120, unit: 'g' }
+      { id: '3001', name: 'Flour', amount: 150, unit: 'g', requireTare: true },
+      { id: '3002', name: 'Sugar', amount: 100, unit: 'g', requireTare: true },
+      { id: '3003', name: 'Butter', amount: 120, unit: 'g', requireTare: true }
     ],
     imageUri: recipeImages.brownies,
   }

@@ -4,6 +4,8 @@ import { IconButton, Button, Checkbox, Card, Snackbar } from 'react-native-paper
 import * as ImagePicker from 'expo-image-picker';
 import * as Speech from 'expo-speech';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Dialog, Portal } from 'react-native-paper';
+
 
 export default function EditRecipeScreen({ route, navigation }) {
   const { recipe: initialRecipe, onSave } = route.params || {};
@@ -14,6 +16,8 @@ export default function EditRecipeScreen({ route, navigation }) {
   const [recipes, setRecipes] = useState([]);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [deleteIngredientDialog, setDeleteIngredientDialog] = useState(false);
+
 
   const showSnackbar = useCallback((message) => {
     setSnackbarMessage(message);
@@ -27,52 +31,44 @@ export default function EditRecipeScreen({ route, navigation }) {
       Alert.alert('Error', 'Recipe must have at least one ingredient');
       return;
     }
-
+  
     try {
-      // Update local state first
+      // First update the local state immediately
       const updatedIngredients = ingredients.filter(ing => ing.id !== ingredientId);
-      console.log('Filtered ingredients:', updatedIngredients);
+      setIngredients(updatedIngredients); // Update state first
       
-      // Get current recipes from storage
-      const storedRecipesStr = await AsyncStorage.getItem('recipes');
-      if (!storedRecipesStr) {
-        throw new Error('No recipes found in storage');
-      }
-      
-      const storedRecipes = JSON.parse(storedRecipesStr);
-      console.log('Found recipes in storage:', storedRecipes.length);
-
-      // Create updated recipe
+      // Then update AsyncStorage
       const updatedRecipe = {
         ...initialRecipe,
         ingredients: updatedIngredients
       };
-
-      // Update recipes in storage
+  
+      // Get current recipes
+      const storedRecipesStr = await AsyncStorage.getItem('recipes');
+      if (!storedRecipesStr) throw new Error('No recipes found');
+      
+      const storedRecipes = JSON.parse(storedRecipesStr);
       const updatedRecipes = storedRecipes.map(r => 
         r.id === initialRecipe.id ? updatedRecipe : r
       );
-
-      // Save to AsyncStorage
+  
       await AsyncStorage.setItem('recipes', JSON.stringify(updatedRecipes));
-      console.log('Saved to AsyncStorage');
-
-      // Update local state
-      setIngredients(updatedIngredients);
-
-      // Call onSave callback
+      
+      // Call onSave callback if it exists
       if (onSave) {
         await onSave(updatedRecipe);
       }
-
+  
       showSnackbar('Ingredient deleted successfully');
-
-      // Close editor if we're editing the deleted ingredient
+      
+      // Close editor if needed
       if (selectedIngredient?.id === ingredientId) {
         setSelectedIngredient(null);
       }
     } catch (error) {
       console.error('Failed to delete ingredient:', error);
+      // Revert state if AsyncStorage fails
+      setIngredients(ingredients);
       Alert.alert('Error', 'Failed to delete ingredient');
     }
   }, [ingredients, initialRecipe, onSave, selectedIngredient, showSnackbar]);
@@ -140,12 +136,18 @@ export default function EditRecipeScreen({ route, navigation }) {
     }
   };
 
-  const updateIngredient = (id, key, value) => {
-    const updated = ingredients.map(ing => 
-      ing.id === id ? { ...ing, [key]: value } : ing
+  const updateIngredient = useCallback((id, key, value) => {
+    setIngredients(prevIngredients =>
+      prevIngredients.map(ingredient =>
+        ingredient.id === id ? {
+          ...ingredient,
+          [key]: key === 'imageUri' && typeof value === 'object' && value.uri // Check if it's the imageUri being set
+                   ? value.uri // Take the uri string from the object
+                   : value, // Otherwise, use the value as is
+        } : ingredient
+      )
     );
-    setIngredients(updated);
-  };
+  }, []);
 
   const addIngredient = () => {
     const newIngredient = {
@@ -212,6 +214,8 @@ export default function EditRecipeScreen({ route, navigation }) {
     }
   };
 
+  
+
   const saveRecipe = async () => {
     if (!title.trim()) {
       Alert.alert('Error', 'Recipe title is required');
@@ -221,7 +225,7 @@ export default function EditRecipeScreen({ route, navigation }) {
     const updatedRecipe = {
       id: initialRecipe?.id || Date.now().toString(),
       title,
-      imageUri: recipeImage || require('../assets/placeholder.png'),
+      imageUri: recipeImage.uri || require('../assets/placeholder.png'),
       ingredients: ingredients.map(ing => ({
         ...ing,
         imageUri: ing.imageUri || require('../assets/placeholder.png')
@@ -239,6 +243,17 @@ export default function EditRecipeScreen({ route, navigation }) {
     }
   };
 
+  const handleDeleteIngredientCancel = () => {
+    setDeleteIngredientDialog({ visible: false, ingredient: null });
+  };
+  
+  const handleDeleteIngredientConfirm = async () => {
+    if (deleteIngredientDialog.ingredient) {
+      await handleDeleteIngredient(deleteIngredientDialog.ingredient.id);
+    }
+    setDeleteIngredientDialog({ visible: false, ingredient: null });
+  };  
+
   const renderIngredientCard = useCallback((ingredient) => {
     return (
       <Card style={[styles.ingredientCard, { backgroundColor: '#f5f5f5' }]} key={ingredient.id}>
@@ -248,8 +263,8 @@ export default function EditRecipeScreen({ route, navigation }) {
             onPress={() => openIngredientEditor(ingredient)}
           >
             <Image
-              source={ingredient.imageUri || require('../assets/placeholder.png')}
-              style={styles.ingredientThumb}
+            source={ingredient.uri || require('../assets/placeholder.png')}
+            style={styles.ingredientThumb}
             />
             <View style={styles.ingredientInfo}>
               <Text style={styles.ingredientName}>{ingredient.name || 'New Ingredient'}</Text>
@@ -270,24 +285,15 @@ export default function EditRecipeScreen({ route, navigation }) {
               size={20} 
               color="#666"
               onPress={() => {
-                Alert.alert(
-                  'Delete Ingredient',
-                  `Are you sure you want to delete ${ingredient.name || 'this ingredient'}?`,
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Delete',
-                      style: 'destructive',
-                      onPress: () => handleDeleteIngredient(ingredient.id)
-                    }
-                  ],
-                  { cancelable: true }
-                );
+                console.log('Pressed delete for', ingredient);
+                setDeleteIngredientDialog({
+                  visible: true,
+                  ingredient,
+                });
               }}
             />
           </View>
         </View>
-        
         <View style={styles.ingredientActions}>
           <View style={styles.tareContainer}>
             <Checkbox
@@ -324,6 +330,7 @@ export default function EditRecipeScreen({ route, navigation }) {
         </View>
       </Card>
     );
+    
   }, [openIngredientEditor, handleDeleteIngredient]);
 
   // Update the ingredient editor modal layout
@@ -344,8 +351,8 @@ export default function EditRecipeScreen({ route, navigation }) {
                   onPress={() => pickImage(false, selectedIngredient.id)}
                 >
                   <Image
-                    source={selectedIngredient.imageUri || require('../assets/placeholder.png')}
-                    style={styles.ingredientImage}
+                  source={selectedIngredient.uri || require('../assets/placeholder.png')}
+                  style={styles.ingredientImage}
                   />
                   <View style={styles.imageOverlay}>
                     <Text style={styles.editImageText}>Edit Cover</Text>
@@ -487,6 +494,29 @@ export default function EditRecipeScreen({ route, navigation }) {
           Save Recipe
         </Button>
       </ScrollView>
+      <Portal>
+      <Dialog
+        visible={deleteIngredientDialog.visible}
+        onDismiss={handleDeleteIngredientCancel}
+      >
+        <Dialog.Title>Delete Ingredient</Dialog.Title>
+        <Dialog.Content>
+          <Text>
+            Are you sure you want to delete "{deleteIngredientDialog.ingredient?.name}"? This cannot be undone.
+          </Text>
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button onPress={handleDeleteIngredientCancel}>Cancel</Button>
+          <Button
+            mode="contained"
+            onPress={handleDeleteIngredientConfirm}
+            style={styles.deleteDialogBtn}
+          >
+            Delete
+          </Button>
+        </Dialog.Actions>
+      </Dialog>
+    </Portal>
       <Snackbar
         visible={snackbarVisible}
         onDismiss={() => setSnackbarVisible(false)}
@@ -703,7 +733,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   snackbarText: {
-    color: '#fff',
+    color: 'white',
     fontSize: 16,
     textAlign: 'center',
   },

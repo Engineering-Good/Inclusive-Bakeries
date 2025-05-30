@@ -109,15 +109,33 @@ const IngredientScreen = ({ route, navigation }) => {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: () => (
-        <View style={styles.headerTitleContainer}>
+        <View style={styles.titleContainer}>
           <Text style={styles.headerTitle}>
-            {`${ingredient.amount}${ingredient.unit} ${ingredient.name}`}
+            {`${ingredient.name.replace(/([a-z])([A-Z])/g, '$1 $2')} ${ingredient.amount}${ingredient.unit}`}
           </Text>
         </View>
       ),
       headerTitleAlign: 'center', // This centers the entire header title component
       headerRight: () => (
-        <Text>Next Button tmp</Text>
+        <View>
+          <TouchableOpacity 
+          style={[
+            styles.nextButton, 
+            !weightReached && styles.nextButtonDisabled
+          ]}
+          onPress={handleNext}
+          disabled={!weightReached}
+          >
+            <Text style={styles.nextButtonText}>
+              {isLastIngredient ? 'FINISH' : 'NEXT'}
+            </Text>
+            <Icon 
+              name={isLastIngredient ? "check-circle" : "arrow-forward"} 
+              size={24} 
+              color="white" 
+            />
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation, ingredient, weightReached, isLastIngredient]);
@@ -126,24 +144,7 @@ const IngredientScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      
-      <TouchableOpacity 
-          style={[
-            styles.nextButton, 
-            !weightReached && styles.nextButtonDisabled
-          ]}
-          onPress={handleNext}
-          disabled={!weightReached}
-        >
-          <Text style={styles.nextButtonText}>
-            {isLastIngredient ? 'FINISH' : 'NEXT'}
-          </Text>
-          <Icon 
-            name={isLastIngredient ? "check-circle" : "arrow-forward"} 
-            size={24} 
-            color="white" 
-          />
-        </TouchableOpacity>
+  
 
       {/* Middle Section */}
       <View style={[
@@ -186,10 +187,12 @@ const styles = StyleSheet.create({
   },
   topSection: {
     backgroundColor: 'white',
-    padding: 20,
+    // padding: 20,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 120,
+    minHeight: 80,
   },
   backButton: {
     padding: 8,
@@ -198,15 +201,18 @@ const styles = StyleSheet.create({
   titleContainer: {
     flex: 1,
     alignItems: 'center',
+    textAlign: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
+    alignContent: 'center',
   },
   nextButton: {
     position: 'absolute',
-    top: 10,
+    top: -22.5,
     right: 16,
     backgroundColor: '#007AFF',
     paddingVertical: 10,
@@ -238,8 +244,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F44336',
     justifyContent: 'center',
     alignItems: 'center',
-    verticalAlign: 'middle',
-    
   },
   addMoreText: {
     color: 'white',

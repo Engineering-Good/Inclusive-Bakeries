@@ -132,7 +132,7 @@ const ScaleReadingComponent = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Weight</Text>
+      {/* <Text style={styles.title}>Weight</Text> */}
 
       {error && <Text style={styles.error}>{error}</Text>}
 
@@ -190,22 +190,27 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     margin: 16,
+    alignContent: 'center',
   },
   title: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 16,
     color: 'white',
+    alignContent: 'center',
+    alignItems: 'center',
   },
   connectContainer: {
     alignItems: "center",
     padding: 20,
+    alignContent: 'center',
   },
   connectText: {
     fontSize: 16,
     color: "white",
     marginBottom: 16,
     textAlign: 'center',
+    alignContent: 'center',
   },
   weightContainer: {
     flexDirection: "row",
@@ -217,25 +222,30 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: "bold",
     color: "white",
+    alignContent: 'center',
   },
   unitText: {
     fontSize: 24,
     marginLeft: 8,
     color: "white",
+    alignContent: 'center',
   },
   progressContainer: {
     marginBottom: 16,
     width: screenWidth * 0.25, // 1/4 of screen width
+    alignContent: 'center',
     alignSelf: 'center',
   },
   progressBar: {
     height: 10,
     borderRadius: 5,
+    alignContent: 'center',
   },
   targetText: {
     textAlign: "right",
     marginTop: 8,
     color: "white",
+    alignContent: 'center',
   },
   error: {
     color: "#f44336",
@@ -246,15 +256,18 @@ const styles = StyleSheet.create({
     width: '80%',
     alignSelf: 'center',
     marginTop: 10,
+    alignContent: 'center',
   },
   loadingContainer: {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
+    alignContent: 'center',
   },
   spinner: {
     marginBottom: 10,
+    alignContent: 'center',
   },
 });
 

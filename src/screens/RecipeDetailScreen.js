@@ -219,16 +219,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 6,
-    margin: 18,
+    margin: 20,
   },
   ingredientText: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     flex: 1,
   },
   ingredientImage: {
-    width: 150,
-    height: 150,
+    width: 180,
+    height: 180,
     margin: 22,
   },
   divider: {

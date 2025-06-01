@@ -59,7 +59,11 @@ const IngredientScreen = ({ route, navigation }) => {
   };
 
   const getBackgroundColor = (progress) => {
+<<<<<<< HEAD
     if (progress >= 1.05) return '#FF9800'; // Yellow
+=======
+    if (progress >= 1.05) return '#0900FF'; // Blue
+>>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
     if (progress >= 0.95) return '#4CAF50'; // Green
     if (progress >= 0.8) return '#FF9800'; // Yellow
     if (progress >= 0.01) return '#F44336'; // Red
@@ -109,14 +113,21 @@ const IngredientScreen = ({ route, navigation }) => {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: () => (
+<<<<<<< HEAD
         <View style={styles.titleContainer}>
           <Text style={styles.headerTitle}>
             {`${ingredient.name.replace(/([a-z])([A-Z])/g, '$1 $2')} ${ingredient.amount}${ingredient.unit}`}
+=======
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>
+            {`${ingredient.amount}${ingredient.unit} ${ingredient.name}`}
+>>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
           </Text>
         </View>
       ),
       headerTitleAlign: 'center', // This centers the entire header title component
       headerRight: () => (
+<<<<<<< HEAD
         <View>
           <TouchableOpacity 
           style={[
@@ -136,6 +147,9 @@ const IngredientScreen = ({ route, navigation }) => {
             />
           </TouchableOpacity>
         </View>
+=======
+        <Text>Next Button tmp</Text>
+>>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
       ),
     });
   }, [navigation, ingredient, weightReached, isLastIngredient]);
@@ -144,7 +158,28 @@ const IngredientScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
+<<<<<<< HEAD
   
+=======
+      
+      <TouchableOpacity 
+          style={[
+            styles.nextButton, 
+            !weightReached && styles.nextButtonDisabled
+          ]}
+          onPress={handleNext}
+          disabled={!weightReached}
+        >
+          <Text style={styles.nextButtonText}>
+            {isLastIngredient ? 'FINISH' : 'NEXT'}
+          </Text>
+          <Icon 
+            name={isLastIngredient ? "check-circle" : "arrow-forward"} 
+            size={24} 
+            color="white" 
+          />
+        </TouchableOpacity>
+>>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
 
       {/* Middle Section */}
       <View style={[
@@ -187,12 +222,19 @@ const styles = StyleSheet.create({
   },
   topSection: {
     backgroundColor: 'white',
+<<<<<<< HEAD
     // padding: 20,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 120,
     minHeight: 80,
+=======
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+>>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
   backButton: {
     padding: 8,
@@ -201,6 +243,7 @@ const styles = StyleSheet.create({
   titleContainer: {
     flex: 1,
     alignItems: 'center',
+<<<<<<< HEAD
     textAlign: 'center',
     justifyContent: 'center',
   },
@@ -213,6 +256,17 @@ const styles = StyleSheet.create({
   nextButton: {
     position: 'absolute',
     top: -22.5,
+=======
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  nextButton: {
+    position: 'absolute',
+    top: 10,
+>>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
     right: 16,
     backgroundColor: '#007AFF',
     paddingVertical: 10,
@@ -244,6 +298,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F44336',
     justifyContent: 'center',
     alignItems: 'center',
+<<<<<<< HEAD
+=======
+    verticalAlign: 'middle',
+    
+>>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
   addMoreText: {
     color: 'white',

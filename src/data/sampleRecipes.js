@@ -3,6 +3,7 @@ const sampleRecipes = [
     id: '1',
     title: 'Chocolate Chip Brownies',
     ingredients: [
+<<<<<<< HEAD
       { id: '1001', name: 'Butter', amount: 125, unit: 'g', requireTare: true },
       { id: '1002', name: 'Sugar', amount: 125, unit: 'g', requireTare: true },
       { id: '1003', name: 'Flour', amount: 200, unit: 'g', requireTare: true },
@@ -10,11 +11,19 @@ const sampleRecipes = [
       { id: '1005', name: 'CocoaPowder', amount: 10, unit: 'g', requireTare: true },
     ],
     imageUri: 'https://handletheheat.com/wp-content/uploads/2017/03/chewy-brownies-SQUARE-500x500.jpg',
+=======
+      { id: '1001', name: 'Flour', amount: 160, unit: 'g', requireTare: true },
+      { id: '1002', name: 'Butter', amount: 180, unit: 'g', requireTare: true },
+    ],
+    imageUri: null,
+    
+>>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
   {
     id: '2',
     title: 'Classic Pancakes',
     ingredients: [
+<<<<<<< HEAD
       { id: '2001', name: 'Flour', amount: 150, unit: 'g', requireTare: true },
       { id: '2002', name: 'Sugar', amount: 100, unit: 'g', requireTare: true },
       { id: '2003', name: 'Butter', amount: 120, unit: 'g', requireTare: true }
@@ -36,6 +45,23 @@ const sampleRecipes = [
       { id: '3009', name: 'ChocolateChips', amount: 75, unit: 'g', requireTare: true }
     ],
     imageUri: 'https://www.spatuladesserts.com/wp-content/uploads/2024/09/Double-chocolate-muffins-04172-1.jpg',
+=======
+      { id: '2001', name: 'Flour', amount: 150, unit: 'g' },
+      { id: '2002', name: 'Sugar', amount: 100, unit: 'g' },
+      { id: '2003', name: 'Butter', amount: 120, unit: 'g' }
+    ],
+    imageUri: null,
+  },
+  {
+    id: '3',
+    title: 'Beef Stir Fry',
+    ingredients: [
+      { id: '3001', name: 'Flour', amount: 150, unit: 'g' },
+      { id: '3002', name: 'Sugar', amount: 100, unit: 'g' },
+      { id: '3003', name: 'Butter', amount: 120, unit: 'g' }
+    ],
+    imageUri: null,
+>>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   }
 ];
 

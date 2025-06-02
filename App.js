@@ -9,7 +9,6 @@ import IngredientScreen from './src/screens/IngredientScreen';
 import CelebrationScreen from './src/screens/CelebrationScreen';
 import InstructorScreen from './src/screens/InstructorScreen';
 import EditRecipeScreen from './src/screens/EditRecipeScreen';
-import sampleRecipes from './src/data/sampleRecipes';
 
 const Stack = createNativeStackNavigator();
 

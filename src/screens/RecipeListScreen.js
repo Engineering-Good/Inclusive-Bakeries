@@ -1,21 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar, Image } from 'react-native';
 import { Searchbar, FAB, IconButton } from 'react-native-paper';
-import RecipeService from '../services/RecipeService'; // Import RecipeService
+import RecipeService from '../services/RecipeService';
 
 export default function RecipeListScreen({ navigation }) {
   const [recipes, setRecipes] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredRecipes, setFilteredRecipes] = useState([]);
 
+  // Load recipes from storage
   useEffect(() => {
-    const initAndLoad = async () => {
-      await RecipeService.initializeRecipes(); // Ensure sample data is loaded if not present
-      loadRecipes();
+    const loadRecipes = async () => {
+      try {
+        console.log('[RecipeListScreen] Loading recipes...');
+        const loadedRecipes = await RecipeService.getRecipes();
+        console.log('[RecipeListScreen] Recipes loaded:', loadedRecipes.length);
+        setRecipes(loadedRecipes);
+      } catch (error) {
+        console.error('[RecipeListScreen] Failed to load recipes:', error);
+      }
     };
-    initAndLoad();
-  }, []);
 
+    // Load recipes immediately
+    loadRecipes();
+
+    // Also load recipes when the screen comes into focus
+    const unsubscribe = navigation.addListener('focus', loadRecipes);
+    return unsubscribe;
+  }, [navigation]);
+
+  // Filter recipes based on search query
   useEffect(() => {
     if (searchQuery === '') {
       setFilteredRecipes(recipes);
@@ -46,16 +60,6 @@ export default function RecipeListScreen({ navigation }) {
     });
   }, [navigation]);
 
-  const loadRecipes = async () => {
-    try {
-      const loadedRecipes = await RecipeService.getRecipes();
-      setRecipes(loadedRecipes);
-    } catch (error) {
-      console.error('Error loading recipes:', error);
-      setRecipes([]); // Fallback to empty array on error
-    }
-  };
-
   const onChangeSearch = query => setSearchQuery(query);
 
   const renderRecipeCard = ({ item }) => (
@@ -66,7 +70,7 @@ export default function RecipeListScreen({ navigation }) {
       <View style={styles.recipeInfo}>
         {item.imageUri && (
           <Image
-            source={item.imageUri}
+            source={typeof item.imageUri === 'string' ? { uri: item.imageUri } : item.imageUri}
             style={styles.recipeImage}
             defaultSource={require('../assets/placeholder.png')}
           />

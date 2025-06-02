@@ -107,7 +107,7 @@ export default function RecipeDetailScreen({ route, navigation }) {
           <TouchableOpacity 
             key={index} 
             style={styles.ingredientItem}
-            onPress={() => selectIngredient(index)} // Pass index instead of ingredient
+            onPress={() => selectIngredient(index)}
           >
             <Text style={styles.ingredientText}>
               {ingredient.name}: {ingredient.amount} {ingredient.unit}
@@ -121,17 +121,19 @@ export default function RecipeDetailScreen({ route, navigation }) {
         ))}
       </View>
 
-
-
-      <Text style={styles.sectionTitle}>Instructions</Text>
-      <View style={styles.instructionsContainer}>
-        {recipe.instructions && recipe.instructions.map((instruction, index) => (
-          <View key={index} style={styles.instructionItem}>
-            <Text style={styles.instructionNumber}>{index + 1}</Text>
-            <Text style={styles.instructionText}>{instruction}</Text>
+      {recipe.instructions && recipe.instructions.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Instructions</Text>
+          <View style={styles.instructionsContainer}>
+            {recipe.instructions.map((instruction, index) => (
+              <View key={index} style={styles.instructionItem}>
+                <Text style={styles.instructionNumber}>{index + 1}</Text>
+                <Text style={styles.instructionText}>{instruction}</Text>
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
+        </>
+      )}
     </ScrollView>
   );
 }

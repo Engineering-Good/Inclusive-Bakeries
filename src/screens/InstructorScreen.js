@@ -3,11 +3,11 @@ import {
   View, Text, FlatList, StyleSheet, Alert, Image, TouchableOpacity, Platform,
 } from 'react-native';
 import { Button, Snackbar, Dialog, Portal } from 'react-native-paper';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import RecipeService from '../services/RecipeService';
 import { sampleRecipes } from '../data/sampleRecipes';
 
 export default function InstructorScreen({ navigation }) {
-  const [recipes, setRecipes] = useState(sampleRecipes);
+  const [recipes, setRecipes] = useState([]);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [deleteDialog, setDeleteDialog] = useState({ visible: false, id: null, title: '' });
@@ -15,15 +15,12 @@ export default function InstructorScreen({ navigation }) {
   useEffect(() => {
     const loadRecipes = async () => {
       try {
-        console.log('Loading recipes from storage...');
-        const data = await AsyncStorage.getItem('recipes');
-        if (data) {
-          const parsed = JSON.parse(data);
-          console.log('Loaded recipes count:', parsed.length);
-          setRecipes(parsed);
-        }
+        console.log('[InstructorScreen] Loading recipes...');
+        const loadedRecipes = await RecipeService.getRecipes();
+        console.log('[InstructorScreen] Recipes loaded:', loadedRecipes.length);
+        setRecipes(loadedRecipes);
       } catch (error) {
-        console.error('Failed to load recipes:', error);
+        console.error('[InstructorScreen] Failed to load recipes:', error);
       }
     };
 
@@ -42,28 +39,28 @@ export default function InstructorScreen({ navigation }) {
 
   const saveRecipes = async (newRecipes) => {
     try {
-      console.log('Saving recipes, count:', newRecipes.length);
-      await AsyncStorage.setItem('recipes', JSON.stringify(newRecipes));
-      setRecipes(newRecipes);
-      console.log('Recipes saved successfully');
+      console.log('[InstructorScreen] Saving recipes, count:', newRecipes.length);
+      const savedRecipes = await RecipeService.saveRecipes(newRecipes);
+      setRecipes(savedRecipes);
+      console.log('[InstructorScreen] Recipes saved successfully');
     } catch (error) {
-      console.error('Error saving recipes:', error);
+      console.error('[InstructorScreen] Error saving recipes:', error);
       throw error;
     }
   };
 
   const deleteRecipe = async (id, title) => {
     try {
-      console.log('Deleting recipe:', id, title);
+      console.log('[InstructorScreen] Deleting recipe:', id, title);
       const filtered = recipes.filter((recipe) => recipe.id !== id);
-      console.log('Filtered recipes length:', filtered.length);
+      console.log('[InstructorScreen] Filtered recipes length:', filtered.length);
       await saveRecipes(filtered);
       showSnackbar(`${title} deleted successfully`);
       
       // Force a re-render by updating state
       setRecipes([...filtered]);
     } catch (error) {
-      console.error('Error deleting recipe:', error);
+      console.error('[InstructorScreen] Error deleting recipe:', error);
       Alert.alert(
         'Error',
         'Failed to delete recipe. Please try again.'
@@ -109,9 +106,21 @@ export default function InstructorScreen({ navigation }) {
             onPress={() => navigation.navigate('EditRecipe', { 
               recipe: null,
               onSave: async (newRecipe) => {
-                const newRecipes = [...recipes, newRecipe];
-                await saveRecipes(newRecipes);
-                showSnackbar(`${newRecipe.title} created successfully`);
+                try {
+                  console.log('[InstructorScreen] Creating new recipe:', newRecipe);
+                  // Ensure the recipe has a unique ID
+                  const recipeToSave = {
+                    ...newRecipe,
+                    id: newRecipe.id || Date.now().toString()
+                  };
+                  const newRecipes = [...recipes, recipeToSave];
+                  const savedRecipes = await RecipeService.saveRecipes(newRecipes);
+                  setRecipes(savedRecipes);
+                  showSnackbar(`${recipeToSave.title} created successfully`);
+                } catch (error) {
+                  console.error('[InstructorScreen] Failed to save new recipe:', error);
+                  Alert.alert('Error', 'Failed to save recipe');
+                }
               }
             })}
           >
@@ -148,10 +157,10 @@ export default function InstructorScreen({ navigation }) {
       <View style={styles.cardContainer}>
         <View style={styles.card}>
           <Image 
-            source={item.imageUri}
+            source={typeof item.imageUri === 'string' && item.imageUri.startsWith('http') ? { uri: item.imageUri } : (item.imageUri || require('../assets/placeholder.png'))}
             style={styles.image} 
             defaultSource={require('../assets/placeholder.png')}
-            onError={(error) => console.log('Image loading error for', item.title, ':', error)}
+            onError={(error) => console.log('[InstructorScreen] Image loading error for', item.title, ':', error.nativeEvent?.error)}
             resizeMode="cover"
           />
           <Text style={styles.title}>{item.title}</Text>
@@ -193,6 +202,36 @@ export default function InstructorScreen({ navigation }) {
     ...calculatePaddingItems(recipes.length),
   ];
 
+  // TEMPORARY FUNCTION TO RESET DATA
+  const handleResetData = async () => {
+    Alert.alert(
+      'Reset Recipe Data',
+      'Are you sure you want to clear all recipes and reload sample data? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset Data',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('[InstructorScreen] Attempting to reset recipes to sample data...');
+              await RecipeService.resetRecipesToSampleData();
+              // Reload recipes in this screen after reset
+              const reloadedRecipes = await RecipeService.getRecipes();
+              setRecipes(reloadedRecipes);
+              showSnackbar('Recipes have been reset to sample data.');
+              console.log('[InstructorScreen] Recipes reset and reloaded.', reloadedRecipes);
+            } catch (error) {
+              console.error('[InstructorScreen] Failed to reset recipes:', error);
+              Alert.alert('Error', 'Could not reset recipe data.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>My Recipes</Text>
@@ -206,7 +245,7 @@ export default function InstructorScreen({ navigation }) {
       />
       <TouchableOpacity
         style={styles.bakerViewBtn}
-        onPress={() => navigation.navigate('BakerView')}
+        onPress={() => navigation.navigate('Recipes')}
       >
         <Text style={styles.bakerText}>Baker View</Text>
       </TouchableOpacity>
@@ -348,10 +387,10 @@ const styles = StyleSheet.create({
   snackbar: {
     position: 'absolute',
     bottom: 0,
-    backgroundColor: '#333',
+    backgroundColor: 'rgba(237, 237, 237, 0.78)',
   },
   deleteDialogBtn: {
-    backgroundColor: '#ff5c5c',
+    backgroundColor: "rgba(237, 237, 237, 0.78)",
     marginLeft: 8,
   },
 });

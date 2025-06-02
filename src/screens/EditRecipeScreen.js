@@ -197,9 +197,9 @@ export default function EditRecipeScreen({ route, navigation }) {
     console.log('Starting saveIngredientChanges...');
     console.log('Selected ingredient:', selectedIngredient);
     
-    if (!selectedIngredient.name || !selectedIngredient.amount) {
-      console.log('Validation failed: missing name or amount');
-      Alert.alert('Error', 'Name and amount are required');
+    if (!selectedIngredient || !selectedIngredient.name || !selectedIngredient.amount) {
+      console.log('Validation failed: missing selected ingredient, or its name or amount');
+      Alert.alert('Error', 'Ingredient details, name, and amount are required');
       return;
     }
 
@@ -209,22 +209,24 @@ export default function EditRecipeScreen({ route, navigation }) {
       const updatedIngredients = ingredients.map(ing => 
         ing.id === selectedIngredient.id ? selectedIngredient : ing
       );
-      console.log('Updated ingredients:', updatedIngredients);
+      console.log('Updated ingredients (local state):', updatedIngredients);
       setIngredients(updatedIngredients);
 
-      console.log('Preparing to update AsyncStorage...');
-      console.log('Current recipe:', initialRecipe);
-      console.log('Current recipes:', recipes);
-
-      // Update AsyncStorage
-      const updatedRecipes = recipes.map(r =>
-        r.id === initialRecipe.id ? { ...r, ingredients: updatedIngredients } : r
-      );
-      console.log('Updated recipes to save:', updatedRecipes);
-      
-      await AsyncStorage.setItem('recipes', JSON.stringify(updatedRecipes));
-      console.log('AsyncStorage updated successfully');
-      setRecipes(updatedRecipes);
+      // Only update AsyncStorage for the main recipes list if editing an existing recipe
+      if (initialRecipe && initialRecipe.id) {
+        console.log('Preparing to update AsyncStorage for existing recipe ID:', initialRecipe.id);
+        // const currentRecipes = recipes; // recipes state should be up-to-date
+        const updatedRecipesList = recipes.map(r =>
+          r.id === initialRecipe.id ? { ...r, ingredients: updatedIngredients } : r
+        );
+        console.log('Updated recipes list to save to AsyncStorage:', updatedRecipesList);
+        
+        await AsyncStorage.setItem('recipes', JSON.stringify(updatedRecipesList));
+        console.log('AsyncStorage updated successfully for existing recipe.');
+        setRecipes(updatedRecipesList); // Keep the main recipes state in sync
+      } else {
+        console.log('New recipe mode: Ingredient changes are local. Full recipe save will persist them.');
+      }
 
       // Show success message
       showSnackbar('Ingredient updated successfully');
@@ -244,6 +246,11 @@ export default function EditRecipeScreen({ route, navigation }) {
       return;
     }
   
+    // Create instructions array from ingredient instructionTexts
+    const instructions = ingredients
+      .filter(ing => ing.instructionText && ing.instructionText.trim()) // Only include ingredients with instructions
+      .map(ing => ing.instructionText.trim());
+  
     const updatedRecipe = {
       id: initialRecipe?.id || Date.now().toString(),
       title,
@@ -251,7 +258,8 @@ export default function EditRecipeScreen({ route, navigation }) {
       ingredients: ingredients.map(ing => ({
         ...ing,
         imageUri: ing.imageUri || require('../assets/placeholder.png')
-      }))
+      })),
+      instructions // Use the generated instructions array
     };
   
     try {

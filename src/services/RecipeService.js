@@ -38,32 +38,66 @@ class RecipeService {
   }
 
   static rehydrateRecipeImages(recipes) {
-    // Map through recipes and rehydrate image URIs from sampleRecipes
-    return recipes.map(recipe => {
-      const sampleRecipe = sampleRecipes.find(sample => sample.id === recipe.id);
-      if (sampleRecipe) {
+    console.log('[RecipeService] Rehydrating images for recipes:', recipes);
+    const rehydrated = recipes.map(recipeFromStorage => {
+      const originalSampleRecipe = sampleRecipes.find(sample => sample.id === recipeFromStorage.id);
+
+      if (originalSampleRecipe) {
+        // This recipe was originally a sample recipe.
+        // Restore its imageUri from the canonical sampleRecipes list
+        // to ensure require() paths for local assets are correctly rehydrated.
+        console.log(`[RecipeService] Rehydrating image for sample recipe: ${recipeFromStorage.title} (ID: ${recipeFromStorage.id}) using image from original sample.`);
         return {
-          ...recipe,
-          imageUri: sampleRecipe.imageUri
+          ...recipeFromStorage,
+          imageUri: originalSampleRecipe.imageUri 
         };
+      } else {
+        // This is a user-created recipe or its ID doesn't match any sample.
+        // Assume its imageUri in storage is already a valid string URI (from ImagePicker or a placeholder string).
+        console.log(`[RecipeService] User-created or non-sample recipe: ${recipeFromStorage.title} (ID: ${recipeFromStorage.id}). Using stored imageUri:`, recipeFromStorage.imageUri);
+        return recipeFromStorage; // Use the imageUri as it was stored
       }
-      return recipe;
     });
+    console.log('[RecipeService] Rehydration complete. Result:', rehydrated);
+    return rehydrated;
   }
 
   static async saveRecipes(recipes) {
     try {
+      console.log('[RecipeService] Saving recipes:', recipes.length);
       await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(recipes));
-      console.log('Recipes saved successfully.');
+      console.log('[RecipeService] Recipes saved successfully');
+      return this.rehydrateRecipeImages(recipes); // Return the rehydrated recipes
     } catch (error) {
-      console.error('Error saving recipes:', error);
+      console.error('[RecipeService] Error saving recipes:', error);
+      throw error; // Re-throw the error to be handled by the caller
     }
   }
 
   static async getRecipeById(id) {
     try {
+      console.log('Getting recipe by ID:', id);
       const recipes = await this.getRecipes();
-      return recipes.find(recipe => recipe.id === id);
+      const recipe = recipes.find(recipe => recipe.id === id);
+      
+      if (!recipe) {
+        console.log('Recipe not found:', id);
+        return null;
+      }
+
+      // If it's a sample recipe, use the original image
+      const originalSampleRecipe = sampleRecipes.find(sample => sample.id === recipe.id);
+      if (originalSampleRecipe) {
+        console.log('Found original sample recipe, using its image');
+        return {
+          ...recipe,
+          imageUri: originalSampleRecipe.imageUri
+        };
+      }
+
+      // For user-created recipes, use the stored imageUri
+      console.log('Using stored recipe data for user-created recipe');
+      return recipe;
     } catch (error) {
       console.error(`Error getting recipe with ID ${id}:`, error);
       return null;

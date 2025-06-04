@@ -1,33 +1,35 @@
 import React, { useState, useEffect } from 'react';
-<<<<<<< HEAD
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar, Image } from 'react-native';
-=======
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
 import { Searchbar, FAB, IconButton } from 'react-native-paper';
-import RecipeService from '../services/RecipeService'; // Import RecipeService
+import RecipeService from '../services/RecipeService';
 
 export default function RecipeListScreen({ navigation }) {
   const [recipes, setRecipes] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredRecipes, setFilteredRecipes] = useState([]);
 
-<<<<<<< HEAD
-
+  // Load recipes from storage
   useEffect(() => {
-    const initAndLoad = async () => {
-      await RecipeService.resetRecipesToSampleData();
-; // Ensure sample data is loaded if not present
-=======
-  useEffect(() => {
-    const initAndLoad = async () => {
-      await RecipeService.initializeRecipes(); // Ensure sample data is loaded if not present
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
-      loadRecipes();
+    const loadRecipes = async () => {
+      try {
+        console.log('[RecipeListScreen] Loading recipes...');
+        const loadedRecipes = await RecipeService.getRecipes();
+        console.log('[RecipeListScreen] Recipes loaded:', loadedRecipes.length);
+        setRecipes(loadedRecipes);
+      } catch (error) {
+        console.error('[RecipeListScreen] Failed to load recipes:', error);
+      }
     };
-    initAndLoad();
-  }, []);
 
+    // Load recipes immediately
+    loadRecipes();
+
+    // Also load recipes when the screen comes into focus
+    const unsubscribe = navigation.addListener('focus', loadRecipes);
+    return unsubscribe;
+  }, [navigation]);
+
+  // Filter recipes based on search query
   useEffect(() => {
     if (searchQuery === '') {
       setFilteredRecipes(recipes);
@@ -58,57 +60,26 @@ export default function RecipeListScreen({ navigation }) {
     });
   }, [navigation]);
 
-  const loadRecipes = async () => {
-    try {
-      const loadedRecipes = await RecipeService.getRecipes();
-<<<<<<< HEAD
-      console.log('Loaded recipes:', loadedRecipes);
-=======
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
-      setRecipes(loadedRecipes);
-    } catch (error) {
-      console.error('Error loading recipes:', error);
-      setRecipes([]); // Fallback to empty array on error
-    }
-  };
-
   const onChangeSearch = query => setSearchQuery(query);
 
-<<<<<<< HEAD
-  const renderRecipeCard = ({ item }) => {
-    console.log('Rendering recipe:', item.title, item.imageUri);
-
-    return (
-      <TouchableOpacity 
-        style={styles.recipeCard}
-        onPress={() => navigation.navigate('Recipe Details', { recipeId: item.id })}
-      >
-        {item.imageUri && (
-        <Image 
-          source={{ uri: item.imageUri }}
-          style={styles.recipeImage}
-          resizeMode="cover"
-        />
-      )}
-        <View style={styles.recipeInfo}>
-          <Text style={styles.recipeTitle}>{item.title}</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-=======
   const renderRecipeCard = ({ item }) => (
     <TouchableOpacity 
       style={styles.recipeCard}
       onPress={() => navigation.navigate('Recipe Details', { recipeId: item.id })}
     >
       <View style={styles.recipeInfo}>
+        {item.imageUri && (
+          <Image
+            source={typeof item.imageUri === 'string' ? { uri: item.imageUri } : item.imageUri}
+            style={styles.recipeImage}
+            defaultSource={require('../assets/placeholder.png')}
+          />
+        )}
         <Text style={styles.recipeTitle}>{item.title}</Text>
         {/* Removed recipeMetaContainer as sample recipes don't have prepTime, cookTime, difficulty */}
       </View>
     </TouchableOpacity>
   );
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
 
   return (
     <View style={styles.container}>
@@ -131,9 +102,9 @@ export default function RecipeListScreen({ navigation }) {
       
       <FAB
         style={styles.fab}
-        icon="plus"
-        onPress={() => navigation.navigate('Settings')}
-        label="Add Recipe"
+        icon="account-circle"
+        onPress={() => navigation.navigate('Instructor')}
+        label="Instructor View"
       />
     </View>
   );
@@ -151,23 +122,6 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 16,
     paddingBottom: 80, // Extra space for FAB
-<<<<<<< HEAD
-    flexDirection: 'row',
-    alignContent: 'center',
-    alignSelf: 'center'
-  },
-  recipeCard: {
-    backgroundColor: '#fff',
-    height: 350,
-    width: 500,
-    borderRadius: 8,
-    padding: 20,
-    marginRight: 20,
-    marginBottom: 16,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-=======
   },
   recipeCard: {
     backgroundColor: '#fff',
@@ -175,45 +129,28 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     flexDirection: 'row',
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
     elevation: 2,
   },
   recipeInfo: {
     flex: 1,
-<<<<<<< HEAD
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recipeTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
   },
   recipeImage: {
-    height: '70%',
-    width: '70%',
-    aspectRatio: 1,
-    borderRadius: 8,
-    marginTop: 8
-  },
-=======
+    width: '100%',
+    height: 150,
+    borderRadius: 4,
+    marginBottom: 8,
   },
   recipeTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
   },
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   recipeMetaContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   recipeMeta: {
-<<<<<<< HEAD
-    fontSize: 16,
-=======
     fontSize: 14,
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
     color: '#666',
     marginRight: 12,
     marginBottom: 4,
@@ -223,7 +160,7 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#878787',
   },
   headerButton: {
     marginRight: 8,

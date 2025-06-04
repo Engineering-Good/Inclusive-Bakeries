@@ -1,34 +1,39 @@
-const sampleRecipes = [
+import { Platform } from 'react-native';
+
+const recipeImages = {
+  chocolatechipcookie: Platform.OS === 'web' 
+    ? require('../assets/chocolatechipcookie.png')
+    : require('../assets/chocolatechipcookie.png'),
+  bananacake: Platform.OS === 'web'
+    ? require('../assets/bananacake.png')
+    : require('../assets/bananacake.png'),
+  brownies: Platform.OS === 'web'
+    ? require('../assets/brownies.png')
+    : require('../assets/brownies.png'),
+};
+
+export const sampleRecipes = [
   {
     id: '1',
-    title: 'Chocolate Chip Brownies',
+    title: 'Chocolate Chip Cookies',
     ingredients: [
-<<<<<<< HEAD
       { id: '1001', name: 'Butter', amount: 125, unit: 'g', requireTare: true },
       { id: '1002', name: 'Sugar', amount: 125, unit: 'g', requireTare: true },
       { id: '1003', name: 'Flour', amount: 200, unit: 'g', requireTare: true },
       { id: '1004', name: 'BakingPowder', amount: 5, unit: 'g', requireTare: true },
       { id: '1005', name: 'CocoaPowder', amount: 10, unit: 'g', requireTare: true },
     ],
-    imageUri: 'https://handletheheat.com/wp-content/uploads/2017/03/chewy-brownies-SQUARE-500x500.jpg',
-=======
-      { id: '1001', name: 'Flour', amount: 160, unit: 'g', requireTare: true },
-      { id: '1002', name: 'Butter', amount: 180, unit: 'g', requireTare: true },
-    ],
-    imageUri: null,
-    
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
+    imageUri: recipeImages.chocolatechipcookie,
   },
   {
     id: '2',
-    title: 'Classic Pancakes',
+    title: 'Banana Cake',
     ingredients: [
-<<<<<<< HEAD
       { id: '2001', name: 'Flour', amount: 150, unit: 'g', requireTare: true },
       { id: '2002', name: 'Sugar', amount: 100, unit: 'g', requireTare: true },
       { id: '2003', name: 'Butter', amount: 120, unit: 'g', requireTare: true }
     ],
-    imageUri: 'https://www.inspiredtaste.net/wp-content/uploads/2016/07/Pancake-Recipe-1-1200.jpg',
+    imageUri: recipeImages.bananacake,
   },
   {
     id: '3',
@@ -45,24 +50,15 @@ const sampleRecipes = [
       { id: '3009', name: 'ChocolateChips', amount: 75, unit: 'g', requireTare: true }
     ],
     imageUri: 'https://www.spatuladesserts.com/wp-content/uploads/2024/09/Double-chocolate-muffins-04172-1.jpg',
-=======
-      { id: '2001', name: 'Flour', amount: 150, unit: 'g' },
-      { id: '2002', name: 'Sugar', amount: 100, unit: 'g' },
-      { id: '2003', name: 'Butter', amount: 120, unit: 'g' }
-    ],
-    imageUri: null,
   },
   {
-    id: '3',
-    title: 'Beef Stir Fry',
+    id: '4',
+    title: 'Brownies',
     ingredients: [
-      { id: '3001', name: 'Flour', amount: 150, unit: 'g' },
-      { id: '3002', name: 'Sugar', amount: 100, unit: 'g' },
-      { id: '3003', name: 'Butter', amount: 120, unit: 'g' }
+      { id: '4001', name: 'Flour', amount: 150, unit: 'g', requireTare: true },
+      { id: '4002', name: 'Sugar', amount: 100, unit: 'g', requireTare: true },
+      { id: '4003', name: 'Butter', amount: 120, unit: 'g', requireTare: true }
     ],
-    imageUri: null,
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
+    imageUri: recipeImages.brownies,
   }
 ];
-
-export default sampleRecipes;

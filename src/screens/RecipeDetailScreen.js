@@ -1,17 +1,9 @@
 import React, { useState, useEffect } from 'react';
-<<<<<<< HEAD
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
-=======
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
 import { IconButton, Divider, Button } from 'react-native-paper';
 import SpeechService from '../services/SpeechService';
 import RecipeService from '../services/RecipeService';
 import { RECIPE_MESSAGES } from '../constants/speechText';
-<<<<<<< HEAD
-import ingredientDatabase from '../data/ingredientDatabase';
-=======
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
 
 export default function RecipeDetailScreen({ route, navigation }) {
   const { recipeId } = route.params;
@@ -106,59 +98,16 @@ export default function RecipeDetailScreen({ route, navigation }) {
           }
         }}
       >
-<<<<<<< HEAD
-        <Text style={styles.startButtonText}>Start</Text>
-=======
         <Text style={styles.startButtonText}>Start Baking</Text>
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
       </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>Ingredients</Text>
       <View style={styles.ingredientsContainer}>
-<<<<<<< HEAD
-        {recipe.ingredients?.map((ingredient, index) => {
-          const ingredientInfo = ingredientDatabase[ingredient.name];
-
-          return (
-            <TouchableOpacity
-              key={index}
-              style={styles.ingredientItem}
-              onPress={() => selectIngredient(index)}
-            >
-              <View style={styles.ingredientItem}>
-              {ingredientInfo?.imageUri ? (
-                <Image
-                  source={{ uri: ingredientInfo.imageUri }}
-                  style={styles.ingredientImage}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Text style={{ color: 'grey' }}>No image</Text> // optional fallback
-              )}
-                <Text style={styles.ingredientText}>
-                  {ingredient.name.replace(/([a-z])([A-Z])/g, '$1 $2')}
-                </Text>
-                <Text style={styles.ingredientText}>
-                  {ingredient.amount} {ingredient.unit}
-                </Text>
-              </View>
-
-        <IconButton
-          icon="volume-high"
-          size={50}
-          onPress={() => announceIngredient(ingredient)}
-        />
-      </TouchableOpacity>
-    );
-  })}
-</View>
-
-=======
         {recipe.ingredients && recipe.ingredients.map((ingredient, index) => (
           <TouchableOpacity 
             key={index} 
             style={styles.ingredientItem}
-            onPress={() => selectIngredient(index)} // Pass index instead of ingredient
+            onPress={() => selectIngredient(index)}
           >
             <Text style={styles.ingredientText}>
               {ingredient.name}: {ingredient.amount} {ingredient.unit}
@@ -171,19 +120,20 @@ export default function RecipeDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         ))}
       </View>
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
 
-
-
-      <Text style={styles.sectionTitle}>Instructions</Text>
-      <View style={styles.instructionsContainer}>
-        {recipe.instructions && recipe.instructions.map((instruction, index) => (
-          <View key={index} style={styles.instructionItem}>
-            <Text style={styles.instructionNumber}>{index + 1}</Text>
-            <Text style={styles.instructionText}>{instruction}</Text>
+      {recipe.instructions && recipe.instructions.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Instructions</Text>
+          <View style={styles.instructionsContainer}>
+            {recipe.instructions.map((instruction, index) => (
+              <View key={index} style={styles.instructionItem}>
+                <Text style={styles.instructionNumber}>{index + 1}</Text>
+                <Text style={styles.instructionText}>{instruction}</Text>
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -239,31 +189,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   ingredientsContainer: {
-<<<<<<< HEAD
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-  },
-  ingredientItem: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-    margin: 20,
-  },
-  ingredientText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    flex: 1,
-  },
-  ingredientImage: {
-    width: 180,
-    height: 180,
-    margin: 22,
-  },
-=======
     paddingHorizontal: 16,
   },
   ingredientItem: {
@@ -278,7 +203,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flex: 1,
   },
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   divider: {
     marginVertical: 16,
   },

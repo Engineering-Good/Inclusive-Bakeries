@@ -132,11 +132,7 @@ const ScaleReadingComponent = ({
 
   return (
     <View style={styles.container}>
-<<<<<<< HEAD
-      {/* <Text style={styles.title}>Weight</Text> */}
-=======
       <Text style={styles.title}>Weight</Text>
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
 
       {error && <Text style={styles.error}>{error}</Text>}
 
@@ -194,39 +190,22 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     margin: 16,
-<<<<<<< HEAD
-    alignContent: 'center',
-=======
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
   title: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 16,
     color: 'white',
-<<<<<<< HEAD
-    alignContent: 'center',
-    alignItems: 'center',
-=======
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
   connectContainer: {
     alignItems: "center",
     padding: 20,
-<<<<<<< HEAD
-    alignContent: 'center',
-=======
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
   connectText: {
     fontSize: 16,
     color: "white",
     marginBottom: 16,
     textAlign: 'center',
-<<<<<<< HEAD
-    alignContent: 'center',
-=======
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
   weightContainer: {
     flexDirection: "row",
@@ -238,45 +217,25 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: "bold",
     color: "white",
-<<<<<<< HEAD
-    alignContent: 'center',
-=======
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
   unitText: {
     fontSize: 24,
     marginLeft: 8,
     color: "white",
-<<<<<<< HEAD
-    alignContent: 'center',
-=======
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
   progressContainer: {
     marginBottom: 16,
     width: screenWidth * 0.25, // 1/4 of screen width
-<<<<<<< HEAD
-    alignContent: 'center',
-=======
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
     alignSelf: 'center',
   },
   progressBar: {
     height: 10,
     borderRadius: 5,
-<<<<<<< HEAD
-    alignContent: 'center',
-=======
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
   targetText: {
     textAlign: "right",
     marginTop: 8,
     color: "white",
-<<<<<<< HEAD
-    alignContent: 'center',
-=======
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
   error: {
     color: "#f44336",
@@ -287,27 +246,15 @@ const styles = StyleSheet.create({
     width: '80%',
     alignSelf: 'center',
     marginTop: 10,
-<<<<<<< HEAD
-    alignContent: 'center',
-=======
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
   loadingContainer: {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-<<<<<<< HEAD
-    alignContent: 'center',
   },
   spinner: {
     marginBottom: 10,
-    alignContent: 'center',
-=======
-  },
-  spinner: {
-    marginBottom: 10,
->>>>>>> 6d9c56f77b2b59bdc38776e83ade8d531cef51e5
   },
 });
 

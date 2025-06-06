@@ -2,8 +2,8 @@ import { Platform } from 'react-native';
 
 const recipeImages = {
   chocolatechipcookie: require('../assets/chocolatechipcookie.jpeg'),
-  bananacake: require('../assets/bananacake.png'),
-  brownies: require('../assets/brownies.png'),
+  //bananacake: require('../assets/bananacake.png'),
+  //brownies: require('../assets/brownies.png'),
   portugueseeggtarts: require('../assets/portugueseeggtarts.png'),
   butter: require('../assets/ingredients/butter.png'),
 };
@@ -29,7 +29,7 @@ export const sampleRecipes = [
       { id: '2002', name: 'Sugar', amount: 100, unit: 'g', requireTare: true },
       { id: '2003', name: 'Butter', amount: 120, unit: 'g', requireTare: true }
     ],
-    imageUri: recipeImages.bananacake,
+    //imageUri: recipeImages.bananacake,
   },
   {
     id: '3',
@@ -55,6 +55,6 @@ export const sampleRecipes = [
       { id: '4005', name: 'Salt', amount: 0.5, unit: 'tsp', requireTare: false }
       
     ],
-    imageUri: recipeImages.brownies,
+    //imageUri: recipeImages.brownies,
   }
 ];

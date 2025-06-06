@@ -64,7 +64,7 @@ class MockScaleService extends ScaleInterface {
         this.needsTare = true;
       } else {
         // Increase weight by 10-50g each update
-        this.currentWeight += Math.floor(Math.random() * 40) + 10;
+        this.currentWeight += 25;
         // Cap at 200
         this.currentWeight = Math.min(this.currentWeight, 200);
       }

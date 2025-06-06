@@ -132,8 +132,9 @@ const ScaleReadingComponent = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Weight</Text>
-
+      <Text style={styles.title}>
+        {targetIngredient && tareStatus === 'pending' ? '' : 'Weight'}
+      </Text>
       {error && <Text style={styles.error}>{error}</Text>}
 
       {!isConnected ? (
@@ -163,7 +164,7 @@ const ScaleReadingComponent = ({
         <>
           <View style={styles.weightContainer}>
             <Text style={styles.weightText}>
-              {targetIngredient && tareStatus === 'pending' ? 'TARE' : `${currentWeight}${targetIngredient.unit}`}
+              {targetIngredient && tareStatus === 'pending' ? 'Press TARE Button' : `${currentWeight}${targetIngredient.unit}`}
             </Text>
           </View>
           {targetIngredient && (tareStatus === 'tared' || tareStatus === 'not_required') && (
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
     margin: 16,
   },
   title: {
-    fontSize: 18,
+    fontSize: 48,
     fontWeight: "bold",
     marginBottom: 16,
     color: 'white',
@@ -214,12 +215,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   weightText: {
-    fontSize: 48,
+    fontSize: 64,
     fontWeight: "bold",
     color: "white",
   },
   unitText: {
-    fontSize: 24,
+    fontSize: 36,
     marginLeft: 8,
     color: "white",
   },

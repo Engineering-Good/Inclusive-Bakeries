@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { IconButton, Divider, Button } from 'react-native-paper';
 import SpeechService from '../services/SpeechService';
 import RecipeService from '../services/RecipeService';
@@ -21,6 +21,7 @@ export default function RecipeDetailScreen({ route, navigation }) {
       
       if (foundRecipe) {
         setRecipe(foundRecipe);
+        SpeechService.speak(foundRecipe.title);
       } else {
         Alert.alert('Error', 'Recipe not found');
         navigation.goBack();
@@ -88,7 +89,13 @@ export default function RecipeDetailScreen({ route, navigation }) {
   
       </View>
 
-      
+      <View style={styles.imageContainer}>
+            <Image
+              source={typeof recipe.imageUri === 'string' ? { uri: recipe.imageUri } : recipe.imageUri}
+              style={styles.recipeImage}
+              defaultSource={require('../assets/placeholder.png')}
+            />
+        </View>
       <TouchableOpacity 
         style={styles.startButton} 
         onPress={() => {
@@ -252,5 +259,20 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+    imageContainer: {
+    width: 300,
+    height: 200, // Same height as recipeImage
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden', // Ensure image doesn't overflow rounded corners
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    paddingLeft: 20, // Padding for better spacing
+  },
+    recipeImage: {
+    width: '100%',
+    height: '100%', // Image fills the container
+    resizeMode: 'contain', // Fill the image area, cropping if necessary
   },
 });

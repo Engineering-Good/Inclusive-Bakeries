@@ -110,7 +110,7 @@ const IngredientScreen = ({ route, navigation }) => {
       ScaleServiceFactory.unsubscribeAll();
       navigation.replace('Celebration');
     } else {
-      navigation.navigate('Ingredient', {
+      navigation.replace('Ingredient', {
         ingredientIndex: ingredientIndex + 1,
         recipe,
       });

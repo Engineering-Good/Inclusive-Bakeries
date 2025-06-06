@@ -69,11 +69,13 @@ export default function RecipeListScreen({ navigation }) {
     >
       <View style={styles.recipeInfo}>
         {item.imageUri && (
-          <Image
-            source={typeof item.imageUri === 'string' ? { uri: item.imageUri } : item.imageUri}
-            style={styles.recipeImage}
-            defaultSource={require('../assets/placeholder.png')}
-          />
+          <View style={styles.imageContainer}>
+            <Image
+              source={typeof item.imageUri === 'string' ? { uri: item.imageUri } : item.imageUri}
+              style={styles.recipeImage}
+              defaultSource={require('../assets/placeholder.png')}
+            />
+          </View>
         )}
         <Text style={styles.recipeTitle}>{item.title}</Text>
         {/* Removed recipeMetaContainer as sample recipes don't have prepTime, cookTime, difficulty */}
@@ -96,6 +98,8 @@ export default function RecipeListScreen({ navigation }) {
         data={filteredRecipes}
         renderItem={renderRecipeCard}
         keyExtractor={item => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
       />
@@ -120,30 +124,47 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   listContainer: {
-    padding: 16,
+    padding: 8,
     paddingBottom: 80, // Extra space for FAB
+  },
+  row: {
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   recipeCard: {
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    flexDirection: 'row',
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
     elevation: 2,
+    width: '48%', // Approximately half with some gap
   },
   recipeInfo: {
-    flex: 1,
+    // No flex: 1 needed for vertical layout
+  },
+  imageContainer: {
+    width: '100%',
+    height: 150, // Same height as recipeImage
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden', // Ensure image doesn't overflow rounded corners
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   recipeImage: {
     width: '100%',
-    height: 150,
-    borderRadius: 4,
-    marginBottom: 8,
+    height: '100%', // Image fills the container
+    resizeMode: 'contain', // Fill the image area, cropping if necessary
   },
   recipeTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
+    marginTop: 8,
     marginBottom: 8,
+    textAlign: 'center',
+    paddingHorizontal: 4,
   },
   recipeMetaContainer: {
     flexDirection: 'row',

@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import { Divider, TouchableRipple } from 'react-native-paper';
+import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { Divider, TouchableRipple, Dialog, Portal, Button, Paragraph } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ScaleReadingComponent from '../components/ScaleReadingComponent';
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
@@ -12,10 +12,13 @@ const IngredientScreen = ({ route, navigation }) => {
   const ingredient = recipe.ingredients[ingredientIndex];
   const [progress, setProgress] = useState(0);
   const [weightReached, setWeightReached] = useState(false);
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const hasSpokenRef = useRef(false);
-    
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
-  
+
+  // Determine if the ingredient requires scale interaction
+  const requireScale = ingredient.unit === 'g';
+
   console.log('[IngredientScreen] Ingredient:', ingredient);
 
   useEffect(() => {
@@ -23,29 +26,32 @@ const IngredientScreen = ({ route, navigation }) => {
     setProgress(0);
     setWeightReached(false);
     hasSpokenRef.current = false; // Reset the spoken ref
-    
+
     // Announce the new ingredient
     announceIngredient();
-  
-   // Only cleanup on unmount
-   return () => {
 
+    // If no scale is required, set weightReached to true immediately
+    if (!requireScale) {
+      setWeightReached(true);
+    }
+
+    // Only cleanup on unmount
+    return () => {
       setProgress(0);
       setWeightReached(false);
       SpeechService.stop();
     }
-}, [ingredient]);
+  }, [ingredient, requireScale]);
 
   const announceIngredient = useCallback(() => {
-    SpeechService.announceWeight(
+    SpeechService.announceIngredient(
       ingredient.name,
       ingredient.amount,
       ingredient.unit
     );
   }, [ingredient]);
 
-  const handleNext = () => {
-    console.log('[IngredientScreen] Next button pressed');
+  const proceedToNextStep = () => {
     if (isLastIngredient) {
       SpeechService.stop();
       ScaleServiceFactory.unsubscribeAll();
@@ -58,6 +64,17 @@ const IngredientScreen = ({ route, navigation }) => {
     }
   };
 
+  const handleNext = () => {
+    console.log('[IngredientScreen] Next button pressed');
+
+    if (!requireScale) {
+      setShowConfirmationDialog(true);
+      SpeechService.speak(`${INGREDIENT_MESSAGES.CONFIRM_ADDED} ${ingredient.name}?`);
+    } else {
+      proceedToNextStep();
+    }
+  };
+
   const getBackgroundColor = (progress) => {
     if (progress >= 1.05) return '#0900FF'; // Blue
     if (progress >= 0.95) return '#4CAF50'; // Green
@@ -66,12 +83,16 @@ const IngredientScreen = ({ route, navigation }) => {
     return '#F44336'; // Red for empty scale
   };
 
-
   const handleProgressUpdate = (currentProgress, isStable) => {
-    console.log('[IngredientScreen] Ingregient Progress update:', ingredient, currentProgress);
+    if (!requireScale) {
+      // If no scale is required, this function should not be called or should do nothing
+      return;
+    }
+
+    console.log('[IngredientScreen] Ingredient Progress update:', ingredient, currentProgress);
     // Only update progress if scale has been tared
     setProgress(currentProgress);
-    
+
     // Perfect weight range
     if (isStable && currentProgress >= 0.95 && currentProgress <= 1.05) {
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'perfect') {
@@ -107,11 +128,21 @@ const IngredientScreen = ({ route, navigation }) => {
   };
 
   useLayoutEffect(() => {
+    const getIngredientTitle = () => {
+      if (ingredient.unit === 'g') {
+        return `${ingredient.amount}${ingredient.unit} ${ingredient.name}`;
+      } else if (ingredient.unit === 'tsp') {
+        return `${ingredient.amount} ${ingredient.unit} ${ingredient.name}`;
+      } else { // Implies count-based
+        return `${ingredient.amount} ${ingredient.name}`;
+      }
+    };
+
     navigation.setOptions({
       headerTitle: () => (
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>
-            {`${ingredient.amount}${ingredient.unit} ${ingredient.name}`}
+            {getIngredientTitle()}
           </Text>
         </View>
       ),
@@ -122,59 +153,101 @@ const IngredientScreen = ({ route, navigation }) => {
     });
   }, [navigation, ingredient, weightReached, isLastIngredient]);
 
-
-
   return (
     <View style={styles.container}>
-      
-      <TouchableOpacity 
-          style={[
-            styles.nextButton, 
-            !weightReached && styles.nextButtonDisabled
-          ]}
-          onPress={handleNext}
-          disabled={!weightReached}
-        >
-          <Text style={styles.nextButtonText}>
-            {isLastIngredient ? 'FINISH' : 'NEXT'}
-          </Text>
-          <Icon 
-            name={isLastIngredient ? "check-circle" : "arrow-forward"} 
-            size={24} 
-            color="white" 
-          />
-        </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.nextButton,
+          !weightReached && styles.nextButtonDisabled
+        ]}
+        onPress={handleNext}
+        disabled={!weightReached}
+      >
+        <Text style={styles.nextButtonText}>
+          {isLastIngredient ? 'FINISH' : 'NEXT'}
+        </Text>
+        <Icon
+          name={isLastIngredient ? "check-circle" : "arrow-forward"}
+          size={24}
+          color="white"
+        />
+      </TouchableOpacity>
 
       {/* Middle Section */}
-      <View style={[
-        styles.middleSection, 
-        { backgroundColor: getBackgroundColor(progress) }
-      ]}>
-        <ScaleReadingComponent 
-          targetIngredient={ingredient}
-          onProgressUpdate={handleProgressUpdate}
-          requireTare={ingredient.requireTare}
-        />
-        
-        <Divider style={{ height: 1, backgroundColor: 'black' }} />
+      {requireScale ? (
+        <View style={[
+          styles.middleSection,
+          { backgroundColor: getBackgroundColor(progress) }
+        ]}>
+          <ScaleReadingComponent
+            targetIngredient={ingredient}
+            onProgressUpdate={handleProgressUpdate}
+            requireTare={ingredient.requireTare}
+          />
+
+          <Divider style={{ height: 1, backgroundColor: 'black' }} />
 
           <Text style={styles.addMoreText}>
             {
-            progress >= 1.05 ? 'Take some out' :
-            progress >= 0.95 ? 'Perfect!' :
-            progress >= 0.05 ? 'Add more' : ''
-            }  
+              progress >= 1.05 ? 'Take some out' :
+                progress >= 0.95 ? 'Perfect!' :
+                  progress >= 0.05 ? 'Add more' : ''
+            }
           </Text>
           <Divider style={{ height: 1, backgroundColor: 'black' }} />
 
-      </View>
+        </View>
+      ) : (
+        <View style={[styles.middleSection, { backgroundColor: '#4CAF50' }]}>
+          <Text style={styles.addMoreText}>
+            {`${ingredient.amount} ${ingredient.unit} ${ingredient.name}`}
+          </Text>
+          <Text style={styles.addMoreText}>
+            Ready for next step!
+          </Text>
+        </View>
+      )}
 
       {/* Bottom Section */}
       <View style={styles.bottomSection}>
-      < Text style={styles.addMoreText}>
+        <Text style={styles.addMoreText}>
           '.'
         </Text>
       </View>
+
+      <Portal>
+        <Dialog visible={showConfirmationDialog} onDismiss={() => setShowConfirmationDialog(false)} style={styles.confirmationDialog}>
+          <Dialog.Title>Confirm {`${ingredient.name}`} Added</Dialog.Title>
+          <Dialog.Content>
+            <Paragraph>Have you added the ingredient?</Paragraph>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              mode="contained"
+              buttonColor="red"
+              onPress={() => {
+                setShowConfirmationDialog(false);
+                announceIngredient();
+              }}
+              style={styles.dialogButton}
+            >
+              No
+            </Button>
+            <Button
+              mode="contained"
+              buttonColor="green"
+              onPress={() => {
+                setShowConfirmationDialog(false);
+                proceedToNextStep();
+              }}
+              style={styles.dialogButton}
+            >
+              Yes
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 };
@@ -256,6 +329,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'white', // Or any color for the bottom section
     padding: 0,
     alignItems: 'flex-end',
+  },
+  confirmationDialog: {
+    maxWidth: 350, // Adjust as needed
+    alignSelf: 'center',
+  },
+  dialogButton: {
+    flex: 1,
+    marginHorizontal: 5, // Add some space between buttons
+    paddingVertical: 5, // Adjust padding to match Next button's height
+    paddingHorizontal: 10, // Adjust padding to match Next button's width
   }
 });
 

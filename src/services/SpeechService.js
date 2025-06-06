@@ -56,9 +56,16 @@ class SpeechService {
     speakNext();
   }
   
-  // Announce ingredient and its weight
-  announceWeight(ingredient, weight, unit = 'grams') {
-    const announcement = `${ingredient}: ${weight} ${unit}`;
+  // Announce ingredient and its quantity/weight
+  announceIngredient(ingredientName, amount, unit) {
+    let announcement;
+    if (unit === 'g') {
+      announcement = `${amount} grams of ${ingredientName}`;
+    } else if (unit === 'tsp') {
+      announcement = `${amount} teaspoons of ${ingredientName}`;
+    } else { // Implies count-based
+      announcement = `${amount} ${ingredientName}`;
+    }
     return this.speak(announcement);
   }
 }

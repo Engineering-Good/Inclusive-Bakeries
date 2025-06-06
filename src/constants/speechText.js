@@ -3,7 +3,7 @@ export const INGREDIENT_MESSAGES = {
   ADD_MORE: 'Add more',
   TOO_MUCH: 'Too much. Take  some  out',
   START_WEIGHING: 'Put the ingredient on the scale',
-  CONFIRM_ADDED: 'Did you add '
+  CONFIRM_ADDED: 'Did you '
 };
 
 export const SCALE_MESSAGES = {

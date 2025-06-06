@@ -1,11 +1,64 @@
 import React, { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, Image } from 'react-native';
 import { Divider, TouchableRipple, Dialog, Portal, Button, Paragraph } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ScaleReadingComponent from '../components/ScaleReadingComponent';
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import SpeechService from '../services/SpeechService';
 import { INGREDIENT_MESSAGES } from '../constants/speechText';
+
+const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles }) => (
+  <>
+    {/* Left Column */}
+    <View style={styles.column}>
+      <Text style={styles.targetWeightText}>
+        Goal: {`${ingredient.amount} ${ingredient.unit}`}
+      </Text>
+      <View style={styles.imageContainer}>
+        <Image
+          source={typeof ingredient.imageUri === 'string' ? { uri: ingredient.imageUri } : ingredient.imageUri}
+          style={styles.ingredientImage}
+        />
+      </View>
+
+    </View>
+
+    {/* Middle Column */}
+    <View style={styles.column}>
+      {requireScale ? (
+        <>
+          <ScaleReadingComponent
+            targetIngredient={ingredient}
+            onProgressUpdate={handleProgressUpdate}
+            requireTare={ingredient.requireTare}
+          />
+          <Divider style={{ height: 1, backgroundColor: 'black' }} />
+          <Text style={styles.addMoreText}>
+            {
+              progress >= 1.05 ? 'Take some out' :
+                progress >= 0.95 ? 'Perfect!' :
+                  progress >= 0.05 ? 'Add more' : ''
+            }
+          </Text>
+          <Divider style={{ height: 1, backgroundColor: 'black' }} />
+        </>
+      ) : (
+        <>
+          <Text style={styles.addMoreText}>
+            {`${ingredient.amount} ${ingredient.unit} ${ingredient.name}`}
+          </Text>
+          <Text style={styles.addMoreText}>
+            Ready for next step!
+          </Text>
+        </>
+      )}
+    </View>
+
+    {/* Right Column (blank for now) */}
+    <View style={styles.column}>
+    </View>
+  </>
+);
 
 const IngredientScreen = ({ route, navigation }) => {
   const { ingredientIndex, recipe } = route.params;
@@ -128,86 +181,55 @@ const IngredientScreen = ({ route, navigation }) => {
   };
 
   useLayoutEffect(() => {
-    const getIngredientTitle = () => {
-      if (ingredient.unit === 'g') {
-        return `${ingredient.amount}${ingredient.unit} ${ingredient.name}`;
-      } else if (ingredient.unit === 'tsp') {
-        return `${ingredient.amount} ${ingredient.unit} ${ingredient.name}`;
-      } else { // Implies count-based
-        return `${ingredient.amount} ${ingredient.name}`;
-      }
-    };
-
     navigation.setOptions({
       headerTitle: () => (
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>
-            {getIngredientTitle()}
+            {ingredient.name}
           </Text>
         </View>
       ),
-      headerTitleAlign: 'center', // This centers the entire header title component
+      headerTitleAlign: 'center',
       headerRight: () => (
-        <Text>Next Button tmp</Text>
+          <TouchableOpacity
+            style={[
+              styles.nextButton,
+              !weightReached && styles.nextButtonDisabled
+            ]}
+            onPress={handleNext}
+            disabled={!weightReached}
+          >
+            <Text style={styles.nextButtonText}>
+              {isLastIngredient ? 'FINISH' : 'NEXT'}
+            </Text>
+            <Icon
+              name={isLastIngredient ? "check-circle" : "arrow-forward"}
+              size={24}
+              color="white"
+            />
+          </TouchableOpacity>
+
       ),
     });
   }, [navigation, ingredient, weightReached, isLastIngredient]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container]}>
 
-      <TouchableOpacity
-        style={[
-          styles.nextButton,
-          !weightReached && styles.nextButtonDisabled
-        ]}
-        onPress={handleNext}
-        disabled={!weightReached}
-      >
-        <Text style={styles.nextButtonText}>
-          {isLastIngredient ? 'FINISH' : 'NEXT'}
-        </Text>
-        <Icon
-          name={isLastIngredient ? "check-circle" : "arrow-forward"}
-          size={24}
-          color="white"
-        />
-      </TouchableOpacity>
 
       {/* Middle Section */}
-      {requireScale ? (
-        <View style={[
-          styles.middleSection,
-          { backgroundColor: getBackgroundColor(progress) }
-        ]}>
-          <ScaleReadingComponent
-            targetIngredient={ingredient}
-            onProgressUpdate={handleProgressUpdate}
-            requireTare={ingredient.requireTare}
-          />
-
-          <Divider style={{ height: 1, backgroundColor: 'black' }} />
-
-          <Text style={styles.addMoreText}>
-            {
-              progress >= 1.05 ? 'Take some out' :
-                progress >= 0.95 ? 'Perfect!' :
-                  progress >= 0.05 ? 'Add more' : ''
-            }
-          </Text>
-          <Divider style={{ height: 1, backgroundColor: 'black' }} />
-
-        </View>
-      ) : (
-        <View style={[styles.middleSection, { backgroundColor: '#4CAF50' }]}>
-          <Text style={styles.addMoreText}>
-            {`${ingredient.amount} ${ingredient.unit} ${ingredient.name}`}
-          </Text>
-          <Text style={styles.addMoreText}>
-            Ready for next step!
-          </Text>
-        </View>
-      )}
+      <View style={[
+        styles.middleSection,
+        { backgroundColor: requireScale ? getBackgroundColor(progress) : '#4CAF50' }
+      ]}>
+        <IngredientColumns
+          ingredient={ingredient}
+          progress={progress}
+          handleProgressUpdate={handleProgressUpdate}
+          requireScale={requireScale}
+          styles={styles}
+        />
+      </View>
 
       {/* Bottom Section */}
       <View style={styles.bottomSection}>
@@ -218,9 +240,9 @@ const IngredientScreen = ({ route, navigation }) => {
 
       <Portal>
         <Dialog visible={showConfirmationDialog} onDismiss={() => setShowConfirmationDialog(false)} style={styles.confirmationDialog}>
-          <Dialog.Title>Confirm {`${ingredient.name}`} Added</Dialog.Title>
+          <Dialog.Title>Confirm {`${ingredient.name}`}</Dialog.Title>
           <Dialog.Content>
-            <Paragraph>Have you added the ingredient?</Paragraph>
+            <Paragraph>Have you completed this step?</Paragraph>
           </Dialog.Content>
           <Dialog.Actions>
             <Button
@@ -268,14 +290,21 @@ const styles = StyleSheet.create({
     padding: 8,
     marginRight: 8,
   },
-  titleContainer: {
+  headerTitleContainer: {
     flex: 1,
     alignItems: 'center',
+    paddingVertical: 10,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 48,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 18,
+    color: 'white', // Changed to white for better visibility on colored backgrounds
+    textAlign: 'center',
+    marginBottom: 10, // Add some space below the subtitle
   },
   nextButton: {
     position: 'absolute',
@@ -309,10 +338,26 @@ const styles = StyleSheet.create({
   middleSection: {
     flex: 1,
     backgroundColor: '#F44336',
+    flexDirection: 'row', // Arrange children in a row
+    justifyContent: 'space-around', // Distribute space evenly
+    alignItems: 'center', // Center items vertically
+    paddingHorizontal: 10, // Add some horizontal padding
+  },
+  column: {
+    flex: 1, // Each column takes equal space
     justifyContent: 'center',
     alignItems: 'center',
-    verticalAlign: 'middle',
-    
+  },
+  ingredientImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40, // Make it circular
+    marginBottom: 10,
+  },
+  targetWeightText: {
+    color: 'beige',
+    fontSize: 48,
+    fontWeight: 'bold',
   },
   addMoreText: {
     color: 'white',
@@ -339,6 +384,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 5, // Add some space between buttons
     paddingVertical: 5, // Adjust padding to match Next button's height
     paddingHorizontal: 10, // Adjust padding to match Next button's width
+  },
+    imageContainer: {
+    width: '100%',
+    height: 150, // Same height as recipeImage
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden', // Ensure image doesn't overflow rounded corners
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   }
 });
 

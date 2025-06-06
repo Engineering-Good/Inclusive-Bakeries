@@ -67,7 +67,7 @@ export default function RecipeListScreen({ navigation }) {
       style={styles.recipeCard}
       onPress={() => navigation.navigate('Recipe Details', { recipeId: item.id })}
     >
-      <View style={styles.recipeInfo}>
+      <View>
         {item.imageUri && (
           <View style={styles.imageContainer}>
             <Image

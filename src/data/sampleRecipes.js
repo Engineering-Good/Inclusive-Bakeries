@@ -5,6 +5,7 @@ const recipeImages = {
   bananacake: require('../assets/bananacake.png'),
   brownies: require('../assets/brownies.png'),
   portugueseeggtarts: require('../assets/portugueseeggtarts.png'),
+  butter: require('../assets/ingredients/butter.png'),
 };
 
 export const sampleRecipes = [
@@ -12,7 +13,7 @@ export const sampleRecipes = [
     id: '1',
     title: 'Chocolate Chip Cookies',
     ingredients: [
-      { id: '1001', name: 'Butter', amount: 125, unit: 'g', requireTare: true },
+      { id: '1001', name: 'Butter', amount: 125, unit: 'g', requireTare: true, imageUri: recipeImages.butter },
       { id: '1002', name: 'Sugar', amount: 125, unit: 'g', requireTare: true },
       { id: '1003', name: 'Flour', amount: 200, unit: 'g', requireTare: true },
       { id: '1004', name: 'BakingPowder', amount: 5, unit: 'g', requireTare: true },
@@ -35,8 +36,8 @@ export const sampleRecipes = [
     title: 'Portuguese Egg Tarts',
     ingredients: [
       { id: '3001', name: 'Butter', amount: 125, unit: 'g', requireTare: true },
-      { id: '3002', name: 'Sugar', amount: 125, unit: 'g', requireTare: true },
-      { id: '3004', name: 'Take a new bowl', amount: 1, unit: '', requireTare: false },
+      //{ id: '3002', name: 'Sugar', amount: 125, unit: 'g', requireTare: true },
+      { id: '3004', name: 'Take a new bowl', amount: '', unit: '', requireTare: false },
       { id: '3005', name: 'Flour', amount: 200, unit: 'g', requireTare: true},
       { id: '3007', name: 'Baking Powder', amount: 5, unit: 'g', requireTare: true },
       { id: '3008', name: 'Cocoa Powder', amount: 10, unit: 'g', requireTare: true }

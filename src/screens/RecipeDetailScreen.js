@@ -101,7 +101,6 @@ export default function RecipeDetailScreen({ route, navigation }) {
         onPress={() => {
           if (recipe.ingredients && recipe.ingredients.length > 0) {
             selectIngredient(0);
-            SpeechService.speak(RECIPE_MESSAGES.START_BAKING);
           }
         }}
       >

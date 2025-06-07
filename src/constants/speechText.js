@@ -3,7 +3,8 @@ export const INGREDIENT_MESSAGES = {
   ADD_MORE: 'Add more',
   TOO_MUCH: 'Too much. Take  some  out',
   START_WEIGHING: 'Put the ingredient on the scale',
-  CONFIRM_ADDED: 'Did you '
+  CONFIRM_ADDED: 'Did you ',
+  INGREDIENT_INSTRUCTION: 'Please add'
 };
 
 export const SCALE_MESSAGES = {
@@ -11,5 +12,9 @@ export const SCALE_MESSAGES = {
 };
 
 export const RECIPE_MESSAGES = {
-  START_BAKING: "Let's start baking! First ingredient.",
+  START_BAKING: "Let's start baking!",
+  FIRST_INGREDIENT: "First ingredient",
+  SECOND_INGREDIENT: "Second ingredient",
+  THIRD_INGREDIENT: "Third ingredient",
+  NEXT_INGREDIENT: "Next ingredient"
 };

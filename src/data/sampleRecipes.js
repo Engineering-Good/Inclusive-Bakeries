@@ -36,7 +36,7 @@ export const sampleRecipes = [
     title: 'Portuguese Egg Tarts',
     ingredients: [
       { id: '3001', name: 'Butter', amount: 125, unit: 'g', requireTare: true },
-      //{ id: '3002', name: 'Sugar', amount: 125, unit: 'g', requireTare: true },
+      { id: '3002', name: 'Sugar', amount: 125, unit: 'g', requireTare: true },
       { id: '3004', name: 'Take a new bowl', amount: '', unit: '', requireTare: false },
       { id: '3005', name: 'Flour', amount: 200, unit: 'g', requireTare: true},
       { id: '3007', name: 'Baking Powder', amount: 5, unit: 'g', requireTare: true },

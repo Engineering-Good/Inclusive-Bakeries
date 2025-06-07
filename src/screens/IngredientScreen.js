@@ -183,15 +183,24 @@ const IngredientScreen = ({ route, navigation }) => {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: () => (
+<></>
+      ),
+      headerTitleAlign: 'center',
+      headerRight: () => (
+          <></>
+
+      ),
+    });
+  }, [navigation, ingredient, weightReached, isLastIngredient]);
+
+  return (
+    <View style={[styles.container]}>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>
             {ingredient.name}
           </Text>
         </View>
-      ),
-      headerTitleAlign: 'center',
-      headerRight: () => (
-          <TouchableOpacity
+        <TouchableOpacity
             style={[
               styles.nextButton,
               !weightReached && styles.nextButtonDisabled
@@ -208,14 +217,6 @@ const IngredientScreen = ({ route, navigation }) => {
               color="white"
             />
           </TouchableOpacity>
-
-      ),
-    });
-  }, [navigation, ingredient, weightReached, isLastIngredient]);
-
-  return (
-    <View style={[styles.container]}>
-
 
       {/* Middle Section */}
       <View style={[
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   headerTitleContainer: {
-    flex: 1,
+    //flex: 1,
     alignItems: 'center',
     paddingVertical: 10,
   },

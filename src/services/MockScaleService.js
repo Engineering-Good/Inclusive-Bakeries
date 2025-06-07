@@ -84,8 +84,6 @@ class MockScaleService extends ScaleInterface {
   }
 
   async disconnect() {
-
-    
     if (this.weightUpdateInterval) {
       clearInterval(this.weightUpdateInterval);
       this.weightUpdateInterval = null;

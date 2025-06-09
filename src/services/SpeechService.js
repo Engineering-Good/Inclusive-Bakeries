@@ -9,7 +9,6 @@ class SpeechService {
     this.SPEECH_DELAY = 2500; // 2.5 seconds delay between instructions
     this.lastSpokenText = null;
     this.lastSpokenTime = 0;
-    this.minTimeBetweenSpeech = 3000; // Minimum 3 seconds between any speech
     this.minTimeBetweenSameSpeech = 3000; // Minimum 10 seconds before repeating the exact same speech
   }
 
@@ -36,11 +35,6 @@ class SpeechService {
 
     const now = Date.now();
 
-    // Check for minimum time between any speech
-    if (now - this.lastSpokenTime < this.minTimeBetweenSpeech) {
-      console.log(`Too soon to speak again. Skipping: "${text}"`);
-      return;
-    }
 
     // Check for minimum time between same speech
     if (this.lastSpokenText === text && (now - this.lastSpokenTime < this.minTimeBetweenSameSpeech)) {
@@ -104,7 +98,7 @@ class SpeechService {
   async waitUntilDone() {
     let waitIterations = 0;
     while (await Speech.isSpeakingAsync()) {
-      this.delay(100)
+      await this.delay(100)
       waitIterations++;
       if (waitIterations > 100) { // Timeout after 10 seconds
         console.warn('Speech wait timeout exceeded, continuing...');
@@ -116,7 +110,7 @@ class SpeechService {
       console.log(`Speech is done, continuing... Waited ${waitedMs} ms (${waitIterations} loops).`);
     }
     // Add a small, fixed delay after speech is reported as done to ensure full completion
-    await new Promise(resolve => setTimeout(resolve, 150)); 
+   await this.delay(150); 
   }
   
   // Speaks a list of instructions with pauses between each step

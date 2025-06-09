@@ -132,9 +132,6 @@ const ScaleReadingComponent = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        {targetIngredient && tareStatus === 'pending' ? '' : 'Weight'}
-      </Text>
       {error && <Text style={styles.error}>{error}</Text>}
 
       {!isConnected ? (

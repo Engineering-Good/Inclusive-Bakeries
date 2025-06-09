@@ -73,7 +73,7 @@ export default function RecipeListScreen({ navigation }) {
             <Image
               source={typeof item.imageUri === 'string' ? { uri: item.imageUri } : item.imageUri}
               style={styles.recipeImage}
-              defaultSource={require('../assets/placeholder.png')}
+              defaultSource={require('../assets/recipes/placeholder.png')}
             />
           </View>
         )}
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     paddingBottom: 80, // Extra space for FAB
   },
   row: {
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginBottom: 8,
   },
   recipeCard: {
@@ -139,19 +139,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 2,
-    width: '48%', // Approximately half with some gap
+    width: '45%',
+    height: 350,
+    margin: 18,
+    alignContent: 'center',
   },
   recipeInfo: {
     // No flex: 1 needed for vertical layout
   },
   imageContainer: {
     width: '100%',
-    height: 150, // Same height as recipeImage
+    height: 250,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden', // Ensure image doesn't overflow rounded corners
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
+    marginTop: 20,
   },
   recipeImage: {
     width: '100%',
@@ -159,10 +163,10 @@ const styles = StyleSheet.create({
     resizeMode: 'contain', // Fill the image area, cropping if necessary
   },
   recipeTitle: {
-    fontSize: 16,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: 24,
+    marginBottom: 12,
     textAlign: 'center',
     paddingHorizontal: 4,
   },

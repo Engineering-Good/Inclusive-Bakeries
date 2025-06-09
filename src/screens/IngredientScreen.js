@@ -6,23 +6,10 @@ import ScaleReadingComponent from '../components/ScaleReadingComponent';
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import SpeechService from '../services/SpeechService';
 import { INGREDIENT_MESSAGES } from '../constants/speechText';
+import ingredientDatabase from '../data/ingredientDatabase';
 
 const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles }) => (
   <>
-    {/* Left Column */}
-    <View style={styles.column}>
-      <Text style={styles.targetWeightText}>
-        Goal: {`${ingredient.amount} ${ingredient.unit}`}
-      </Text>
-      <View style={styles.imageContainer}>
-        <Image
-          source={typeof ingredient.imageUri === 'string' ? { uri: ingredient.imageUri } : ingredient.imageUri}
-          style={styles.ingredientImage}
-        />
-      </View>
-
-    </View>
-
     {/* Middle Column */}
     <View style={styles.column}>
       {requireScale ? (
@@ -193,14 +180,25 @@ const IngredientScreen = ({ route, navigation }) => {
     });
   }, [navigation, ingredient, weightReached, isLastIngredient]);
 
+  const fullIngredient = ingredientDatabase[ingredient.name];
+
   return (
     <View style={[styles.container]}>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>
-            {ingredient.name}
+            {ingredient.name}<br></br>{`${ingredient.amount} ${ingredient.unit}`}
           </Text>
         </View>
-        <TouchableOpacity
+        <View
+          style={{
+            position: 'absolute',
+            right: '2.5%',
+            top: '8%',
+            transform: [{ translateY: -25 }],
+            zIndex: 10,
+          }}
+        >
+          <TouchableOpacity
             style={[
               styles.nextButton,
               !weightReached && styles.nextButtonDisabled
@@ -217,12 +215,21 @@ const IngredientScreen = ({ route, navigation }) => {
               color="white"
             />
           </TouchableOpacity>
+        </View>
 
       {/* Middle Section */}
       <View style={[
         styles.middleSection,
         { backgroundColor: requireScale ? getBackgroundColor(progress) : '#4CAF50' }
       ]}>
+        {fullIngredient && fullIngredient.imageUri ? (
+            <Image
+              source={{ uri: fullIngredient.imageUri }}
+              style={styles.ingredientImage}
+            />
+          ) : (
+            <Text style={{ color: 'black' }}>No image found</Text>
+          )}
         <IngredientColumns
           ingredient={ingredient}
           progress={progress}
@@ -279,13 +286,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white', // Assuming a white background for the overall page
+    justifyContent: 'center',
   },
   topSection: {
     backgroundColor: 'white',
-    padding: 20,
+    padding: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    alignContent: 'center',
   },
   backButton: {
     padding: 8,
@@ -308,9 +317,7 @@ const styles = StyleSheet.create({
     marginBottom: 10, // Add some space below the subtitle
   },
   nextButton: {
-    position: 'absolute',
-    top: 10,
-    right: 16,
+    alignSelf: 'flex-end',
     backgroundColor: '#007AFF',
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -339,26 +346,28 @@ const styles = StyleSheet.create({
   middleSection: {
     flex: 1,
     backgroundColor: '#F44336',
-    flexDirection: 'row', // Arrange children in a row
-    justifyContent: 'space-around', // Distribute space evenly
+    flexDirection: 'column', // Arrange children in a row
+    justifyContent: 'center', // Distribute space evenly
     alignItems: 'center', // Center items vertically
     paddingHorizontal: 10, // Add some horizontal padding
   },
   column: {
     flex: 1, // Each column takes equal space
-    justifyContent: 'center',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
     alignItems: 'center',
   },
   ingredientImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40, // Make it circular
-    marginBottom: 10,
+    width: 300,
+    height: 300,
+    margin: 12,
+    marginTop: 20,
   },
   targetWeightText: {
-    color: 'beige',
+    color: 'white',
     fontSize: 48,
     fontWeight: 'bold',
+    alignSelf: 'center',
   },
   addMoreText: {
     color: 'white',

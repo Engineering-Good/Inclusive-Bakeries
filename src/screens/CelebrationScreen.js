@@ -21,7 +21,7 @@ const CelebrationScreen = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../assets/complete.jpg')}
+        source={require('../assets/recipes/complete.jpg')}
         style={styles.backgroundImage}
         resizeMode="cover"
       />

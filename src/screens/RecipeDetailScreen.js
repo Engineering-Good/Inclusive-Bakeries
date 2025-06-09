@@ -93,7 +93,7 @@ export default function RecipeDetailScreen({ route, navigation }) {
             <Image
               source={typeof recipe.imageUri === 'string' ? { uri: recipe.imageUri } : recipe.imageUri}
               style={styles.recipeImage}
-              defaultSource={require('../assets/placeholder.png')}
+              defaultSource={require('../assets/recipes/placeholder.png')}
             />
         </View>
       <TouchableOpacity 

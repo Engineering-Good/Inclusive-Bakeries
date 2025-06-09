@@ -20,7 +20,7 @@ export default function EditRecipeScreen({ route, navigation }) {
 
   const getImageSource = (imageUri) => {
     if (!imageUri) {
-      return require('../assets/placeholder.png');
+      return require('../assets/recipes/placeholder.png');
     }
     
     if (typeof imageUri === 'string') {
@@ -254,10 +254,10 @@ export default function EditRecipeScreen({ route, navigation }) {
     const updatedRecipe = {
       id: initialRecipe?.id || Date.now().toString(),
       title,
-      imageUri: recipeImage?.uri || recipeImage || require('../assets/placeholder.png'),
+      imageUri: recipeImage?.uri || recipeImage || require('../assets/recipes/placeholder.png'),
       ingredients: ingredients.map(ing => ({
         ...ing,
-        imageUri: ing.imageUri || require('../assets/placeholder.png')
+        imageUri: ing.imageUri || require('../assets/recipes/placeholder.png')
       })),
       instructions // Use the generated instructions array
     };

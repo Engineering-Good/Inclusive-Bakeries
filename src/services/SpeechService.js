@@ -43,15 +43,14 @@ class SpeechService {
     }
 
     console.log('Speaking:', text);
+    // Update last spoken info immediately before speaking
+    this.lastSpokenText = text;
+    this.lastSpokenTime = now;
     
     try {
       // Wait if something is already speaking
       // This is crucial to prevent stacking and ensure proper flow
       await this.waitUntilDone();
-
-      // Update last spoken info immediately before speaking
-      this.lastSpokenText = text;
-      this.lastSpokenTime = now;
 
       return new Promise((resolve) => { // Removed reject as we'll handle errors gracefully
         const defaultOptions = {

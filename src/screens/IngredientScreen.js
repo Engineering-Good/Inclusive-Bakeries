@@ -66,7 +66,7 @@ const IngredientScreen = ({ route, navigation }) => {
     // Reset states when component mounts or ingredient changes
     setProgress(0);
     setWeightReached(false);
-    hasSpokenRef.current = false; // Reset the spoken ref
+    hasSpokenRef.current = null; // Reset the spoken ref
 
     const announceIngredientOrder = async () => {
       // First ingredient needs the "Let's start baking!" announcement
@@ -170,44 +170,44 @@ const IngredientScreen = ({ route, navigation }) => {
     setProgress(currentProgress);
 
     // Perfect weight range
-    if (isStable && currentProgress >= 0.95 && currentProgress <= 1.05) {
+    if (currentProgress >= 0.95 && currentProgress <= 1.05) {
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'perfect') {
         setWeightReached(true);
-        SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT);
         hasSpokenRef.current = 'perfect';
+        SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT);
       }
     }
     // Underweight range
-    else if (isStable && currentProgress < 0.95 && currentProgress >= 0.05) {
+    else if (currentProgress < 0.95 && currentProgress >= 0.05) {
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'under') {
         setWeightReached(false);
-        SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
         hasSpokenRef.current = 'under';
+        SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
       }
     }
     // Overweight range
     else if (currentProgress > 1.05) {
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'over') {
         setWeightReached(false);
-        SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
         hasSpokenRef.current = 'over';
+        SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
       }
     }
     // Starting/empty scale
-    else if (isStable && currentProgress < 0.01) {
+    else if (currentProgress < 0.01) {
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'start') {
         setWeightReached(false);
-        SpeechService.speak(INGREDIENT_MESSAGES.START_WEIGHING);
         hasSpokenRef.current = 'start';
+        SpeechService.speak(INGREDIENT_MESSAGES.START_WEIGHING);
       }
     }
 
     // Reset hasSpokenRef when weight changes significantly
-    if (currentProgress < 0.05 || 
+    if ((hasSpokenRef.current === 'start' && currentProgress >= 0.05) ||
         (hasSpokenRef.current === 'under' && currentProgress >= 0.95) ||
         (hasSpokenRef.current === 'perfect' && (currentProgress < 0.95 || currentProgress > 1.05)) ||
         (hasSpokenRef.current === 'over' && currentProgress <= 1.05)) {
-      hasSpokenRef.current = false;
+      hasSpokenRef.current = null;
     }
   };
 

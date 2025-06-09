@@ -157,9 +157,9 @@ export default function InstructorScreen({ navigation }) {
       <View style={styles.cardContainer}>
         <View style={styles.card}>
           <Image 
-            source={typeof item.imageUri === 'string' && item.imageUri.startsWith('http') ? { uri: item.imageUri } : (item.imageUri || require('../assets/placeholder.png'))}
+            source={typeof item.imageUri === 'string' && item.imageUri.startsWith('http') ? { uri: item.imageUri } : (item.imageUri || require('../assets/recipes/placeholder.png'))}
             style={styles.image} 
-            defaultSource={require('../assets/placeholder.png')}
+            defaultSource={require('../assets/recipes/placeholder.png')}
             onError={(error) => console.log('[InstructorScreen] Image loading error for', item.title, ':', error.nativeEvent?.error)}
             resizeMode="cover"
           />

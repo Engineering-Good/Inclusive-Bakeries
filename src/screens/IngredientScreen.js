@@ -76,7 +76,7 @@ const IngredientScreen = ({ route, navigation }) => {
         await SpeechService.delay(SpeechService.SPEECH_DELAY);
       }
 
-      // Announce tare if needed
+      // // Announce tare if needed
       if (ingredient.requireTare) {
         await SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
         await SpeechService.waitUntilDone();
@@ -160,7 +160,7 @@ const IngredientScreen = ({ route, navigation }) => {
   };
 
   const handleProgressUpdate = (currentProgress, isStable) => {
-    if (!requireScale) {
+    if (!requireScale || !isStable) {
       // If no scale is required, this function should not be called or should do nothing
       return;
     }
@@ -230,7 +230,8 @@ const IngredientScreen = ({ route, navigation }) => {
     <View style={[styles.container]}>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>
-            {ingredient.name}<br></br>{`${ingredient.amount} ${ingredient.unit}`}
+            {ingredient.name + '\n'}
+            {`${ingredient.amount} ${ingredient.unit}`}
           </Text>
         </View>
         <View
@@ -266,14 +267,13 @@ const IngredientScreen = ({ route, navigation }) => {
         styles.middleSection,
         { backgroundColor: requireScale ? getBackgroundColor(progress) : '#4CAF50' }
       ]}>
-        {fullIngredient && fullIngredient.imageUri ? (
+        {fullIngredient && fullIngredient.imageUri && (
             <Image
               source={{ uri: fullIngredient.imageUri }}
               style={styles.ingredientImage}
             />
-          ) : (
-            <Text style={{ color: 'black' }}>No image found</Text>
-          )}
+          )
+        }
         <IngredientColumns
           ingredient={ingredient}
           progress={progress}
@@ -302,7 +302,6 @@ const IngredientScreen = ({ route, navigation }) => {
               buttonColor="red"
               onPress={() => {
                 setShowConfirmationDialog(false);
-                proceedToNextStep();
               }}
               style={styles.dialogButton}
             >

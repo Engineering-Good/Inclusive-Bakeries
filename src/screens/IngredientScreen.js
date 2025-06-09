@@ -5,7 +5,8 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import ScaleReadingComponent from '../components/ScaleReadingComponent';
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import SpeechService from '../services/SpeechService';
-import { INGREDIENT_MESSAGES } from '../constants/speechText';
+import { INGREDIENT_MESSAGES, RECIPE_MESSAGES } from '../constants/speechText';
+import { SCALE_MESSAGES } from '../constants/speechText';
 import ingredientDatabase from '../data/ingredientDatabase';
 
 const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles }) => (
@@ -67,8 +68,51 @@ const IngredientScreen = ({ route, navigation }) => {
     setWeightReached(false);
     hasSpokenRef.current = false; // Reset the spoken ref
 
-    // Announce the new ingredient
-    announceIngredient();
+    const announceIngredientOrder = async () => {
+      // First ingredient needs the "Let's start baking!" announcement
+      if (ingredientIndex === 0) {
+        await SpeechService.speak(RECIPE_MESSAGES.START_BAKING);
+        await SpeechService.waitUntilDone();
+        await SpeechService.delay(SpeechService.SPEECH_DELAY);
+      }
+
+      // Announce tare if needed
+      if (ingredient.requireTare) {
+        await SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
+        await SpeechService.waitUntilDone();
+        await SpeechService.delay(SpeechService.SPEECH_DELAY);
+      }
+
+      // Announce which ingredient number we're on
+      let orderMessage;
+      if (ingredientIndex === 0) {
+        orderMessage = RECIPE_MESSAGES.FIRST_INGREDIENT;
+      } else if (ingredientIndex === 1) {
+        orderMessage = RECIPE_MESSAGES.SECOND_INGREDIENT;
+      } else if (ingredientIndex === 2) {
+        orderMessage = RECIPE_MESSAGES.THIRD_INGREDIENT;
+      } else {
+        orderMessage = RECIPE_MESSAGES.NEXT_INGREDIENT;
+      }
+
+      await SpeechService.speak(orderMessage);
+      await SpeechService.waitUntilDone();
+      await SpeechService.delay(SpeechService.SPEECH_DELAY);
+
+      // Now announce the ingredient details and instructions
+      const goalAnnouncement = `${ingredient.amount} ${ingredient.unit} of ${ingredient.name}`;
+      await SpeechService.speak(goalAnnouncement);
+      await SpeechService.waitUntilDone();
+      await SpeechService.delay(SpeechService.SPEECH_DELAY);
+
+      // Announce the custom instruction if available
+      if (ingredient.instructionText && ingredient.instructionText.trim()) {
+        await SpeechService.speak(ingredient.instructionText);
+        await SpeechService.waitUntilDone();
+      }
+    };
+
+    announceIngredientOrder();
 
     // If no scale is required, set weightReached to true immediately
     if (!requireScale) {
@@ -81,15 +125,7 @@ const IngredientScreen = ({ route, navigation }) => {
       setWeightReached(false);
       SpeechService.stop();
     }
-  }, [ingredient, requireScale]);
-
-  const announceIngredient = useCallback(() => {
-    SpeechService.announceIngredient(
-      ingredient.name,
-      ingredient.amount,
-      ingredient.unit
-    );
-  }, [ingredient]);
+  }, [ingredient, requireScale, ingredientIndex]);
 
   const proceedToNextStep = () => {
     if (isLastIngredient) {
@@ -145,13 +181,13 @@ const IngredientScreen = ({ route, navigation }) => {
     else if (isStable && currentProgress < 0.95 && currentProgress >= 0.05) {
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'under') {
         setWeightReached(false);
-        SpeechService.speak(INGREDIENT_MESSAGES.ADD_MORE);
+        SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
         hasSpokenRef.current = 'under';
       }
     }
     // Overweight range
     else if (currentProgress > 1.05) {
-      if (isStable && !hasSpokenRef.current || hasSpokenRef.current !== 'over') {
+      if (!hasSpokenRef.current || hasSpokenRef.current !== 'over') {
         setWeightReached(false);
         SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
         hasSpokenRef.current = 'over';
@@ -164,6 +200,14 @@ const IngredientScreen = ({ route, navigation }) => {
         SpeechService.speak(INGREDIENT_MESSAGES.START_WEIGHING);
         hasSpokenRef.current = 'start';
       }
+    }
+
+    // Reset hasSpokenRef when weight changes significantly
+    if (currentProgress < 0.05 || 
+        (hasSpokenRef.current === 'under' && currentProgress >= 0.95) ||
+        (hasSpokenRef.current === 'perfect' && (currentProgress < 0.95 || currentProgress > 1.05)) ||
+        (hasSpokenRef.current === 'over' && currentProgress <= 1.05)) {
+      hasSpokenRef.current = false;
     }
   };
 
@@ -258,7 +302,7 @@ const IngredientScreen = ({ route, navigation }) => {
               buttonColor="red"
               onPress={() => {
                 setShowConfirmationDialog(false);
-                announceIngredient();
+                proceedToNextStep();
               }}
               style={styles.dialogButton}
             >

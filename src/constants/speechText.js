@@ -9,6 +9,7 @@ export const INGREDIENT_MESSAGES = {
 
 export const SCALE_MESSAGES = {
   TARE_NEEDED: 'Please tare the scale',
+  HANDS_OFF_SCALE: 'Please keep your hands off the scale. The weight is fluctuating too much.',
 };
 
 export const RECIPE_MESSAGES = {

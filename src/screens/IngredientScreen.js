@@ -54,7 +54,11 @@ const IngredientScreen = ({ route, navigation }) => {
   const [progress, setProgress] = useState(0);
   const [weightReached, setWeightReached] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [hasWeightBeenReachedOnce, setHasWeightBeenReachedOnce] = useState(false); // New state variable
   const hasSpokenRef = useRef(false);
+  const addMoreTimer = useRef(null); // Timer for "add more" inactivity
+  const tooMuchInterval = useRef(null); // Interval for "too much" continuous reminder
+  const lastStableWeight = useRef(0); // To track weight changes for "too much" reminder
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
 
   // Determine if the ingredient requires scale interaction
@@ -66,6 +70,7 @@ const IngredientScreen = ({ route, navigation }) => {
     // Reset states when component mounts or ingredient changes
     setProgress(0);
     setWeightReached(false);
+    setHasWeightBeenReachedOnce(false); // Reset this state as well
     hasSpokenRef.current = null; // Reset the spoken ref
 
     const announceIngredientOrder = async () => {
@@ -123,7 +128,17 @@ const IngredientScreen = ({ route, navigation }) => {
     return () => {
       setProgress(0);
       setWeightReached(false);
+      setHasWeightBeenReachedOnce(false); // Reset this state as well
       SpeechService.stop();
+      // Clear any active timers on unmount or ingredient change
+      if (addMoreTimer.current) {
+        clearTimeout(addMoreTimer.current);
+        addMoreTimer.current = null;
+      }
+      if (tooMuchInterval.current) {
+        clearInterval(tooMuchInterval.current);
+        tooMuchInterval.current = null;
+      }
     }
   }, [ingredient, requireScale, ingredientIndex]);
 
@@ -159,7 +174,7 @@ const IngredientScreen = ({ route, navigation }) => {
     return '#F44336'; // Red for empty scale
   };
 
-  const handleProgressUpdate = (currentProgress, isStable) => {
+  const handleProgressUpdate = useCallback((currentProgress, isStable) => {
     if (!requireScale || !isStable) {
       // If no scale is required, this function should not be called or should do nothing
       return;
@@ -169,13 +184,25 @@ const IngredientScreen = ({ route, navigation }) => {
     // Only update progress if scale has been tared
     setProgress(currentProgress);
 
+    // Clear any active timers when progress updates
+    if (addMoreTimer.current) {
+      clearTimeout(addMoreTimer.current);
+      addMoreTimer.current = null;
+    }
+    if (tooMuchInterval.current) {
+      clearInterval(tooMuchInterval.current);
+      tooMuchInterval.current = null;
+    }
+
     // Perfect weight range
     if (currentProgress >= 0.95 && currentProgress <= 1.05) {
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'perfect') {
         setWeightReached(true);
+        setHasWeightBeenReachedOnce(true); // Set to true once perfect weight is reached
         hasSpokenRef.current = 'perfect';
         SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT);
       }
+      lastStableWeight.current = currentProgress; // Update last stable weight
     }
     // Underweight range
     else if (currentProgress < 0.95 && currentProgress >= 0.05) {
@@ -184,6 +211,11 @@ const IngredientScreen = ({ route, navigation }) => {
         hasSpokenRef.current = 'under';
         SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
       }
+      // Set inactivity timer for "add more"
+      addMoreTimer.current = setTimeout(() => {
+        SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
+      }, 5000); // 5 seconds inactivity
+      lastStableWeight.current = currentProgress; // Update last stable weight
     }
     // Overweight range
     else if (currentProgress > 1.05) {
@@ -192,6 +224,14 @@ const IngredientScreen = ({ route, navigation }) => {
         hasSpokenRef.current = 'over';
         SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
       }
+      // Set continuous reminder for "too much"
+      tooMuchInterval.current = setInterval(() => {
+        // Only remind if weight is still too much and hasn't been reduced
+        if (progress > 1.05 && currentProgress >= lastStableWeight.current) {
+          SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
+        }
+      }, 2000); // Every 2 seconds
+      lastStableWeight.current = currentProgress; // Update last stable weight
     }
     // Starting/empty scale
     else if (currentProgress < 0.01) {
@@ -200,6 +240,7 @@ const IngredientScreen = ({ route, navigation }) => {
         hasSpokenRef.current = 'start';
         SpeechService.speak(INGREDIENT_MESSAGES.START_WEIGHING);
       }
+      lastStableWeight.current = currentProgress; // Update last stable weight
     }
 
     // Reset hasSpokenRef when weight changes significantly
@@ -209,7 +250,7 @@ const IngredientScreen = ({ route, navigation }) => {
         (hasSpokenRef.current === 'over' && currentProgress <= 1.05)) {
       hasSpokenRef.current = null;
     }
-  };
+  }, [ingredient, requireScale, progress]); // Added progress to dependencies for tooMuchInterval check
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -246,10 +287,11 @@ const IngredientScreen = ({ route, navigation }) => {
           <TouchableOpacity
             style={[
               styles.nextButton,
-              !weightReached && styles.nextButtonDisabled
+              // Apply disabled style only if the button is actually disabled
+              (!requireScale ? false : !hasWeightBeenReachedOnce) && styles.nextButtonDisabled
             ]}
             onPress={handleNext}
-            disabled={!weightReached}
+            disabled={!requireScale ? false : !hasWeightBeenReachedOnce} // If not requireScale, always enabled
           >
             <Text style={styles.nextButtonText}>
               {isLastIngredient ? 'FINISH' : 'NEXT'}

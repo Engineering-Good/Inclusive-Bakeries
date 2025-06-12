@@ -54,6 +54,7 @@ const IngredientScreen = ({ route, navigation }) => {
   const [progress, setProgress] = useState(0);
   const [weightReached, setWeightReached] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [hasWeightBeenReachedOnce, setHasWeightBeenReachedOnce] = useState(false); // New state variable
   const hasSpokenRef = useRef(false);
   const addMoreTimer = useRef(null); // Timer for "add more" inactivity
   const tooMuchInterval = useRef(null); // Interval for "too much" continuous reminder
@@ -69,6 +70,7 @@ const IngredientScreen = ({ route, navigation }) => {
     // Reset states when component mounts or ingredient changes
     setProgress(0);
     setWeightReached(false);
+    setHasWeightBeenReachedOnce(false); // Reset this state as well
     hasSpokenRef.current = null; // Reset the spoken ref
 
     const announceIngredientOrder = async () => {
@@ -126,6 +128,7 @@ const IngredientScreen = ({ route, navigation }) => {
     return () => {
       setProgress(0);
       setWeightReached(false);
+      setHasWeightBeenReachedOnce(false); // Reset this state as well
       SpeechService.stop();
       // Clear any active timers on unmount or ingredient change
       if (addMoreTimer.current) {
@@ -195,6 +198,7 @@ const IngredientScreen = ({ route, navigation }) => {
     if (currentProgress >= 0.95 && currentProgress <= 1.05) {
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'perfect') {
         setWeightReached(true);
+        setHasWeightBeenReachedOnce(true); // Set to true once perfect weight is reached
         hasSpokenRef.current = 'perfect';
         SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT);
       }
@@ -283,10 +287,10 @@ const IngredientScreen = ({ route, navigation }) => {
           <TouchableOpacity
             style={[
               styles.nextButton,
-              !weightReached && styles.nextButtonDisabled
+              !hasWeightBeenReachedOnce && styles.nextButtonDisabled // Use new state variable
             ]}
             onPress={handleNext}
-            disabled={!weightReached}
+            disabled={!hasWeightBeenReachedOnce} // Use new state variable
           >
             <Text style={styles.nextButtonText}>
               {isLastIngredient ? 'FINISH' : 'NEXT'}

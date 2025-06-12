@@ -287,10 +287,11 @@ const IngredientScreen = ({ route, navigation }) => {
           <TouchableOpacity
             style={[
               styles.nextButton,
-              !hasWeightBeenReachedOnce && styles.nextButtonDisabled // Use new state variable
+              // Apply disabled style only if the button is actually disabled
+              (!requireScale ? false : !hasWeightBeenReachedOnce) && styles.nextButtonDisabled
             ]}
             onPress={handleNext}
-            disabled={!hasWeightBeenReachedOnce} // Use new state variable
+            disabled={!requireScale ? false : !hasWeightBeenReachedOnce} // If not requireScale, always enabled
           >
             <Text style={styles.nextButtonText}>
               {isLastIngredient ? 'FINISH' : 'NEXT'}

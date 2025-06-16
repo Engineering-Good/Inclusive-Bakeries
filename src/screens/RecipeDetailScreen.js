@@ -45,11 +45,12 @@ export default function RecipeDetailScreen({ route, navigation }) {
   };
 
   const announceIngredient = (ingredient) => {
-    SpeechService.announceWeight(
-      ingredient.name,
-      ingredient.amount,
-      ingredient.unit
-    );
+    try {
+      const announcement = `${ingredient.amount} ${ingredient.unit} of ${ingredient.name}`;
+      SpeechService.speak(announcement);
+    } catch (error) {
+      console.error('Error announcing ingredient:', error);
+    }
   };
 
   const selectIngredient = (ingredientIndex) => {
@@ -109,21 +110,23 @@ export default function RecipeDetailScreen({ route, navigation }) {
 
       <Text style={styles.sectionTitle}>Ingredients</Text>
       <View style={styles.ingredientsContainer}>
-        {recipe.ingredients && recipe.ingredients.map((ingredient, index) => (
-          <TouchableOpacity 
-            key={index} 
-            style={styles.ingredientItem}
-            onPress={() => selectIngredient(index)}
-          >
-            <Text style={styles.ingredientText}>
-              {ingredient.name}: {ingredient.amount} {ingredient.unit}
-            </Text>
-            <IconButton
-              icon="volume-high"
-              size={20}
-              onPress={() => announceIngredient(ingredient)}
-            />
-          </TouchableOpacity>
+        {recipe.ingredients && recipe.ingredients
+          .filter(ingredient => ingredient.amount || ['g', 'eggs', 'tsp', 'tbsp'].includes(ingredient.unit))
+          .map((ingredient, index) => (
+            <TouchableOpacity 
+              key={index} 
+              style={styles.ingredientItem}
+              onPress={() => selectIngredient(index)}
+            >
+              <Text style={styles.ingredientText}>
+                {ingredient.name}: {ingredient.amount} {ingredient.unit}
+              </Text>
+              <IconButton
+                icon="volume-high"
+                size={20}
+                onPress={() => announceIngredient(ingredient)}
+              />
+            </TouchableOpacity>
         ))}
       </View>
 

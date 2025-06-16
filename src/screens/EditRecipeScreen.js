@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Speech from 'expo-speech';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Dialog, Portal } from 'react-native-paper';
+import { Picker } from '@react-native-picker/picker';
 
 
 export default function EditRecipeScreen({ route, navigation }) {
@@ -17,6 +18,80 @@ export default function EditRecipeScreen({ route, navigation }) {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [deleteIngredientDialog, setDeleteIngredientDialog] = useState({ visible: false, ingredient: null });
+  const [unsavedChangesDialog, setUnsavedChangesDialog] = useState({ visible: false });
+  const [unsavedIngredientDialog, setUnsavedIngredientDialog] = useState({ visible: false });
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [originalIngredient, setOriginalIngredient] = useState(null);
+  const [isIngredientNavigating, setIsIngredientNavigating] = useState(false);
+
+  // Update the useEffect for back navigation
+  useEffect(() => {
+    const handleBackPress = (e) => {
+      if (isNavigating) {
+        return false;
+      }
+
+      // Check if there are unsaved changes
+      const hasUnsavedChanges = 
+        title !== (initialRecipe?.title || '') ||
+        JSON.stringify(ingredients) !== JSON.stringify(initialRecipe?.ingredients || []) ||
+        recipeImage !== initialRecipe?.imageUri;
+
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        setUnsavedChangesDialog({ visible: true });
+        return true;
+      }
+      return false;
+    };
+
+    const unsubscribe = navigation.addListener('beforeRemove', handleBackPress);
+    return () => unsubscribe();
+  }, [navigation, title, ingredients, recipeImage, initialRecipe, isNavigating]);
+
+  const handleDiscardChanges = () => {
+    setIsNavigating(true);
+    setUnsavedChangesDialog({ visible: false });
+    navigation.goBack();
+  };
+
+  const handleSaveAndExit = async () => {
+    try {
+      setIsNavigating(true);
+      setUnsavedChangesDialog({ visible: false });
+
+      if (!title.trim()) {
+        Alert.alert('Error', 'Recipe title is required');
+        setIsNavigating(false);
+        return;
+      }
+      
+      const instructions = ingredients
+        .filter(ing => ing.instructionText && ing.instructionText.trim())
+        .map(ing => ing.instructionText.trim());
+      
+      const updatedRecipe = {
+        id: initialRecipe?.id || Date.now().toString(),
+        title,
+        imageUri: recipeImage?.uri || recipeImage || require('../assets/recipes/placeholder.png'),
+        ingredients: ingredients.map(ing => ({
+          ...ing,
+          imageUri: ing.imageUri || require('../assets/recipes/placeholder.png')
+        })),
+        instructions
+      };
+      
+      if (onSave) {
+        await onSave(updatedRecipe);
+      }
+      
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error saving recipe:', error);
+      Alert.alert('Error', 'Failed to save recipe');
+      setIsNavigating(false);
+    }
+  };
 
   const getImageSource = (imageUri) => {
     if (!imageUri) {
@@ -149,40 +224,35 @@ export default function EditRecipeScreen({ route, navigation }) {
   };
 
   const updateIngredient = useCallback((id, key, value) => {
+    console.log('Updating ingredient:', { id, key, value });
     const processedValue = key === 'imageUri' && typeof value === 'object' && value.uri 
       ? value.uri 
       : value;
   
-    setIngredients(prevIngredients =>
-      prevIngredients.map(ingredient =>
-        ingredient.id === id ? {
-          ...ingredient,
-          [key]: processedValue
-        } : ingredient
-      )
-    );
-  
-    // Update selectedIngredient if it's the same ingredient being updated
-    setSelectedIngredient(prev => 
-      prev && prev.id === id ? {
+    setSelectedIngredient(prev => {
+      if (!prev) return null;
+      const updated = {
         ...prev,
         [key]: processedValue
-      } : prev
-    );
+      };
+      console.log('Updated ingredient:', updated);
+      return updated;
+    });
   }, []);
 
-  const addIngredient = () => {
+  const handleAddIngredient = () => {
     const newIngredient = {
       id: Date.now().toString(),
       name: '',
       amount: '',
       unit: 'g',
-      tolerance: '',
-      imageUri: null,
+      tolerance: '5',
       requireTare: false,
-      instructionText: ''
+      instructionText: '',
+      imageUri: null
     };
-    setIngredients([...ingredients, newIngredient]);
+    setIngredients(prev => [...prev, newIngredient]);
+    setSelectedIngredient(newIngredient);
   };
 
   const openIngredientEditor = (ingredient) => {
@@ -215,7 +285,6 @@ export default function EditRecipeScreen({ route, navigation }) {
       // Only update AsyncStorage for the main recipes list if editing an existing recipe
       if (initialRecipe && initialRecipe.id) {
         console.log('Preparing to update AsyncStorage for existing recipe ID:', initialRecipe.id);
-        // const currentRecipes = recipes; // recipes state should be up-to-date
         const updatedRecipesList = recipes.map(r =>
           r.id === initialRecipe.id ? { ...r, ingredients: updatedIngredients } : r
         );
@@ -238,51 +307,92 @@ export default function EditRecipeScreen({ route, navigation }) {
     }
   };
 
-  
-
-  const saveRecipe = async () => {
-    if (!title.trim()) {
-      Alert.alert('Error', 'Recipe title is required');
-      return;
+  // Update useEffect to properly track original ingredient state
+  useEffect(() => {
+    if (selectedIngredient) {
+      // Create a deep copy of the selected ingredient
+      const original = {
+        id: selectedIngredient.id,
+        name: selectedIngredient.name,
+        amount: selectedIngredient.amount,
+        unit: selectedIngredient.unit,
+        tolerance: selectedIngredient.tolerance || '5',
+        requireTare: selectedIngredient.requireTare,
+        instructionText: selectedIngredient.instructionText,
+        imageUri: selectedIngredient.imageUri
+      };
+      console.log('Setting original ingredient:', original);
+      setOriginalIngredient(original);
     }
-  
-    // Create instructions array from ingredient instructionTexts
-    const instructions = ingredients
-      .filter(ing => ing.instructionText && ing.instructionText.trim()) // Only include ingredients with instructions
-      .map(ing => ing.instructionText.trim());
-  
-    const updatedRecipe = {
-      id: initialRecipe?.id || Date.now().toString(),
-      title,
-      imageUri: recipeImage?.uri || recipeImage || require('../assets/recipes/placeholder.png'),
-      ingredients: ingredients.map(ing => ({
-        ...ing,
-        imageUri: ing.imageUri || require('../assets/recipes/placeholder.png')
-      })),
-      instructions // Use the generated instructions array
+  }, [selectedIngredient?.id]);
+
+  const hasIngredientChanges = useCallback(() => {
+    if (!selectedIngredient || !originalIngredient) {
+      console.log('No ingredient or original ingredient to compare');
+      return false;
+    }
+    
+    const changes = {
+      name: selectedIngredient.name !== originalIngredient.name,
+      amount: selectedIngredient.amount !== originalIngredient.amount,
+      unit: selectedIngredient.unit !== originalIngredient.unit,
+      tolerance: selectedIngredient.tolerance !== originalIngredient.tolerance,
+      requireTare: selectedIngredient.requireTare !== originalIngredient.requireTare,
+      instructionText: selectedIngredient.instructionText !== originalIngredient.instructionText,
+      imageUri: selectedIngredient.imageUri !== originalIngredient.imageUri
     };
-  
-    try {
-      if (onSave) {
-        await onSave(updatedRecipe);
-      }
-      navigation.goBack();
-    } catch (e) {
-      console.error('Failed to save recipe:', e);
-      Alert.alert('Error', 'Failed to save recipe');
+
+    const hasChanges = Object.values(changes).some(change => change);
+    
+    console.log('Checking ingredient changes:', {
+      selectedIngredient,
+      originalIngredient,
+      changes,
+      hasChanges
+    });
+    
+    return hasChanges;
+  }, [selectedIngredient, originalIngredient]);
+
+  const handleCloseIngredientEditor = useCallback(() => {
+    console.log('Close ingredient editor clicked');
+    const changes = hasIngredientChanges();
+    console.log('Has changes:', changes);
+    
+    if (changes) {
+      console.log('Showing unsaved changes dialog');
+      setUnsavedIngredientDialog({ visible: true });
+    } else {
+      console.log('No changes, closing editor');
+      setSelectedIngredient(null);
     }
+  }, [hasIngredientChanges]);
+
+  const handleIngredientBackPress = useCallback(() => {
+    console.log('Back button pressed in ingredient editor');
+    const changes = hasIngredientChanges();
+    console.log('Has changes:', changes);
+    
+    if (changes) {
+      console.log('Showing unsaved changes dialog');
+      setUnsavedIngredientDialog({ visible: true });
+    } else {
+      console.log('No changes, closing editor');
+      setSelectedIngredient(null);
+    }
+  }, [hasIngredientChanges]);
+
+  const handleDiscardIngredientChanges = () => {
+    console.log('Discarding ingredient changes');
+    setUnsavedIngredientDialog({ visible: false });
+    setSelectedIngredient(null);
   };
 
-  const handleDeleteIngredientCancel = () => {
-    setDeleteIngredientDialog({ visible: false, ingredient: null });
+  const handleSaveIngredientChanges = async () => {
+    console.log('Saving ingredient changes');
+    setUnsavedIngredientDialog({ visible: false });
+    await saveIngredientChanges();
   };
-  
-  const handleDeleteIngredientConfirm = async () => {
-    if (deleteIngredientDialog.ingredient) {
-      await handleDeleteIngredient(deleteIngredientDialog.ingredient.id);
-    }
-    setDeleteIngredientDialog({ visible: false, ingredient: null });
-  };  
 
   const renderIngredientCard = useCallback((ingredient) => {
     return (
@@ -299,7 +409,7 @@ export default function EditRecipeScreen({ route, navigation }) {
             <View style={styles.ingredientInfo}>
               <Text style={styles.ingredientName}>{ingredient.name || 'New Ingredient'}</Text>
               <Text style={styles.ingredientDetails}>
-                Mass: {ingredient.amount}g ± {ingredient.tolerance}%
+                Mass: {ingredient.amount}g ± {ingredient.tolerance || '5'}%
               </Text>
             </View>
           </TouchableOpacity>
@@ -365,12 +475,31 @@ export default function EditRecipeScreen({ route, navigation }) {
 
   // Update the ingredient editor modal layout
   if (selectedIngredient) {
+    console.log('Rendering ingredient editor with selected ingredient:', selectedIngredient);
+    const ingredientWithDefaults = {
+      ...selectedIngredient,
+      tolerance: selectedIngredient.tolerance || '5'
+    };
+
     return (
       <>
         <View style={styles.container}>
           <View style={styles.header}>
+            <IconButton 
+              icon="arrow-left" 
+              size={24} 
+              onPress={handleIngredientBackPress}
+              testID="back-ingredient-editor"
+              iconColor="white"
+            />
             <Text style={styles.headerText}>Edit Ingredient</Text>
-            <IconButton icon="close" size={24} onPress={closeIngredientEditor} />
+            <IconButton 
+              icon="close" 
+              size={24} 
+              onPress={handleCloseIngredientEditor}
+              testID="close-ingredient-editor"
+              iconColor="white"
+            />
           </View>
           
           <View style={styles.editorContainer}>
@@ -378,12 +507,12 @@ export default function EditRecipeScreen({ route, navigation }) {
               <View style={styles.imageSection}>
                 <TouchableOpacity 
                   style={styles.imageContainer}
-                  onPress={() => pickImage(false, selectedIngredient.id)}
+                  onPress={() => pickImage(false, ingredientWithDefaults.id)}
                 >
-                <Image
-                  source={getImageSource(selectedIngredient.imageUri)}
-                  style={styles.ingredientImage}
-                />
+                  <Image
+                    source={getImageSource(ingredientWithDefaults.imageUri)}
+                    style={styles.ingredientImage}
+                  />
                   <View style={styles.imageOverlay}>
                     <Text style={styles.editImageText}>Edit Cover</Text>
                   </View>
@@ -395,36 +524,51 @@ export default function EditRecipeScreen({ route, navigation }) {
                   <Text style={styles.label}>Ingredient Name</Text>
                   <TextInput
                     style={styles.input}
-                    value={selectedIngredient.name}
-                    onChangeText={(text) => setSelectedIngredient({...selectedIngredient, name: text})}
+                    value={ingredientWithDefaults.name}
+                    onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'name', text)}
                     placeholder="Ingredient Name"
                   />
 
-                  <Text style={styles.label}>Mass (grams)</Text>
+                  <Text style={styles.label}>
+                    {ingredientWithDefaults.unit === 'g'
+                      ? 'Mass (grams)'
+                      : `Quantity (${ingredientWithDefaults.unit})`}
+                  </Text>
                   <TextInput
                     style={styles.input}
-                    value={selectedIngredient.amount}
-                    onChangeText={(text) => setSelectedIngredient({...selectedIngredient, amount: text})}
+                    value={ingredientWithDefaults.amount}
+                    onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'amount', text)}
                     keyboardType="numeric"
-                    placeholder="Amount"
+                    placeholder={ingredientWithDefaults.unit === 'g' ? 'Amount' : `e.g. 2`}
                   />
 
                   <Text style={styles.label}>Tolerance (%)</Text>
                   <TextInput
                     style={styles.input}
-                    value={selectedIngredient.tolerance}
-                    onChangeText={(text) => setSelectedIngredient({...selectedIngredient, tolerance: text})}
-                    placeholder="e.g. 0.1"
+                    value={ingredientWithDefaults.tolerance}
+                    onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'tolerance', text)}
+                    placeholder="e.g. 5"
                     keyboardType="numeric"
                   />
 
+                  <Text style={styles.label}>Unit</Text>
+                  <View style={{ backgroundColor: '#f5f5f5', borderRadius: 8, marginBottom: 16 }}>
+                    <Picker
+                      selectedValue={ingredientWithDefaults.unit}
+                      onValueChange={(itemValue) => updateIngredient(ingredientWithDefaults.id, 'unit', itemValue)}
+                      style={{ height: 44 }}
+                    >
+                      <Picker.Item label="Grams" value="g" />
+                      <Picker.Item label="Eggs" value="eggs" />
+                      <Picker.Item label="Teaspoons" value="tsp" />
+                      <Picker.Item label="Tablespoons" value="tbsp" />
+                    </Picker>
+                  </View>
+
                   <View style={styles.checkboxContainer}>
                     <Checkbox
-                      status={selectedIngredient.requireTare ? 'checked' : 'unchecked'}
-                      onPress={() => setSelectedIngredient({
-                        ...selectedIngredient,
-                        requireTare: !selectedIngredient.requireTare
-                      })}
+                      status={ingredientWithDefaults.requireTare ? 'checked' : 'unchecked'}
+                      onPress={() => updateIngredient(ingredientWithDefaults.id, 'requireTare', !ingredientWithDefaults.requireTare)}
                       color="#666"
                     />
                     <Text style={styles.checkboxLabel}>Requires Tare</Text>
@@ -433,8 +577,8 @@ export default function EditRecipeScreen({ route, navigation }) {
                   <Text style={styles.label}>Instruction Text (for Audio)</Text>
                   <TextInput
                     style={[styles.input, styles.instructionInput]}
-                    value={selectedIngredient.instructionText}
-                    onChangeText={(text) => setSelectedIngredient({...selectedIngredient, instructionText: text})}
+                    value={ingredientWithDefaults.instructionText}
+                    onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'instructionText', text)}
                     placeholder="Enter instructions for text-to-speech"
                     multiline
                     numberOfLines={3}
@@ -442,8 +586,8 @@ export default function EditRecipeScreen({ route, navigation }) {
 
                   <Button 
                     mode="outlined"
-                    onPress={() => playInstructionAudio(selectedIngredient.instructionText)}
-                    disabled={!selectedIngredient.instructionText}
+                    onPress={() => playInstructionAudio(ingredientWithDefaults.instructionText)}
+                    disabled={!ingredientWithDefaults.instructionText}
                     style={styles.previewButton}
                     buttonColor="rgba(237, 237, 237, 0.78)"
                     textColor="black"
@@ -456,7 +600,7 @@ export default function EditRecipeScreen({ route, navigation }) {
 
             <Button 
               mode="contained" 
-              onPress={saveIngredientChanges}
+              onPress={handleSaveIngredientChanges}
               style={styles.saveButton}
               buttonColor="rgba(144, 238, 144, 0.8)"
               textColor="black"
@@ -465,6 +609,34 @@ export default function EditRecipeScreen({ route, navigation }) {
             </Button>
           </View>
         </View>
+
+        {/* Update the unsaved changes dialog */}
+        <Dialog
+          visible={unsavedIngredientDialog.visible}
+          onDismiss={() => setUnsavedIngredientDialog({ visible: false })}
+        >
+          <Dialog.Title>Unsaved Changes</Dialog.Title>
+          <Dialog.Content>
+            <Text>You have unsaved changes. Would you like to save them?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button 
+              onPress={handleDiscardIngredientChanges}
+              disabled={isIngredientNavigating}
+              textColor="red"
+            >
+              Discard
+            </Button>
+            <Button 
+              onPress={handleSaveIngredientChanges}
+              disabled={isIngredientNavigating}
+              textColor="green"
+            >
+              Save
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
         <Snackbar
           visible={snackbarVisible}
           onDismiss={() => setSnackbarVisible(false)}
@@ -509,14 +681,14 @@ export default function EditRecipeScreen({ route, navigation }) {
 
         <TouchableOpacity 
           style={styles.addIngredientButton}
-          onPress={addIngredient}
+          onPress={handleAddIngredient}
         >
           <IconButton icon="plus" size={30} />
         </TouchableOpacity>
 
         <Button 
           mode="contained" 
-          onPress={saveRecipe}
+          onPress={handleSaveAndExit}
           style={styles.saveButton}
           buttonColor="rgba(144, 238, 144, 0.8)"
           textColor="black"
@@ -524,29 +696,66 @@ export default function EditRecipeScreen({ route, navigation }) {
           Save Recipe
         </Button>
       </ScrollView>
+
       <Portal>
-      <Dialog
-      visible={deleteIngredientDialog?.visible || false}
-      onDismiss={handleDeleteIngredientCancel}
+        <Dialog
+          visible={unsavedChangesDialog.visible}
+          onDismiss={() => {
+            if (!isNavigating) {
+              setUnsavedChangesDialog({ visible: false });
+            }
+          }}
+          dismissable={!isNavigating}
         >
-        <Dialog.Title>Delete Ingredient</Dialog.Title>
-        <Dialog.Content>
-          <Text>
-            Are you sure you want to delete "{deleteIngredientDialog.ingredient?.name}"? This cannot be undone.
-          </Text>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={handleDeleteIngredientCancel}>Cancel</Button>
-          <Button
-            mode="contained"
-            onPress={handleDeleteIngredientConfirm}
-            style={styles.deleteDialogBtn}
-          >
-            Delete
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
-    </Portal>
+          <Dialog.Title>Unsaved Changes</Dialog.Title>
+          <Dialog.Content>
+            <Text>You have unsaved changes. Would you like to save them before leaving?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button 
+              onPress={handleDiscardChanges}
+              textColor="#666"
+              disabled={isNavigating}
+            >
+              Discard Changes
+            </Button>
+            <Button 
+              onPress={handleSaveAndExit}
+              mode="contained"
+              buttonColor="rgba(144, 238, 144, 0.8)"
+              textColor="black"
+              disabled={isNavigating}
+            >
+              Save Changes
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <Portal>
+        <Dialog
+          visible={deleteIngredientDialog.visible}
+          onDismiss={() => setDeleteIngredientDialog({ visible: false, ingredient: null })}
+        >
+          <Dialog.Title>Delete Ingredient</Dialog.Title>
+          <Dialog.Content>
+            <Text>
+              Are you sure you want to delete "{deleteIngredientDialog.ingredient?.name}"? This cannot be undone.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteIngredientDialog({ visible: false, ingredient: null })}>Cancel</Button>
+            <Button
+              mode="contained"
+              onPress={() => handleDeleteIngredient(deleteIngredientDialog.ingredient.id)}
+              style={styles.deleteDialogBtn}
+            >
+              Delete
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
       <Snackbar
         visible={snackbarVisible}
         onDismiss={() => setSnackbarVisible(false)}
@@ -776,5 +985,8 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  deleteDialogBtn: {
+    backgroundColor: 'red',
   },
 });

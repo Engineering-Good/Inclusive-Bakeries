@@ -4,18 +4,16 @@ import { INGREDIENT_MESSAGES, SCALE_MESSAGES } from '../constants/speechText';
 class SpeechService {
   constructor() {
     console.log('SpeechService initialized.');
-    // Initialize with a female voice if available
     this.initVoice();
-    this.SPEECH_DELAY = 2500; // 2.5 seconds delay between instructions
+    this.SPEECH_DELAY = 2500; 
     this.lastSpokenText = null;
     this.lastSpokenTime = 0;
-    this.minTimeBetweenSameSpeech = 3000; // Minimum 10 seconds before repeating the exact same speech
+    this.minTimeBetweenSameSpeech = 3000; 
   }
 
   async initVoice() {
     console.log('Initializing voice...');
     const voices = await Speech.getAvailableVoicesAsync();
-    // Find a female English voice
     this.preferredVoice = voices.find(voice => 
       voice.language.startsWith('en') && 
       voice.identifier.toLowerCase().includes('female')
@@ -35,7 +33,6 @@ class SpeechService {
 
     const now = Date.now();
 
-
     // Check for minimum time between same speech
     if (this.lastSpokenText === text && (now - this.lastSpokenTime < this.minTimeBetweenSameSpeech)) {
       console.log(`Too soon to repeat same speech. Skipping: "${text}"`);
@@ -52,27 +49,34 @@ class SpeechService {
       // This is crucial to prevent stacking and ensure proper flow
       await this.waitUntilDone();
 
-      return new Promise((resolve) => { // Removed reject as we'll handle errors gracefully
-        const defaultOptions = {
-          language: 'en-US',
-          pitch: 1.0,
-          rate: 0.8,
-          voice: this.preferredVoice?.identifier,
-          ...options,
-          onDone: () => {
-            console.log('Speech finished:', text);
-            if (options.onDone) options.onDone();
-            resolve(); // Resolve the promise when speech is done
-          },
-          onError: (error) => {
-            console.error('Speech error:', error);
-            if (options.onError) options.onError(error);
-            resolve(); // Resolve the promise even on error to prevent unhandled rejections
-          }
-        };
+      // --- NEW: Add pause between words for clarity ---
+      const words = text.split(' ');
+      for (let i = 0; i < words.length; i++) {
+        await new Promise((resolve) => {
+          const defaultOptions = {
+            language: 'en-US',
+            pitch: 1.0,
+            rate: 0.8,
+            voice: this.preferredVoice?.identifier,
+            ...options,
+            onDone: () => {
+              resolve();
+            },
+            onError: (error) => {
+              console.error('Speech error:', error);
+              resolve();
+            }
+          };
+          Speech.speak(words[i], defaultOptions);
+        });
+        // Add a short pause (200ms) between words, except after the last word
+        if (i < words.length - 1) {
+          await this.delay(200);
+        }
+      }
+      // --- END NEW ---
 
-        Speech.speak(text, defaultOptions);
-      });
+      return; // No need for the old Promise-based block
     } catch (error) {
       console.error('Speech error in speak method:', error);
       // Do not re-throw here, as the promise within handles resolution/rejection

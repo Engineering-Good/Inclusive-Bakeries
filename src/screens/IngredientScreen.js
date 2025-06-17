@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, Alert, Image } from 'react-na
 import { Divider, TouchableRipple, Dialog, Portal, Button, Paragraph } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ScaleReadingComponent from '../components/ScaleReadingComponent';
+import MockScaleComponent from '../components/MockScaleComponent'; // Import MockScaleComponent
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import SpeechService from '../services/SpeechService';
 import { INGREDIENT_MESSAGES, RECIPE_MESSAGES } from '../constants/speechText';
@@ -42,8 +43,9 @@ const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, require
       )}
     </View>
 
-    {/* Right Column (blank for now) */}
+    {/* Right Column */}
     <View style={styles.column}>
+      {requireScale && <MockScaleComponent />}
     </View>
   </>
 );

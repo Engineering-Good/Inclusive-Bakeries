@@ -162,6 +162,16 @@ class ScaleServiceFactory {
     EventEmitterService.removeAllListeners('weightUpdate');
     EventEmitterService.removeAllListeners('connectionStatus');
   }
+
+  static async isMockScaleSelected() {
+    try {
+      const selectedScale = await AsyncStorage.getItem('selectedScale');
+      return selectedScale === SCALE_SERVICES.MOCK || selectedScale === null; // Default to MOCK if not set
+    } catch (error) {
+      console.error('Error checking if mock scale is selected:', error);
+      return true; // Assume mock if error
+    }
+  }
 }
 
 export default ScaleServiceFactory;

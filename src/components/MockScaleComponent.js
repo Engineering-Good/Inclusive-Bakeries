@@ -1,24 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Button, StyleSheet } from 'react-native';
 import ScaleServiceFactory from '../services/ScaleServiceFactory';
-import { ScaleServiceType } from '../constants/ScaleServices';
 
 const MockScaleComponent = () => {
-  const mockScaleService = ScaleServiceFactory.getService(ScaleServiceType.MOCK);
+  const [mockScaleService, setMockScaleService] = useState(null);
+
+  useEffect(() => {
+    const initializeScaleService = async () => {
+      const service = await ScaleServiceFactory.getScaleService();
+      setMockScaleService(service);
+      console.log('MockScaleComponent initialized with service:', service);
+    };
+    initializeScaleService();
+  }, []);
 
   const handleWeightUp = () => {
+    if (!mockScaleService) return;
     mockScaleService.mockWeightChange(10); // Increase weight by 10g
   };
 
   const handleWeightDown = () => {
+    if (!mockScaleService) return;
     mockScaleService.mockWeightChange(-10); // Decrease weight by 10g
   };
 
   const handleStableWeight = () => {
+    if (!mockScaleService) return;
     mockScaleService.mockStableWeight();
   };
 
   const handleTare = () => {
+    if (!mockScaleService) return;
     mockScaleService.mockTare();
   };
 
@@ -37,6 +49,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column', // Changed to column for vertical buttons
     justifyContent: 'space-around',
     marginTop: 20,
+    padding: 20,
     width: '100%',
   },
 });

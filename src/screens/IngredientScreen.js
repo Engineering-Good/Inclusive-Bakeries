@@ -10,8 +10,8 @@ import { INGREDIENT_MESSAGES, RECIPE_MESSAGES } from '../constants/speechText';
 import { SCALE_MESSAGES } from '../constants/speechText';
 import ingredientDatabase from '../data/ingredientDatabase';
 
-const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles }) => (
-  <>
+const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, isMockScaleActive, styles }) => (
+  <View style={styles.columnsContainer}>
     {/* Middle Column */}
     <View style={styles.column}>
       {requireScale ? (
@@ -44,10 +44,12 @@ const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, require
     </View>
 
     {/* Right Column */}
+    {requireScale && isMockScaleActive && (
     <View style={styles.column}>
-      {requireScale && <MockScaleComponent />}
+       <MockScaleComponent />
     </View>
-  </>
+    )}
+  </View>
 );
 
 const IngredientScreen = ({ route, navigation }) => {
@@ -56,6 +58,7 @@ const IngredientScreen = ({ route, navigation }) => {
   const [progress, setProgress] = useState(0);
   const [weightReached, setWeightReached] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [isMockScaleActive, setIsMockScaleActive] = useState(false);
   const hasSpokenRef = useRef(false);
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
 
@@ -65,6 +68,13 @@ const IngredientScreen = ({ route, navigation }) => {
   console.log('[IngredientScreen] Ingredient:', ingredient);
 
   useEffect(() => {
+    const checkMockScaleStatus = async () => {
+      const mockActive = await ScaleServiceFactory.isMockScaleSelected();
+      setIsMockScaleActive(mockActive);
+    };
+
+    checkMockScaleStatus();
+
     // Reset states when component mounts or ingredient changes
     setProgress(0);
     setWeightReached(false);
@@ -291,6 +301,7 @@ const IngredientScreen = ({ route, navigation }) => {
           handleProgressUpdate={handleProgressUpdate}
           requireScale={requireScale}
           styles={styles}
+          isMockScaleActive={isMockScaleActive}
         />
       </View>
 
@@ -457,6 +468,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden', // Ensure image doesn't overflow rounded corners
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
+  },
+  columnsContainer: {
+    flexDirection: 'row',
+    flex: 1,
+    justifyContent: 'space-around',
+    alignItems: 'flex-start',
   }
 });
 

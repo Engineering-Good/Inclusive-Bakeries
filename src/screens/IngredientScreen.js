@@ -160,8 +160,17 @@ const IngredientScreen = ({ route, navigation }) => {
   };
 
   const handleProgressUpdate = (currentProgress, isStable) => {
-    if (!requireScale || !isStable) {
-      // If no scale is required, this function should not be called or should do nothing
+    if (!requireScale) {
+      // For non-weight items, enable Next as soon as any change in mass is detected
+      if (currentProgress > 0.01) {
+        setWeightReached(true);
+      } else {
+        setWeightReached(false);
+      }
+      return;
+    }
+    if (!isStable) {
+      // If scale is not stable, do nothing for weight items
       return;
     }
 

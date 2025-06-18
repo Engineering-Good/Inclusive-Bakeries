@@ -4,7 +4,8 @@ export const INGREDIENT_MESSAGES = {
   TOO_MUCH: 'Too much. Take  some  out',
   START_WEIGHING: 'Put the ingredient on the scale',
   CONFIRM_ADDED: 'Did you ',
-  INGREDIENT_INSTRUCTION: 'Please add'
+  INGREDIENT_INSTRUCTION: 'Please add',
+  ADD_SLOWLY: 'Add slowly'
 };
 
 export const SCALE_MESSAGES = {

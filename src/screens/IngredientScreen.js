@@ -60,6 +60,7 @@ const IngredientScreen = ({ route, navigation }) => {
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [isMockScaleActive, setIsMockScaleActive] = useState(false);
   const hasSpokenRef = useRef(false);
+  const addMoreTimerRef = useRef(null); // Ref for the "Add more" audio timer
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
 
   // Determine if the ingredient requires scale interaction
@@ -136,8 +137,25 @@ const IngredientScreen = ({ route, navigation }) => {
       setProgress(0);
       setWeightReached(false);
       SpeechService.stop();
+      if (addMoreTimerRef.current) {
+        clearTimeout(addMoreTimerRef.current);
+      }
     }
   }, [ingredient, requireScale, ingredientIndex]);
+
+  const repeatAddMoreAudio = useCallback(() => {
+    // Check if still underweight and if "Add more" was the last spoken message
+    if (progress < 0.95 && progress >= 0.05 && hasSpokenRef.current === 'under') {
+      SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
+      // Restart the timer
+      addMoreTimerRef.current = setTimeout(repeatAddMoreAudio, 5000);
+    } else {
+      // If conditions are not met, clear the timer
+      if (addMoreTimerRef.current) {
+        clearTimeout(addMoreTimerRef.current);
+      }
+    }
+  }, [progress, ingredient.name]);
 
   const proceedToNextStep = () => {
     if (isLastIngredient) {
@@ -166,7 +184,7 @@ const IngredientScreen = ({ route, navigation }) => {
   const getBackgroundColor = (progress) => {
     if (progress >= 1.05) return '#0900FF'; // Blue
     if (progress >= 0.95) return '#4CAF50'; // Green
-    if (progress >= 0.8) return '#FF9800'; // Yellow
+    if (progress >= 0.8) return '#F44336'; // Yellow
     if (progress >= 0.01) return '#F44336'; // Red
     return '#F44336'; // Red for empty scale
   };
@@ -198,13 +216,30 @@ const IngredientScreen = ({ route, navigation }) => {
         SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT);
       }
     }
-    // Underweight range
-    else if (currentProgress < 0.95 && currentProgress >= 0.05) {
+    // Yellow zone: Add Slowly
+    else if (currentProgress >= 0.8 && currentProgress < 0.95) {
+      if (!hasSpokenRef.current || hasSpokenRef.current !== 'add_slowly') {
+        setWeightReached(false);
+        hasSpokenRef.current = 'add_slowly';
+        SpeechService.speak(INGREDIENT_MESSAGES.ADD_SLOWLY);
+      }
+      // Clear the "Add more" timer if no longer underweight
+      if (addMoreTimerRef.current) {
+        clearTimeout(addMoreTimerRef.current);
+      }
+    }
+    // Underweight range (below yellow zone)
+    else if (currentProgress < 0.8 && currentProgress >= 0.05) {
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'under') {
         setWeightReached(false);
         hasSpokenRef.current = 'under';
         SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
       }
+      // Start or restart the "Add more" timer
+      if (addMoreTimerRef.current) {
+        clearTimeout(addMoreTimerRef.current);
+      }
+      addMoreTimerRef.current = setTimeout(repeatAddMoreAudio, 5000);
     }
     // Overweight range
     else if (currentProgress > 1.05) {
@@ -213,22 +248,35 @@ const IngredientScreen = ({ route, navigation }) => {
         hasSpokenRef.current = 'over';
         SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
       }
+      // Clear the "Add more" timer if no longer underweight
+      if (addMoreTimerRef.current) {
+        clearTimeout(addMoreTimerRef.current);
+      }
     }
     // Starting/empty scale
-    else if (currentProgress < 0.01) {
+    else if (currentProgress < 0.05) { // Changed from 0.01 to 0.05 to align with "Add more" lower bound
       if (!hasSpokenRef.current || hasSpokenRef.current !== 'start') {
         setWeightReached(false);
         hasSpokenRef.current = 'start';
         SpeechService.speak(INGREDIENT_MESSAGES.START_WEIGHING);
       }
+      // Clear the "Add more" timer if no longer underweight
+      if (addMoreTimerRef.current) {
+        clearTimeout(addMoreTimerRef.current);
+      }
     }
 
     // Reset hasSpokenRef when weight changes significantly
     if ((hasSpokenRef.current === 'start' && currentProgress >= 0.05) ||
-        (hasSpokenRef.current === 'under' && currentProgress >= 0.95) ||
+        (hasSpokenRef.current === 'under' && currentProgress >= 0.8) || // Changed from 0.95 to 0.8
+        (hasSpokenRef.current === 'add_slowly' && (currentProgress < 0.8 || currentProgress >= 0.95)) ||
         (hasSpokenRef.current === 'perfect' && (currentProgress < 0.95 || currentProgress > 1.05)) ||
         (hasSpokenRef.current === 'over' && currentProgress <= 1.05)) {
       hasSpokenRef.current = null;
+      // Also clear the timer if the state changes significantly
+      if (addMoreTimerRef.current) {
+        clearTimeout(addMoreTimerRef.current);
+      }
     }
   };
 

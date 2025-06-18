@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Button, StyleSheet } from 'react-native';
+import { Text, View, Button, StyleSheet } from 'react-native';
 import ScaleServiceFactory from '../services/ScaleServiceFactory';
 
 const MockScaleComponent = () => {
@@ -36,6 +36,7 @@ const MockScaleComponent = () => {
 
   return (
     <View style={styles.container}>
+      <Text>Mock Scale Controls (Only shown with Mock Scale)</Text>
       <Button title="Weight Up" onPress={handleWeightUp} />
       <Button title="Weight Down" onPress={handleWeightDown} />
       <Button title="Stable Weight" onPress={handleStableWeight} />

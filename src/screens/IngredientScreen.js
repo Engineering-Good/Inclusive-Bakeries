@@ -61,13 +61,13 @@ const IngredientScreen = ({ route, navigation }) => {
   const requireScale = ingredient.unit === 'g';
 
   console.log('[IngredientScreen] Ingredient:', ingredient);
-
+  const instructionRef = useRef('');
   useEffect(() => {
     // Reset states when component mounts or ingredient changes
     setProgress(0);
     setWeightReached(false);
     hasSpokenRef.current = null; // Reset the spoken ref
-
+    
     const announceIngredientOrder = async () => {
       // First ingredient needs the "Let's start baking!" announcement
       if (ingredientIndex === 0) {
@@ -115,6 +115,9 @@ const IngredientScreen = ({ route, navigation }) => {
       instructionLine += isLastIngredient
         ? '. Press finish to complete.'
         : '. Press next.';
+
+      // Save it so we can replay later
+      instructionRef.current = instructionLine;
 
       // Speak it
       await SpeechService.speak(instructionLine);
@@ -306,6 +309,19 @@ const IngredientScreen = ({ route, navigation }) => {
         <Text style={styles.addMoreText}>
           '.'
         </Text>
+
+        <TouchableOpacity
+          onPress={() => SpeechService.speak(instructionRef.current)}
+          style={{
+            backgroundColor: '#FFFFFFAA',
+            borderRadius: 50,
+            padding: 10,
+            alignItems: 'center',
+          }}
+        >
+          <Icon name="volume-up" size={64} color="black" />
+        </TouchableOpacity>
+
       </View>
 
       <Portal>

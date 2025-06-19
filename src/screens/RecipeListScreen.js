@@ -163,9 +163,9 @@ const styles = StyleSheet.create({
     resizeMode: 'contain', // Fill the image area, cropping if necessary
   },
   recipeTitle: {
-    fontSize: 28,
+    fontSize: 42,
     fontWeight: 'bold',
-    marginTop: 24,
+    marginTop: 18,
     marginBottom: 12,
     textAlign: 'center',
     paddingHorizontal: 4,

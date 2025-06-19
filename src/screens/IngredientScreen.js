@@ -105,11 +105,21 @@ const IngredientScreen = ({ route, navigation }) => {
       await SpeechService.waitUntilDone();
       await SpeechService.delay(SpeechService.SPEECH_DELAY);
 
-      // Announce the custom instruction if available
-      if (ingredient.instructionText && ingredient.instructionText.trim()) {
-        await SpeechService.speak(ingredient.instructionText);
-        await SpeechService.waitUntilDone();
+      // Determine base instruction text
+      let instructionLine = ingredient.instructionText?.trim();
+      if (!instructionLine || instructionLine === '') {
+        instructionLine = `${INGREDIENT_MESSAGES.INGREDIENT_INSTRUCTION} ${ingredient.name}`;
       }
+
+      // Append appropriate final instruction
+      instructionLine += isLastIngredient
+        ? '. Press finish to complete.'
+        : '. Press next.';
+
+      // Speak it
+      await SpeechService.speak(instructionLine);
+      await SpeechService.waitUntilDone();
+
     };
 
     announceIngredientOrder();
@@ -154,7 +164,6 @@ const IngredientScreen = ({ route, navigation }) => {
   const getBackgroundColor = (progress) => {
     if (progress >= 1.05) return '#0900FF'; // Blue
     if (progress >= 0.95) return '#4CAF50'; // Green
-    if (progress >= 0.8) return '#FF9800'; // Yellow
     if (progress >= 0.01) return '#F44336'; // Red
     return '#F44336'; // Red for empty scale
   };
@@ -247,7 +256,7 @@ const IngredientScreen = ({ route, navigation }) => {
           style={{
             position: 'absolute',
             right: '2.5%',
-            top: '8%',
+            top: '5.5%',
             transform: [{ translateY: -25 }],
             zIndex: 10,
           }}
@@ -391,7 +400,7 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 50,
     fontWeight: 'bold',
     marginRight: 8, // Space between text and icon
   },
@@ -423,7 +432,7 @@ const styles = StyleSheet.create({
   },
   addMoreText: {
     color: 'white',
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     marginBottom: 10,
   },

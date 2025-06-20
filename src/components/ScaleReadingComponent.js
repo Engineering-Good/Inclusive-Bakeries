@@ -19,7 +19,7 @@ const ScaleReadingComponent = ({
   // Use a more descriptive connection status
   const [connectionStatus, setConnectionStatus] = useState('idle'); // 'idle', 'connecting', 'connected', 'reconnectionFailed', 'connectionFailed'
   const [tareStatus, setTareStatus] = useState(requireTare ? 'pending' : 'not_required');
-  //const hasSpokenRef = useRef(false);
+  
   const targetWeight = targetIngredient?.amount || 0;
 
   const handleConnectPress = useCallback(async () => {
@@ -53,7 +53,6 @@ const ScaleReadingComponent = ({
 
   // Reset states when ingredient changes
   useEffect(() => {
-    //hasSpokenRef.current = false;
     setTareStatus(requireTare ? 'pending' : 'not_required');
     setCurrentWeight(0);
   }, [targetIngredient, requireTare]);
@@ -78,14 +77,6 @@ const ScaleReadingComponent = ({
         setTareStatus('tared');
         return;
       }
-
-      // Announce tare needed if there's weight and tareStatus is pending
-      // if (tareStatus === 'pending' && weightData.value > 0 && (!hasSpokenRef.current || hasSpokenRef.current !== 'tare')) {
-      //   console.log('[ScaleReadingComponent] Attempting to speak TARE_NEEDED.'); // Added log
-      //   SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
-      //   hasSpokenRef.current = 'tare';
-      //   return;
-      // }
       
       if (tareStatus === 'tared' || tareStatus === 'not_required') {
         console.log('[ScaleReadingComponent] Setting currentWeight to:', weightData.value); // Added log
@@ -118,8 +109,6 @@ const ScaleReadingComponent = ({
       unsubscribeConnection();
       unsubscribeWeight();
       ScaleServiceFactory.unsubscribeAll(); // Ensure all listeners are removed from ScaleServiceFactory
-      // setCurrentWeight(0); // Removed this line
-      //hasSpokenRef.current = false;
     };
   }, [targetIngredient, requireTare, onProgressUpdate, onWeightData, handleConnectPress, tareStatus]);
 

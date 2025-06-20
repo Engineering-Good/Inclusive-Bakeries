@@ -46,7 +46,11 @@ export default function RecipeDetailScreen({ route, navigation }) {
 
   const announceIngredient = (ingredient) => {
     try {
-      const announcement = `${ingredient.amount} ${ingredient.unit} of ${ingredient.name}`;
+      let displayUnit = ingredient.unit;
+      if (displayUnit === 'g') {
+        displayUnit = 'grams';
+      }
+      const announcement = `${ingredient.amount} ${displayUnit} of ${ingredient.name}`;
       SpeechService.speak(announcement);
     } catch (error) {
       console.error('Error announcing ingredient:', error);
@@ -119,7 +123,7 @@ export default function RecipeDetailScreen({ route, navigation }) {
               onPress={() => selectIngredient(index)}
             >
               <Text style={styles.ingredientText}>
-                {ingredient.name}: {ingredient.amount} {ingredient.unit}
+                {ingredient.name}: {ingredient.amount} {ingredient.unit === 'g' ? 'grams' : ingredient.unit}
               </Text>
               <IconButton
                 icon="volume-high"

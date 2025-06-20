@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Alert, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, Image, Dimensions } from 'react-native';
 import { Divider, TouchableRipple, Dialog, Portal, Button, Paragraph } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ScaleReadingComponent from '../components/ScaleReadingComponent';
@@ -59,8 +59,7 @@ const IngredientScreen = ({ route, navigation }) => {
   const [weightReached, setWeightReached] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [isMockScaleActive, setIsMockScaleActive] = useState(false);
-  const hasSpokenRef = useRef(false);
-  const addMoreTimerRef = useRef(null); // Ref for the "Add more" audio timer
+  const hasSpokenRef = useRef('');
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
 
   // Determine if the ingredient requires scale interaction
@@ -68,6 +67,8 @@ const IngredientScreen = ({ route, navigation }) => {
 
   console.log('[IngredientScreen] Ingredient:', ingredient);
   const instructionRef = useRef('');
+  const addMoreIntervalRef = useRef(null); // New ref for the interval ID
+
   useEffect(() => {
     const checkMockScaleStatus = async () => {
       const mockActive = await ScaleServiceFactory.isMockScaleSelected();
@@ -79,7 +80,7 @@ const IngredientScreen = ({ route, navigation }) => {
     // Reset states when component mounts or ingredient changes
     setProgress(0);
     setWeightReached(false);
-    hasSpokenRef.current = null; // Reset the spoken ref
+    hasSpokenRef.current = ''; // Reset the spoken ref
     
     const announceIngredientOrder = async () => {
       // First ingredient needs the "Let's start baking!" announcement
@@ -113,7 +114,11 @@ const IngredientScreen = ({ route, navigation }) => {
       await SpeechService.delay(SpeechService.SPEECH_DELAY);
 
       // Now announce the ingredient details and instructions
-      const goalAnnouncement = `${ingredient.amount} ${ingredient.unit} of ${ingredient.name}`;
+      let displayUnit = ingredient.unit;
+      if (displayUnit === 'g') {
+        displayUnit = 'grams';
+      }
+      const goalAnnouncement = `${ingredient.amount} ${displayUnit} of ${ingredient.name}`;
       await SpeechService.speak(goalAnnouncement);
       await SpeechService.waitUntilDone();
       await SpeechService.delay(SpeechService.SPEECH_DELAY);
@@ -136,6 +141,15 @@ const IngredientScreen = ({ route, navigation }) => {
       await SpeechService.speak(instructionLine);
       await SpeechService.waitUntilDone();
 
+      // Start the "Add more" interval after initial announcements
+      if (requireScale) {
+        addMoreIntervalRef.current = setInterval(() => {
+          // Only speak if progress is in the "red zone" (0.05 to 0.8)
+          if (progress < 0.8 && progress >= 0.05) {
+            SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
+          }
+        }, 10000); // Every 10 seconds
+      }
     };
 
     announceIngredientOrder();
@@ -150,25 +164,11 @@ const IngredientScreen = ({ route, navigation }) => {
       setProgress(0);
       setWeightReached(false);
       SpeechService.stop();
-      if (addMoreTimerRef.current) {
-        clearTimeout(addMoreTimerRef.current);
+      if (addMoreIntervalRef.current) {
+        clearInterval(addMoreIntervalRef.current); // Clear the interval
       }
     }
-  }, [ingredient, requireScale, ingredientIndex]);
-
-  const repeatAddMoreAudio = useCallback(() => {
-    // Check if still underweight and if "Add more" was the last spoken message
-    if (progress < 0.95 && progress >= 0.05 && hasSpokenRef.current === 'under') {
-      SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
-      // Restart the timer
-      addMoreTimerRef.current = setTimeout(repeatAddMoreAudio, 5000);
-    } else {
-      // If conditions are not met, clear the timer
-      if (addMoreTimerRef.current) {
-        clearTimeout(addMoreTimerRef.current);
-      }
-    }
-  }, [progress, ingredient.name]);
+  }, [ingredient, requireScale, ingredientIndex, progress]); // Add progress to dependency array
 
   const proceedToNextStep = () => {
     if (isLastIngredient) {
@@ -214,14 +214,10 @@ const IngredientScreen = ({ route, navigation }) => {
     }
     // Overweight range - check this first, without stability check
     if (currentProgress > 1.05) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'over') {
+      if (hasSpokenRef.current !== 'over') {
         setWeightReached(false);
         hasSpokenRef.current = 'over';
         SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
-      }
-      // Clear the "Add more" timer if no longer underweight
-      if (addMoreTimerRef.current) {
-        clearTimeout(addMoreTimerRef.current);
       }
     }
 
@@ -231,12 +227,11 @@ const IngredientScreen = ({ route, navigation }) => {
     }
 
     console.log('[IngredientScreen] Ingredient Progress update:', ingredient, currentProgress);
-    // Only update progress if scale has been tared
     setProgress(currentProgress);
 
     // Perfect weight range
     if (currentProgress >= 0.95 && currentProgress <= 1.05) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'perfect') {
+      if (hasSpokenRef.current !== 'perfect') {
         setWeightReached(true);
         hasSpokenRef.current = 'perfect';
         SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT);
@@ -244,53 +239,33 @@ const IngredientScreen = ({ route, navigation }) => {
     }
     // Yellow zone: Add Slowly
     else if (currentProgress >= 0.8 && currentProgress < 0.95) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'add_slowly') {
+      if (hasSpokenRef.current !== 'add_slowly') {
         setWeightReached(false);
         hasSpokenRef.current = 'add_slowly';
         SpeechService.speak(INGREDIENT_MESSAGES.ADD_SLOWLY);
       }
-      // Clear the "Add more" timer if no longer underweight
-      if (addMoreTimerRef.current) {
-        clearTimeout(addMoreTimerRef.current);
-      }
     }
     // Underweight range (below yellow zone)
     else if (currentProgress < 0.8 && currentProgress >= 0.05) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'under') {
-        setWeightReached(false);
-        hasSpokenRef.current = 'under';
-        SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
-      }
-      // Start or restart the "Add more" timer
-      if (addMoreTimerRef.current) {
-        clearTimeout(addMoreTimerRef.current);
-      }
-      addMoreTimerRef.current = setTimeout(repeatAddMoreAudio, 5000);
+      // No immediate speech here, interval handles it
+      setWeightReached(false);
+      // hasSpokenRef.current = 'under'; // No longer needed for this logic
     }
     // Starting/empty scale
     else if (currentProgress < 0.05) { // Changed from 0.01 to 0.05 to align with "Add more" lower bound
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'start') {
+      if (hasSpokenRef.current !== 'start') {
         setWeightReached(false);
         hasSpokenRef.current = 'start';
         SpeechService.speak(INGREDIENT_MESSAGES.START_WEIGHING);
-      }
-      // Clear the "Add more" timer if no longer underweight
-      if (addMoreTimerRef.current) {
-        clearTimeout(addMoreTimerRef.current);
       }
     }
 
     // Reset hasSpokenRef when weight changes significantly
     if ((hasSpokenRef.current === 'start' && currentProgress >= 0.05) ||
-        (hasSpokenRef.current === 'under' && currentProgress >= 0.8) || // Changed from 0.95 to 0.8
         (hasSpokenRef.current === 'add_slowly' && (currentProgress < 0.8 || currentProgress >= 0.95)) ||
         (hasSpokenRef.current === 'perfect' && (currentProgress < 0.95 || currentProgress > 1.05)) ||
         (hasSpokenRef.current === 'over' && currentProgress <= 1.05)) {
-      hasSpokenRef.current = null;
-      // Also clear the timer if the state changes significantly
-      if (addMoreTimerRef.current) {
-        clearTimeout(addMoreTimerRef.current);
-      }
+      hasSpokenRef.current = '';
     }
   };
 
@@ -422,6 +397,9 @@ const IngredientScreen = ({ route, navigation }) => {
   );
 };
 
+const screenHeight = Dimensions.get('window').height;
+const ingredientImageMaxHeight = screenHeight * 0.20; // 20% of screen height
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -502,6 +480,8 @@ const styles = StyleSheet.create({
     height: 300,
     margin: 12,
     marginTop: 20,
+    maxHeight: ingredientImageMaxHeight,
+    resizeMode: 'contain', // Ensure the image scales down to fit within the maxHeight
   },
   targetWeightText: {
     color: 'white',

@@ -97,6 +97,7 @@ class SpeechService {
   async stop() {
     console.log('Stopping speech.');
     try {
+      this.speechQueue = [];
       await Speech.stop();
     } catch (error) {
       console.error('Error stopping speech:', error);

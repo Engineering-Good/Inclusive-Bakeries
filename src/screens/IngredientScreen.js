@@ -133,16 +133,7 @@ const IngredientScreen = ({ route, navigation }) => {
       // Speak it
       await SpeechService.speak(instructionLine);
 
-      // Start the "Add more" interval after initial announcements
-      if (requireScale) {
-        addMoreIntervalRef.current = setInterval(() => {
-          // Only speak if progress is in the "red zone" (0.05 to 0.8)
-          // Use the current value of progress from the state, not the closure
-          if (progress < 0.8 && progress >= 0.05) {
-            SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
-          }
-        }, 10000); // Every 10 seconds
-      }
+     
     };
 
     announceIngredientOrder();
@@ -157,6 +148,7 @@ const IngredientScreen = ({ route, navigation }) => {
       setProgress(0);
       setWeightReached(false);
       if (addMoreIntervalRef.current) {
+        console.log('[IngredientScreen] Clearing add more interval for:', ingredient.name);
         clearInterval(addMoreIntervalRef.current); // Clear the interval
         addMoreIntervalRef.current = null;
       }
@@ -211,6 +203,7 @@ const IngredientScreen = ({ route, navigation }) => {
       if (hasSpokenRef.current !== 'over') {
         setWeightReached(false);
         hasSpokenRef.current = 'over';
+        SpeechService.stop();
         SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
       }
     }
@@ -229,6 +222,7 @@ const IngredientScreen = ({ route, navigation }) => {
         setWeightReached(true);
         hasSpokenRef.current = 'perfect';
         console.log('[IngredientScreen] Perfect weight reached:', ingredient.name);
+        SpeechService.stop();
         SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT );
         const nextInstruction =  isLastIngredient ? INGREDIENT_MESSAGES.PRESS_FINISH : INGREDIENT_MESSAGES.PRESS_NEXT;
         SpeechService.speak(nextInstruction);
@@ -240,14 +234,26 @@ const IngredientScreen = ({ route, navigation }) => {
         setWeightReached(false);
         hasSpokenRef.current = 'add_slowly';
         console.log('[IngredientScreen] Add slowly:', ingredient.name);
+        SpeechService.stop();
         SpeechService.speak(INGREDIENT_MESSAGES.ADD_SLOWLY);
       }
     }
     // Underweight range (below yellow zone)
     else if (currentProgress < 0.8 && currentProgress >= 0.05) {
       // No immediate speech here, interval handles it
+
+      // Start the "Add more" interval after initial announcements
+      if(!addMoreIntervalRef.current) {
+        addMoreIntervalRef.current = setInterval(() => {
+          console.log('[IngredientScreen] Add more interval running. Progress', currentProgress);
+          // Only speak if progress is in the "red zone" (0.05 to 0.8)
+          // Use the current value of progress from the state, not the closure
+          SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
+        }, 10000); // Every 10 seconds
+      }
+
       setWeightReached(false);
-      // hasSpokenRef.current = 'under'; // No longer needed for this logic
+      hasSpokenRef.current = 'under'; // Set to 'under' to avoid repeated announcements
     }
     // Starting/empty scale
     else if (currentProgress < 0.05) { // Changed from 0.01 to 0.05 to align with "Add more" lower bound
@@ -256,6 +262,12 @@ const IngredientScreen = ({ route, navigation }) => {
         hasSpokenRef.current = 'start';
         SpeechService.speak(INGREDIENT_MESSAGES.START_WEIGHING);
       }
+    }
+
+    if(hasSpokenRef.current !== 'under' && addMoreIntervalRef.current) {
+          //Reset the Add More interval if it was running
+        clearInterval(addMoreIntervalRef.current);
+        addMoreIntervalRef.current = null;
     }
 
     // Reset hasSpokenRef when weight changes significantly

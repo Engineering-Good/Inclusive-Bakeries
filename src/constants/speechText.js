@@ -1,9 +1,9 @@
 export const INGREDIENT_MESSAGES = {
   PERFECT_WEIGHT: 'Stop. Well done!',
   ADD_MORE: 'Add more',
-  TOO_MUCH: 'Too much. Take  some  out',
+  TOO_MUCH: 'Too much. Take some out',
   START_WEIGHING: 'Put the ingredient on the scale',
-  CONFIRM_ADDED: 'Did you ',
+  CONFIRM_ADDED: 'Did you add',
   INGREDIENT_INSTRUCTION: 'Please add',
   ADD_SLOWLY: 'Add slowly',
   PRESS_FINISH: 'Press finish to complete.',

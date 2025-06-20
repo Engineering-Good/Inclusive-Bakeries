@@ -199,8 +199,21 @@ const IngredientScreen = ({ route, navigation }) => {
       }
       return;
     }
+    // Overweight range - check this first, without stability check
+    if (currentProgress > 1.05) {
+      if (!hasSpokenRef.current || hasSpokenRef.current !== 'over') {
+        setWeightReached(false);
+        hasSpokenRef.current = 'over';
+        SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
+      }
+      // Clear the "Add more" timer if no longer underweight
+      if (addMoreTimerRef.current) {
+        clearTimeout(addMoreTimerRef.current);
+      }
+    }
+
     if (!isStable) {
-      // If scale is not stable, do nothing for weight items
+      // If scale is not stable, do nothing for other weight items
       return;
     }
 
@@ -240,18 +253,6 @@ const IngredientScreen = ({ route, navigation }) => {
         clearTimeout(addMoreTimerRef.current);
       }
       addMoreTimerRef.current = setTimeout(repeatAddMoreAudio, 5000);
-    }
-    // Overweight range
-    else if (currentProgress > 1.05) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'over') {
-        setWeightReached(false);
-        hasSpokenRef.current = 'over';
-        SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
-      }
-      // Clear the "Add more" timer if no longer underweight
-      if (addMoreTimerRef.current) {
-        clearTimeout(addMoreTimerRef.current);
-      }
     }
     // Starting/empty scale
     else if (currentProgress < 0.05) { // Changed from 0.01 to 0.05 to align with "Add more" lower bound

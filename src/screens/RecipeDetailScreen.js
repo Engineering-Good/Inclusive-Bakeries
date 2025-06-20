@@ -209,7 +209,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
   },
   ingredientText: {
-    fontSize: 16,
+    fontSize: 36,
+    margin: 18,
     flex: 1,
   },
   divider: {
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
   },
   startButtonText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 32,
     fontWeight: 'bold',
   },
     imageContainer: {
@@ -267,6 +268,7 @@ const styles = StyleSheet.create({
     height: 200, // Same height as recipeImage
     justifyContent: 'center',
     alignItems: 'center',
+    alignContent: 'center',
     overflow: 'hidden', // Ensure image doesn't overflow rounded corners
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
@@ -275,6 +277,7 @@ const styles = StyleSheet.create({
     recipeImage: {
     width: '100%',
     height: '100%', // Image fills the container
+    marginTop: 12,
     resizeMode: 'contain', // Fill the image area, cropping if necessary
   },
 });

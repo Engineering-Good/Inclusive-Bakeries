@@ -67,7 +67,7 @@ const IngredientScreen = ({ route, navigation }) => {
   const requireScale = ingredient.unit === 'g';
 
   console.log('[IngredientScreen] Ingredient:', ingredient);
-
+  const instructionRef = useRef('');
   useEffect(() => {
     const checkMockScaleStatus = async () => {
       const mockActive = await ScaleServiceFactory.isMockScaleSelected();
@@ -80,7 +80,7 @@ const IngredientScreen = ({ route, navigation }) => {
     setProgress(0);
     setWeightReached(false);
     hasSpokenRef.current = null; // Reset the spoken ref
-
+    
     const announceIngredientOrder = async () => {
       // First ingredient needs the "Let's start baking!" announcement
       if (ingredientIndex === 0) {
@@ -118,11 +118,24 @@ const IngredientScreen = ({ route, navigation }) => {
       await SpeechService.waitUntilDone();
       await SpeechService.delay(SpeechService.SPEECH_DELAY);
 
-      // Announce the custom instruction if available
-      if (ingredient.instructionText && ingredient.instructionText.trim()) {
-        await SpeechService.speak(ingredient.instructionText);
-        await SpeechService.waitUntilDone();
+      // Determine base instruction text
+      let instructionLine = ingredient.instructionText?.trim();
+      if (!instructionLine || instructionLine === '') {
+        instructionLine = `${INGREDIENT_MESSAGES.INGREDIENT_INSTRUCTION} ${ingredient.name}`;
       }
+
+      // Append appropriate final instruction
+      instructionLine += isLastIngredient
+        ? '. Press finish to complete.'
+        : '. Press next.';
+
+      // Save it so we can replay later
+      instructionRef.current = instructionLine;
+
+      // Speak it
+      await SpeechService.speak(instructionLine);
+      await SpeechService.waitUntilDone();
+
     };
 
     announceIngredientOrder();
@@ -308,7 +321,7 @@ const IngredientScreen = ({ route, navigation }) => {
           style={{
             position: 'absolute',
             right: '2.5%',
-            top: '8%',
+            top: '5.5%',
             transform: [{ translateY: -25 }],
             zIndex: 10,
           }}
@@ -359,6 +372,19 @@ const IngredientScreen = ({ route, navigation }) => {
         <Text style={styles.addMoreText}>
           '.'
         </Text>
+
+        <TouchableOpacity
+          onPress={() => SpeechService.speak(instructionRef.current)}
+          style={{
+            backgroundColor: '#FFFFFFAA',
+            borderRadius: 50,
+            padding: 10,
+            alignItems: 'center',
+          }}
+        >
+          <Icon name="volume-up" size={64} color="black" />
+        </TouchableOpacity>
+
       </View>
 
       <Portal>
@@ -453,7 +479,7 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 50,
     fontWeight: 'bold',
     marginRight: 8, // Space between text and icon
   },
@@ -485,7 +511,7 @@ const styles = StyleSheet.create({
   },
   addMoreText: {
     color: 'white',
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     marginBottom: 10,
   },

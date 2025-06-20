@@ -58,6 +58,7 @@ const IngredientScreen = ({ route, navigation }) => {
   const [progress, setProgress] = useState(0);
   const [weightReached, setWeightReached] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [nextButtonEnabled, setnextButtonEnabled] = useState(false);
   const [isMockScaleActive, setIsMockScaleActive] = useState(false);
   const hasSpokenRef = useRef('');
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
@@ -86,6 +87,7 @@ const IngredientScreen = ({ route, navigation }) => {
     // Reset states when component mounts or ingredient changes
     setProgress(0);
     setWeightReached(false);
+    setnextButtonEnabled(false); // Reset this state for a new ingredient session
     hasSpokenRef.current = ''; // Reset the spoken ref
     
     const announceIngredientOrder = async () => {
@@ -198,6 +200,10 @@ const IngredientScreen = ({ route, navigation }) => {
       }
       return;
     }
+
+    console.log('[IngredientScreen] Ingredient Progress update:', ingredient, currentProgress);
+    setProgress(currentProgress);
+
     // Overweight range - check this first, without stability check
     if (currentProgress > 1.05) {
       if (hasSpokenRef.current !== 'over') {
@@ -205,27 +211,6 @@ const IngredientScreen = ({ route, navigation }) => {
         hasSpokenRef.current = 'over';
         SpeechService.stop();
         SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
-      }
-    }
-
-    if (!isStable) {
-      // If scale is not stable, do nothing for other weight items
-      return;
-    }
-
-    console.log('[IngredientScreen] Ingredient Progress update:', ingredient, currentProgress);
-    setProgress(currentProgress);
-
-    // Perfect weight range
-    if (currentProgress >= 0.95 && currentProgress <= 1.05) {
-      if (hasSpokenRef.current !== 'perfect') {
-        setWeightReached(true);
-        hasSpokenRef.current = 'perfect';
-        console.log('[IngredientScreen] Perfect weight reached:', ingredient.name);
-        SpeechService.stop();
-        SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT );
-        const nextInstruction =  isLastIngredient ? INGREDIENT_MESSAGES.PRESS_FINISH : INGREDIENT_MESSAGES.PRESS_NEXT;
-        SpeechService.speak(nextInstruction);
       }
     }
     // Yellow zone: Add Slowly
@@ -263,6 +248,21 @@ const IngredientScreen = ({ route, navigation }) => {
         SpeechService.speak(INGREDIENT_MESSAGES.START_WEIGHING);
       }
     }
+
+    // Perfect weight range
+    if (isStable && currentProgress >= 0.95 && currentProgress <= 1.05) {
+      if (hasSpokenRef.current !== 'perfect') {
+        setWeightReached(true);
+        setnextButtonEnabled(true); // Keep button enabled once perfect weight is reached
+        hasSpokenRef.current = 'perfect';
+        console.log('[IngredientScreen] Perfect weight reached:', ingredient.name);
+        SpeechService.stop();
+        SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT );
+        const nextInstruction =  isLastIngredient ? INGREDIENT_MESSAGES.PRESS_FINISH : INGREDIENT_MESSAGES.PRESS_NEXT;
+        SpeechService.speak(nextInstruction);
+      }
+    }
+   
 
     if(hasSpokenRef.current !== 'under' && addMoreIntervalRef.current) {
           //Reset the Add More interval if it was running
@@ -314,10 +314,10 @@ const IngredientScreen = ({ route, navigation }) => {
           <TouchableOpacity
             style={[
               styles.nextButton,
-              !weightReached && styles.nextButtonDisabled
+              (!weightReached && !nextButtonEnabled) && styles.nextButtonDisabled
             ]}
             onPress={handleNext}
-            disabled={!weightReached}
+            disabled={!weightReached && !nextButtonEnabled}
           >
             <Text style={styles.nextButtonText}>
               {isLastIngredient ? 'FINISH' : 'NEXT'}

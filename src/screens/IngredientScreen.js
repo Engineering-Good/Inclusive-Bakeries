@@ -127,11 +127,6 @@ const IngredientScreen = ({ route, navigation }) => {
         instructionLine = `${INGREDIENT_MESSAGES.INGREDIENT_INSTRUCTION} ${ingredient.name}`;
       }
 
-      // Append appropriate final instruction
-      instructionLine += isLastIngredient
-        ? '. Press finish to complete.'
-        : '. Press next.';
-
       // Save it so we can replay later
       instructionRef.current = instructionLine;
 
@@ -161,7 +156,6 @@ const IngredientScreen = ({ route, navigation }) => {
     return () => {
       setProgress(0);
       setWeightReached(false);
-      SpeechService.stop();
       if (addMoreIntervalRef.current) {
         clearInterval(addMoreIntervalRef.current); // Clear the interval
         addMoreIntervalRef.current = null;
@@ -206,6 +200,7 @@ const IngredientScreen = ({ route, navigation }) => {
       // For non-weight items, enable Next as soon as any change in mass is detected
       if (currentProgress > 0.01) {
         setWeightReached(true);
+        SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT + (isLastIngredient ? '. Press finish to complete.' : '. Press next.'));
       } else {
         setWeightReached(false);
       }
@@ -233,7 +228,10 @@ const IngredientScreen = ({ route, navigation }) => {
       if (hasSpokenRef.current !== 'perfect') {
         setWeightReached(true);
         hasSpokenRef.current = 'perfect';
-        SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT);
+        console.log('[IngredientScreen] Perfect weight reached:', ingredient.name);
+        SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT );
+        const nextInstruction =  isLastIngredient ? INGREDIENT_MESSAGES.PRESS_FINISH : INGREDIENT_MESSAGES.PRESS_NEXT;
+        SpeechService.speak(nextInstruction);
       }
     }
     // Yellow zone: Add Slowly
@@ -241,6 +239,7 @@ const IngredientScreen = ({ route, navigation }) => {
       if (hasSpokenRef.current !== 'add_slowly') {
         setWeightReached(false);
         hasSpokenRef.current = 'add_slowly';
+        console.log('[IngredientScreen] Add slowly:', ingredient.name);
         SpeechService.speak(INGREDIENT_MESSAGES.ADD_SLOWLY);
       }
     }

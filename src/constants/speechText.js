@@ -1,11 +1,13 @@
 export const INGREDIENT_MESSAGES = {
-  PERFECT_WEIGHT: 'Stop. Well done! Click Next',
+  PERFECT_WEIGHT: 'Stop. Well done!',
   ADD_MORE: 'Add more',
   TOO_MUCH: 'Too much. Take  some  out',
   START_WEIGHING: 'Put the ingredient on the scale',
   CONFIRM_ADDED: 'Did you ',
   INGREDIENT_INSTRUCTION: 'Please add',
-  ADD_SLOWLY: 'Add slowly'
+  ADD_SLOWLY: 'Add slowly',
+  PRESS_FINISH: 'Press finish to complete.',
+  PRESS_NEXT: 'Press Next',
 };
 
 export const SCALE_MESSAGES = {

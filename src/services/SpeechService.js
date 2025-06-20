@@ -59,7 +59,7 @@ class SpeechService {
       voice: this.preferredVoice ? this.preferredVoice.identifier : undefined,
       language: 'en-UK',
       pitch: 1.0,
-      rate: 0.8,
+      rate: 0.7,
       ...options, // Merge with any provided options
     };
     this.processSpeechQueue(optionsWithDefaults);

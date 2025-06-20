@@ -9,6 +9,8 @@ class SpeechService {
     this.lastSpokenText = null;
     this.lastSpokenTime = 0;
     this.minTimeBetweenSameSpeech = 3000; 
+    this.speechQueue = []; // Queue for speech requests
+    this.isSpeaking = false; // Flag to indicate if speech is currently playing
   }
 
   async initVoice() {
@@ -43,46 +45,55 @@ class SpeechService {
     // Update last spoken info immediately before speaking
     this.lastSpokenText = text;
     this.lastSpokenTime = now;
-    
-    try {
-      // Wait if something is already speaking
-      // This is crucial to prevent stacking and ensure proper flow
-      await this.waitUntilDone();
+    const words = text.split(' ');
 
-      // --- NEW: Add pause between words for clarity ---
-      const words = text.split(' ');
-      for (let i = 0; i < words.length; i++) {
-        await new Promise((resolve) => {
-          const defaultOptions = {
-            language: 'en-US',
-            pitch: 1.0,
-            rate: 0.8,
-            voice: this.preferredVoice?.identifier,
-            ...options,
-            onDone: () => {
-              resolve();
-            },
-            onError: (error) => {
-              console.error('Speech error:', error);
-              resolve();
-            }
-          };
-          Speech.speak(words[i], defaultOptions);
-        });
-        // Add a short pause (200ms) between words, except after the last word
-        if (i < words.length - 1) {
-          await this.delay(200);
-        }
-      }
-      // --- END NEW ---
+    //Add each word to the speech queue
+    this.speechQueue.push(words);
+    this.speechQueue.push(' . '); // Add a pause after the sentence
 
-      return; // No need for the old Promise-based block
-    } catch (error) {
-      console.error('Speech error in speak method:', error);
-      // Do not re-throw here, as the promise within handles resolution/rejection
+    if (this.isSpeaking) {
+      return; // If already speaking, just add to queue
     }
+    
+    const optionsWithDefaults = {
+      voice: this.preferredVoice ? this.preferredVoice.identifier : undefined,
+      language: 'en-UK',
+      pitch: 1.0,
+      rate: 0.8,
+      ...options, // Merge with any provided options
+    };
+    this.processSpeechQueue(optionsWithDefaults);
   }
   
+  async processSpeechQueue(options = {}) {
+    if (this.isSpeaking) {
+      console.log('Already speaking, skipping new speech request.');
+      return; // Prevent overlapping speech
+    }
+    this.isSpeaking = true; // Set speaking flag
+    console.log('Processing speech queue. Current queue length:', this.speechQueue.length);
+    while (this.speechQueue.length > 0) {
+      const word = this.speechQueue.shift(); // Get the next item from the queue
+
+      console.log('Speaking queued text:', word);
+      try {
+        if(word === ' . ') {
+          console.log('Pausing for a moment after sentence.');
+          await this.delay(this.SPEECH_DELAY); // Pause after a sentence
+          continue; // Skip to next item in queue
+        }
+        await Speech.speak(word, options);
+        await this.waitUntilDone(); // Wait until speech is done
+      } catch (error) {
+        console.error('Error during speech:', error);
+      }
+      
+    }
+    this.isSpeaking = false; // Reset speaking flag
+    console.log('Finished processing speech queue.');
+
+  }
+
   async stop() {
     console.log('Stopping speech.');
     try {

@@ -77,6 +77,12 @@ const IngredientScreen = ({ route, navigation }) => {
 
     checkMockScaleStatus();
 
+    // Clear any existing interval when the effect re-runs (e.g., for a new ingredient)
+    if (addMoreIntervalRef.current) {
+      clearInterval(addMoreIntervalRef.current);
+      addMoreIntervalRef.current = null;
+    }
+
     // Reset states when component mounts or ingredient changes
     setProgress(0);
     setWeightReached(false);
@@ -86,15 +92,11 @@ const IngredientScreen = ({ route, navigation }) => {
       // First ingredient needs the "Let's start baking!" announcement
       if (ingredientIndex === 0) {
         await SpeechService.speak(RECIPE_MESSAGES.START_BAKING);
-        await SpeechService.waitUntilDone();
-        await SpeechService.delay(SpeechService.SPEECH_DELAY);
       }
 
-      // // Announce tare if needed
+      // Announce tare if needed
       if (ingredient.requireTare) {
         await SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
-        await SpeechService.waitUntilDone();
-        await SpeechService.delay(SpeechService.SPEECH_DELAY);
       }
 
       // Announce which ingredient number we're on
@@ -110,8 +112,6 @@ const IngredientScreen = ({ route, navigation }) => {
       }
 
       await SpeechService.speak(orderMessage);
-      await SpeechService.waitUntilDone();
-      await SpeechService.delay(SpeechService.SPEECH_DELAY);
 
       // Now announce the ingredient details and instructions
       let displayUnit = ingredient.unit;
@@ -120,8 +120,6 @@ const IngredientScreen = ({ route, navigation }) => {
       }
       const goalAnnouncement = `${ingredient.amount} ${displayUnit} of ${ingredient.name}`;
       await SpeechService.speak(goalAnnouncement);
-      await SpeechService.waitUntilDone();
-      await SpeechService.delay(SpeechService.SPEECH_DELAY);
 
       // Determine base instruction text
       let instructionLine = ingredient.instructionText?.trim();
@@ -139,12 +137,12 @@ const IngredientScreen = ({ route, navigation }) => {
 
       // Speak it
       await SpeechService.speak(instructionLine);
-      await SpeechService.waitUntilDone();
 
       // Start the "Add more" interval after initial announcements
       if (requireScale) {
         addMoreIntervalRef.current = setInterval(() => {
           // Only speak if progress is in the "red zone" (0.05 to 0.8)
+          // Use the current value of progress from the state, not the closure
           if (progress < 0.8 && progress >= 0.05) {
             SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
           }
@@ -159,16 +157,17 @@ const IngredientScreen = ({ route, navigation }) => {
       setWeightReached(true);
     }
 
-    // Only cleanup on unmount
+    // Cleanup function for unmount
     return () => {
       setProgress(0);
       setWeightReached(false);
       SpeechService.stop();
       if (addMoreIntervalRef.current) {
         clearInterval(addMoreIntervalRef.current); // Clear the interval
+        addMoreIntervalRef.current = null;
       }
     }
-  }, [ingredient, requireScale, ingredientIndex, progress]); // Add progress to dependency array
+  }, [ingredient, requireScale, ingredientIndex]); // Removed progress from dependency array
 
   const proceedToNextStep = () => {
     if (isLastIngredient) {

@@ -56,8 +56,8 @@ export const sampleRecipes = [
     title: 'Brownies',
     ingredients: [
       //{ id: '4001', name: 'Flour', amount: 180, unit: 'g', requireTare: false },
-      //{ id: '4002', name: 'Sugar', amount: 100, unit: 'g', requireTare: true },
-      { id: '4003', name: 'Eggs', amount: 2, unit: '', requireTare: false },
+      { id: '4002', name: 'Sugar', amount: 100, unit: 'g', requireTare: true },
+      //{ id: '4003', name: 'Eggs', amount: 2, unit: '', requireTare: false },
       { id: '4004', name: 'Butter', amount: 160, unit: 'g', requireTare: false },
       { id: '4005', name: 'Salt', amount: 0.5, unit: 'tsp', requireTare: false }
       

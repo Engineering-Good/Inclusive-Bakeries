@@ -1,11 +1,12 @@
-import React, { useState, useEffect, Fragment } from 'react'; // Import Fragment
-import { View, StyleSheet, ScrollView, Text } from 'react-native';
-import { List, Switch, Button, Divider, Snackbar } from 'react-native-paper';
+import React, { useState, useEffect, Fragment } from 'react';
+import { View, StyleSheet, ScrollView, Text, TextInput } from 'react-native';
+import { List, Switch, Button, Divider, Snackbar, Menu } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SCALE_SERVICES } from '../constants/ScaleServices';
 import ScaleServiceFactory from '../services/ScaleServiceFactory';
 import ScaleConnectButton from '../components/ScaleConnectButton';
-import RecipeService from '../services/RecipeService'; // Import RecipeService
+import RecipeService from '../services/RecipeService';
+import speechService from '../services/SpeechService'; // Import speechService
 
 const SettingsScreen = ({ navigation }) => {
   const [selectedScale, setSelectedScale] = useState(SCALE_SERVICES.MOCK);
@@ -15,8 +16,18 @@ const SettingsScreen = ({ navigation }) => {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
+  // Speech settings states
+  const [speechDelay, setSpeechDelay] = useState(speechService.getSpeechDelay());
+  const [speechRate, setSpeechRate] = useState(speechService.getSpeechRate());
+  const [preferredVoiceIdentifier, setPreferredVoiceIdentifier] = useState(
+    speechService.getPreferredVoice()?.identifier || ''
+  );
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [voiceMenuVisible, setVoiceMenuVisible] = useState(false);
+
   useEffect(() => {
     loadSettings();
+    loadSpeechSettings();
   }, []);
 
   // Check connection status periodically
@@ -39,16 +50,31 @@ const SettingsScreen = ({ navigation }) => {
     try {
       const scale = await AsyncStorage.getItem('selectedScale');
       const darkMode = await AsyncStorage.getItem('isDarkMode');
-      
+
       if (scale) setSelectedScale(scale);
       if (darkMode) setIsDarkMode(darkMode === 'true');
-      
+
       // Get initial connection status
       const status = ScaleServiceFactory.getConnectionStatus();
       setIsConnected(status.isConnected);
       setCurrentDevice(status.currentDevice);
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error('Error loading general settings:', error);
+    }
+  };
+
+  const loadSpeechSettings = async () => {
+    try {
+      setSpeechDelay(speechService.getSpeechDelay());
+      setSpeechRate(speechService.getSpeechRate());
+      const voices = speechService.getAvailableVoices();
+      setAvailableVoices(voices);
+      const currentPreferredVoice = speechService.getPreferredVoice();
+      if (currentPreferredVoice) {
+        setPreferredVoiceIdentifier(currentPreferredVoice.identifier);
+      }
+    } catch (error) {
+      console.error('Error loading speech settings:', error);
     }
   };
 
@@ -99,6 +125,36 @@ const SettingsScreen = ({ navigation }) => {
       setSnackbarVisible(true);
       console.error('Error disconnecting scale:', error);
     }
+  };
+
+  const handleSpeechDelayChange = (value) => {
+    const delay = parseInt(value, 10);
+    if (!isNaN(delay) && delay >= 0) {
+      setSpeechDelay(delay);
+      speechService.setSpeechDelay(delay);
+    }
+  };
+
+  const handleSpeechRateChange = (value) => {
+    const rate = parseFloat(value);
+    if (!isNaN(rate) && rate >= 0.1 && rate <= 2.0) { // Common range for speech rate
+      setSpeechRate(rate);
+      speechService.setSpeechRate(rate);
+    }
+  };
+
+  const handlePreferredVoiceChange = (voiceIdentifier) => {
+    setPreferredVoiceIdentifier(voiceIdentifier);
+    speechService.setPreferredVoice(voiceIdentifier);
+    setVoiceMenuVisible(false);
+  };
+
+  const openVoiceMenu = () => setVoiceMenuVisible(true);
+  const closeVoiceMenu = () => setVoiceMenuVisible(false);
+
+  const getVoiceDisplayName = (identifier) => {
+    const voice = availableVoices.find(v => v.identifier === identifier);
+    return voice ? `${voice.name} (${voice.language})` : 'Default Voice';
   };
 
   return (
@@ -179,6 +235,66 @@ const SettingsScreen = ({ navigation }) => {
         <View style={styles.connectContainer}>
           <ScaleConnectButton />
         </View>
+
+        <Divider />
+
+        <List.Section>
+          <List.Subheader>Speech Settings</List.Subheader>
+          <List.Item
+            title="Speech Delay (ms)"
+            description="Delay between speech segments in milliseconds"
+            left={(props) => <List.Icon {...props} icon="timer-sand" />}
+            right={() => (
+              <TextInput
+                style={styles.textInput}
+                onChangeText={handleSpeechDelayChange}
+                value={String(speechDelay)}
+                keyboardType="numeric"
+                placeholder="e.g., 2500"
+              />
+            )}
+          />
+          <List.Item
+            title="Speech Rate"
+            description="Speed of speech (0.1 - 2.0)"
+            left={(props) => <List.Icon {...props} icon="speedometer" />}
+            right={() => (
+              <TextInput
+                style={styles.textInput}
+                onChangeText={handleSpeechRateChange}
+                value={String(speechRate)}
+                keyboardType="numeric"
+                placeholder="e.g., 0.7"
+              />
+            )}
+          />
+          <Menu
+            visible={voiceMenuVisible}
+            onDismiss={closeVoiceMenu}
+            anchor={
+              <List.Item
+                title="Preferred Voice"
+                description={getVoiceDisplayName(preferredVoiceIdentifier)}
+                left={(props) => <List.Icon {...props} icon="account-voice" />}
+                right={(props) => <List.Icon {...props} icon="chevron-down" />}
+                onPress={openVoiceMenu}
+              />
+            }
+          >
+            {availableVoices.map((voice) => (
+              <Menu.Item
+                key={voice.identifier}
+                onPress={() => handlePreferredVoiceChange(voice.identifier)}
+                title={`${voice.name} (${voice.language})`}
+                style={
+                  preferredVoiceIdentifier === voice.identifier
+                    ? { backgroundColor: '#e0e0e0' }
+                    : {}
+                }
+              />
+            ))}
+          </Menu>
+        </List.Section>
 
         <Divider />
 
@@ -265,6 +381,15 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 10,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 80,
+    textAlign: 'right',
   },
 });
 

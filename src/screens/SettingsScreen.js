@@ -19,6 +19,7 @@ const SettingsScreen = ({ navigation }) => {
   // Speech settings states
   const [speechDelay, setSpeechDelay] = useState(speechService.getSpeechDelay());
   const [speechRate, setSpeechRate] = useState(speechService.getSpeechRate());
+  const [shouldSpeakWordByWord, setShouldSpeakWordByWord] = useState(speechService.getSpeakWordByWord());
   const [preferredVoiceIdentifier, setPreferredVoiceIdentifier] = useState(
     speechService.getPreferredVoice()?.identifier || ''
   );
@@ -67,6 +68,7 @@ const SettingsScreen = ({ navigation }) => {
     try {
       setSpeechDelay(speechService.getSpeechDelay());
       setSpeechRate(speechService.getSpeechRate());
+      setShouldSpeakWordByWord(speechService.getSpeakWordByWord());
       const voices = speechService.getAvailableVoices();
       setAvailableVoices(voices);
       const currentPreferredVoice = speechService.getPreferredVoice();
@@ -147,6 +149,11 @@ const SettingsScreen = ({ navigation }) => {
     setPreferredVoiceIdentifier(voiceIdentifier);
     speechService.setPreferredVoice(voiceIdentifier);
     setVoiceMenuVisible(false);
+  };
+
+  const handleSpeakWordByWordChange = (value) => {
+    setShouldSpeakWordByWord(value);
+    speechService.setSpeakWordByWord(value);
   };
 
   const openVoiceMenu = () => setVoiceMenuVisible(true);
@@ -265,6 +272,17 @@ const SettingsScreen = ({ navigation }) => {
                 value={String(speechRate)}
                 keyboardType="numeric"
                 placeholder="e.g., 0.7"
+              />
+            )}
+          />
+          <List.Item
+            title="Speak Word by Word"
+            description="Speak text word by word instead of entire sentences"
+            left={(props) => <List.Icon {...props} icon="format-text-variant" />}
+            right={() => (
+              <Switch
+                value={shouldSpeakWordByWord}
+                onValueChange={handleSpeakWordByWordChange}
               />
             )}
           />

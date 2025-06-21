@@ -56,41 +56,58 @@ class MockScaleService extends ScaleInterface {
   }
 
   startWeightUpdates(onWeightUpdate) {
-    // Send weight updates every second
-    this.weightUpdateInterval = setInterval(() => {
-      // If weight reaches max, reset to 0 and set needsTare flag
-      if (this.currentWeight >= 200) {
-        this.currentWeight = 0;
-        this.needsTare = true;
-      } else {
-        // Increase weight by 10-50g each update
-        this.currentWeight += 25;
-        // Cap at 200
-        this.currentWeight = Math.min(this.currentWeight, 200);
-      }
-      
-      onWeightUpdate({
+    // Store the onWeightUpdate callback
+    this.onWeightUpdateCallback = onWeightUpdate;
+    // Immediately send an initial weight update
+    this.onWeightUpdateCallback({
+      value: this.currentWeight,
+      unit: 'g',
+      isStable: true,
+      isTare: this.needsTare
+    });
+  }
+
+  mockWeightChange(delta) {
+    this.currentWeight += delta;
+    // Ensure weight doesn't go below zero
+    this.currentWeight = Math.max(0, this.currentWeight);
+    if (this.onWeightUpdateCallback) {
+      this.onWeightUpdateCallback({
+        value: this.currentWeight,
+        unit: 'g',
+        isStable: false, // Not stable during change
+        isTare: false
+      });
+    }
+  }
+
+  mockStableWeight() {
+    if (this.onWeightUpdateCallback) {
+      this.onWeightUpdateCallback({
         value: this.currentWeight,
         unit: 'g',
         isStable: true,
-        isTare: this.needsTare
+        isTare: false
       });
+    }
+  }
 
-      // Reset tare flag after sending it once
-      if (this.needsTare) {
-        this.needsTare = false;
-      }
-    }, 1500);
+  mockTare() {
+    this.currentWeight = 0;
+    if (this.onWeightUpdateCallback) {
+      this.onWeightUpdateCallback({
+        value: this.currentWeight,
+        unit: 'g',
+        isStable: true,
+        isTare: true
+      });
+    }
   }
 
   async disconnect() {
-    if (this.weightUpdateInterval) {
-      clearInterval(this.weightUpdateInterval);
-      this.weightUpdateInterval = null;
-    }
-
     this.connectedDevice = null;
     this.currentWeight = 0;
+    this.onWeightUpdateCallback = null; // Clear the callback
   }
 
   async readWeight(device) {
@@ -98,8 +115,8 @@ class MockScaleService extends ScaleInterface {
       throw new Error('Not connected to this device');
     }
 
-    // Return a random weight between 0-1000g
-    return Math.floor(Math.random() * 1000);
+    // Return the current mock weight
+    return this.currentWeight;
   }
 }
 

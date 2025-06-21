@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { View, Text, StyleSheet, Dimensions, ActivityIndicator } from "react-native";
 import { ProgressBar, Button } from "react-native-paper"; // Import Button from react-native-paper
-import SpeechService from "../services/SpeechService";
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import EventEmitterService from "../services/EventEmitterService"; // Import EventEmitterService
-import { SCALE_MESSAGES } from "../constants/speechText";
 
 
 // Add at the top of the file, after imports
@@ -21,7 +19,7 @@ const ScaleReadingComponent = ({
   // Use a more descriptive connection status
   const [connectionStatus, setConnectionStatus] = useState('idle'); // 'idle', 'connecting', 'connected', 'reconnectionFailed', 'connectionFailed'
   const [tareStatus, setTareStatus] = useState(requireTare ? 'pending' : 'not_required');
-  const hasSpokenRef = useRef(false);
+  
   const targetWeight = targetIngredient?.amount || 0;
 
   const handleConnectPress = useCallback(async () => {
@@ -55,7 +53,6 @@ const ScaleReadingComponent = ({
 
   // Reset states when ingredient changes
   useEffect(() => {
-    hasSpokenRef.current = false;
     setTareStatus(requireTare ? 'pending' : 'not_required');
     setCurrentWeight(0);
   }, [targetIngredient, requireTare]);
@@ -78,14 +75,6 @@ const ScaleReadingComponent = ({
       // Handle tare event
       if (weightData.isTare) {
         setTareStatus('tared');
-        return;
-      }
-
-      // Announce tare needed if there's weight and tareStatus is pending
-      if (tareStatus === 'pending' && weightData.value > 0 && (!hasSpokenRef.current || hasSpokenRef.current !== 'tare')) {
-        console.log('[ScaleReadingComponent] Attempting to speak TARE_NEEDED.'); // Added log
-        SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
-        hasSpokenRef.current = 'tare';
         return;
       }
       
@@ -120,9 +109,6 @@ const ScaleReadingComponent = ({
       unsubscribeConnection();
       unsubscribeWeight();
       ScaleServiceFactory.unsubscribeAll(); // Ensure all listeners are removed from ScaleServiceFactory
-      // setCurrentWeight(0); // Removed this line
-      hasSpokenRef.current = false;
-      SpeechService.stop();
     };
   }, [targetIngredient, requireTare, onProgressUpdate, onWeightData, handleConnectPress, tareStatus]);
 

@@ -43,14 +43,15 @@ const ScaleConnectButton = ({ onConnect, onDisconnect }) => {
       isConnectingRef.current = true;
       forceUpdate({});
       setError(null);
+      // MB-9 POC of connecting .aar modules here.
       console.log("HERE", LefuScaleModule);
       console.log("THERE", LefuScaleModule.hello());
       if (isConnected) {
-        // await ScaleServiceFactory.disconnectFromScale();
-        // if (onDisconnect) onDisconnect();
+        await ScaleServiceFactory.disconnectFromScale();
+        if (onDisconnect) onDisconnect();
       } else {
-        // await ScaleServiceFactory.connectToScale();
-        // if (onConnect) onConnect();
+        await ScaleServiceFactory.connectToScale();
+        if (onConnect) onConnect();
       }
     } catch (error) {
       setError(error.message);

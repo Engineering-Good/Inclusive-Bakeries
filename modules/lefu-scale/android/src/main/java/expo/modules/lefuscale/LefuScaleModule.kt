@@ -2,6 +2,7 @@ package expo.modules.lefuscale
 
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import com.peng.ppscale.search.PPSearchManager
 import java.net.URL
 
 class LefuScaleModule : Module() {
@@ -24,7 +25,8 @@ class LefuScaleModule : Module() {
 
     // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
     Function("hello") {
-      "Hello world! 👋"
+      var manager = PPSearchManager.getInstance()
+      manager.toString()
     }
 
     // Defines a JavaScript function that always returns a Promise and whose native code

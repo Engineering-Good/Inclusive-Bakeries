@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Button } from 'react-native-paper';
+import LefuScaleModule from '../../modules/lefu-scale';
 import ScaleServiceFactory from '../services/ScaleServiceFactory';
 
 const ScaleConnectButton = ({ onConnect, onDisconnect }) => {
@@ -42,13 +43,14 @@ const ScaleConnectButton = ({ onConnect, onDisconnect }) => {
       isConnectingRef.current = true;
       forceUpdate({});
       setError(null);
-      
+      console.log("HERE", LefuScaleModule);
+      console.log("THERE", LefuScaleModule.hello());
       if (isConnected) {
-        await ScaleServiceFactory.disconnectFromScale();
-        if (onDisconnect) onDisconnect();
+        // await ScaleServiceFactory.disconnectFromScale();
+        // if (onDisconnect) onDisconnect();
       } else {
-        await ScaleServiceFactory.connectToScale();
-        if (onConnect) onConnect();
+        // await ScaleServiceFactory.connectToScale();
+        // if (onConnect) onConnect();
       }
     } catch (error) {
       setError(error.message);

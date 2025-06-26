@@ -1,6 +1,8 @@
-import React from 'react';
+import * as React from 'react';
 
-export default function LefuScaleView(props) {
+import { LefuScaleViewProps } from './LefuScale.types';
+
+export default function LefuScaleView(props: LefuScaleViewProps) {
   return (
     <div>
       <iframe

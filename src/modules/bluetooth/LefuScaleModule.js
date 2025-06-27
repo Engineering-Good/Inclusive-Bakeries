@@ -1,43 +1,51 @@
-import { NativeEventEmitter, NativeModules } from 'react-native';
+import LefuScale from 'lefu-scale'
 
-const { LefuKitchenScale } = NativeModules;
+export default class LefuScaleClass {
+	constructor() {
+		this.lefuScale = LefuScale
+	}
 
-class LefuKitchenScaleClass {
-  constructor() {
-    this.eventEmitter = new NativeEventEmitter(LefuKitchenScale);
-  }
+	async initializeScale() {
+		return this.lefuScale.initializeScale()
+	}
 
-  async initializeScale() {
-    return LefuKitchenScale.initializeScale();
-  }
+	async startScan() {
+		return this.lefuScale.startScan()
+	}
 
-  async startScan() {
-    return LefuKitchenScale.startScan();
-  }
+	async stopScan() {
+		return this.lefuScale.stopScan()
+	}
 
-  async stopScan() {
-    return LefuKitchenScale.stopScan();
-  }
+	async connectToDevice(deviceId) {
+		return this.lefuScale.connectToDevice(deviceId)
+	}
 
-  async connectToDevice(deviceId) {
-    return LefuKitchenScale.connectToDevice(deviceId);
-  }
+	async disconnect() {
+		return this.lefuScale.disconnect()
+	}
 
-  async disconnect() {
-    return LefuKitchenScale.disconnect();
-  }
+	async hello() {
+		return this.lefuScale.hello()
+	}
 
-  addWeightListener(callback) {
-    return this.eventEmitter.addListener('onWeightChange', callback);
-  }
+	async getValueWithCallback(callback) {
+		// MB-9 Testing of callback functions from .aar
+		// not working as the build is not refreshed.
+		console.log('EE', callback)
+		console.log('EeeeeE', this.lefuScale)
+		return this.lefuScale.getValueWithCallback(callback)
+	}
 
-  addConnectionStateListener(callback) {
-    return this.eventEmitter.addListener('onConnectionStateChange', callback);
-  }
+	addWeightListener(callback) {
+		return this.lefuScale.addListener('onWeightChange', callback)
+	}
 
-  addErrorListener(callback) {
-    return this.eventEmitter.addListener('onError', callback);
-  }
+	addConnectionStateListener(callback) {
+		return this.lefuScale.addListener('onConnectionStateChange', callback)
+	}
+
+	addErrorListener(callback) {
+		return this.lefuScale.addListener('onError', callback)
+	}
 }
-
-export default new LefuKitchenScaleClass();

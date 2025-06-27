@@ -29,6 +29,12 @@ class LefuScaleModule : Module() {
       manager.toString()
     }
 
+    Function("getValueWithCallback") { callback: (String) -> Unit ->
+      val result = "Hello from Kotlin callback"
+      callback(result)
+      "getValueWithCallback"
+    }
+
     // Defines a JavaScript function that always returns a Promise and whose native code
     // is by default dispatched on the different thread than the JavaScript runtime runs on.
     AsyncFunction("setValueAsync") { value: String ->

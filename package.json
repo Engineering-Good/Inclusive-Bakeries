@@ -31,7 +31,8 @@
     "react-native-paper": "^5.13.1",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
-    "react-native-web": "^0.20.0"
+    "react-native-web": "^0.20.0",
+    "lefu-scale": "file:modules/lefu-scale"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

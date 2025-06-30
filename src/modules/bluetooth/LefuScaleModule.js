@@ -1,4 +1,4 @@
-import LefuScale from 'lefu-scale'
+import LefuScale from '../../../modules/lefu-scale'
 
 export default class LefuScaleClass {
 	constructor() {
@@ -30,10 +30,6 @@ export default class LefuScaleClass {
 	}
 
 	async getValueWithCallback(callback) {
-		// MB-9 Testing of callback functions from .aar
-		// not working as the build is not refreshed.
-		console.log('EE', callback)
-		console.log('EeeeeE', this.lefuScale)
 		return this.lefuScale.getValueWithCallback(callback)
 	}
 

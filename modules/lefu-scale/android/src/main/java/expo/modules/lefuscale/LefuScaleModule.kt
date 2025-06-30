@@ -25,14 +25,9 @@ class LefuScaleModule : Module() {
 
     // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
     Function("hello") {
+      // "Hello world! 👋"
       var manager = PPSearchManager.getInstance()
       manager.toString()
-    }
-
-    Function("getValueWithCallback") { callback: (String) -> Unit ->
-      val result = "Hello from Kotlin callback"
-      callback(result)
-      "getValueWithCallback"
     }
 
     // Defines a JavaScript function that always returns a Promise and whose native code

@@ -42,12 +42,6 @@ android {
   }
 }
 
-repositories {
-  flatDir {
-    dirs 'libs'
-  }
-}
-
 dependencies {
     implementation(name: 'ppbasekit-4.2.1', ext: 'aar')
     implementation(name: 'ppbluetoothkit-4.2.1', ext: 'aar')

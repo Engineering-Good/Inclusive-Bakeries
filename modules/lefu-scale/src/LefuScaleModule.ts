@@ -5,7 +5,6 @@ import { LefuScaleModuleEvents } from './LefuScale.types';
 declare class LefuScaleModule extends NativeModule<LefuScaleModuleEvents> {
   PI: number;
   hello(): string;
-  getValueWithCallback(callback: (value: string) => void): string;
   setValueAsync(value: string): Promise<void>;
 }
 

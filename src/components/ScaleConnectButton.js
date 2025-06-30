@@ -47,14 +47,7 @@ const ScaleConnectButton = ({ onConnect, onDisconnect }) => {
       setError(null);
       // MB-9 POC of connecting .aar modules here.
       const LefuScale = new LefuScaleClass();
-      console.log("HERE", Object.keys(LefuScale));
-      console.log("THERE", LefuScale.hello());
-      // console.log("EVERYWHERE", await LefuScale.getValueWithCallback((value) => {
-      //   console.log("Value from native:", value);
-      // }));
-      LefuScale.getValueWithCallback((value) => {
-        console.log("Callback value from native:", value);
-      });
+      console.log("LefuScale.hello(): ", LefuScale.hello());
       if (isConnected) {
         await ScaleServiceFactory.disconnectFromScale();
         if (onDisconnect) onDisconnect();

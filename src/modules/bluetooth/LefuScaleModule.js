@@ -1,4 +1,4 @@
-import LefuScale from '../../../modules/lefu-scale'
+import LefuScale from '@modules/lefu-scale'
 
 export default class LefuScaleClass {
 	constructor() {

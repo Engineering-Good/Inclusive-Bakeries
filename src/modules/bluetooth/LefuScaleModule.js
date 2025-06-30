@@ -1,12 +1,13 @@
 import LefuScale from '@modules/lefu-scale'
 
-export default class LefuScaleClass {
+class LefuScaleModule {
 	constructor() {
 		this.lefuScale = LefuScale
+		console.log('LEFU_SCALE IMPORT HERE: ', this.lefuScale)
 	}
 
-	async initializeScale() {
-		return this.lefuScale.initializeScale()
+	async initializeScale(key, secret) {
+		return await this.lefuScale.initializeSdk(key, secret)
 	}
 
 	async startScan() {
@@ -17,31 +18,41 @@ export default class LefuScaleClass {
 		return this.lefuScale.stopScan()
 	}
 
-	async connectToDevice(deviceId) {
-		return this.lefuScale.connectToDevice(deviceId)
+	addDeviceDiscoveredListener(callback) {
+		return this.lefuScale.addListener('onDeviceDiscovered', callback)
 	}
 
-	async disconnect() {
-		return this.lefuScale.disconnect()
+	addBleStateChangeListener(callback) {
+		return this.lefuScale.addListener('onBleStateChange', callback)
 	}
 
-	async hello() {
-		return this.lefuScale.hello()
-	}
+	// async connectToDevice(deviceId) {
+	// 	return this.lefuScale.connectToDevice(deviceId)
+	// }
 
-	async getValueWithCallback(callback) {
-		return this.lefuScale.getValueWithCallback(callback)
-	}
+	// async disconnect() {
+	// 	return this.lefuScale.disconnect()
+	// }
 
-	addWeightListener(callback) {
-		return this.lefuScale.addListener('onWeightChange', callback)
-	}
+	// async hello() {
+	// 	return this.lefuScale.hello()
+	// }
 
-	addConnectionStateListener(callback) {
-		return this.lefuScale.addListener('onConnectionStateChange', callback)
-	}
+	// async getValueWithCallback(callback) {
+	// 	return this.lefuScale.getValueWithCallback(callback)
+	// }
 
-	addErrorListener(callback) {
-		return this.lefuScale.addListener('onError', callback)
-	}
+	// addWeightListener(callback) {
+	// 	return this.lefuScale.addListener('onWeightChange', callback)
+	// }
+
+	// addConnectionStateListener(callback) {
+	// 	return this.lefuScale.addListener('onConnectionStateChange', callback)
+	// }
+
+	// addErrorListener(callback) {
+	// 	return this.lefuScale.addListener('onError', callback)
+	// }
 }
+
+export default new LefuScaleModule()

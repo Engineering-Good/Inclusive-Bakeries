@@ -2,8 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Button } from 'react-native-paper';
 
-// MB-9 POC of connecting .aar modules here.
-import LefuScaleClass from '../modules/bluetooth/LefuScaleModule';
 import ScaleServiceFactory from '../services/ScaleServiceFactory';
 
 const ScaleConnectButton = ({ onConnect, onDisconnect }) => {
@@ -45,13 +43,11 @@ const ScaleConnectButton = ({ onConnect, onDisconnect }) => {
       isConnectingRef.current = true;
       forceUpdate({});
       setError(null);
-      // MB-9 POC of connecting .aar modules here.
-      const LefuScale = new LefuScaleClass();
-      console.log("LefuScale.hello(): ", LefuScale.hello());
       if (isConnected) {
         await ScaleServiceFactory.disconnectFromScale();
         if (onDisconnect) onDisconnect();
       } else {
+        console.log("HEREEEEE CALLED")
         await ScaleServiceFactory.connectToScale();
         if (onConnect) onConnect();
       }

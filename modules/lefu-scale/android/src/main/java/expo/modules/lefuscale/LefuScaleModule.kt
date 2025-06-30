@@ -3,12 +3,22 @@ package expo.modules.lefuscale
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import com.peng.ppscale.search.PPSearchManager
+import com.peng.ppscale.PPBluetoothKit
+import com.lefu.ppbase.PPSDKKit
+import com.lefu.ppbase.PPDeviceModel
+import com.peng.ppscale.business.ble.listener.PPBleStateInterface
+import com.peng.ppscale.business.ble.listener.PPSearchDeviceInfoInterface
+import com.peng.ppscale.business.state.PPBleWorkState
 import java.net.URL
 
 class LefuScaleModule : Module() {
   // Each module class must implement the definition function. The definition consists of components
   // that describes the module's functionality and behavior.
   // See https://docs.expo.dev/modules/module-api for more details about available components.
+  private var ppScale: PPSearchManager? = null
+  private val discoveredDevices = mutableListOf<PPDeviceModel>()
+  private var connectedDevice: PPDeviceModel? = null
+
   override fun definition() = ModuleDefinition {
     // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
     // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
@@ -21,13 +31,13 @@ class LefuScaleModule : Module() {
     )
 
     // Defines event names that the module can send to JavaScript.
-    Events("onChange")
+    Events("onChange", "onDeviceDiscovered", "onBleStateChange")
 
     // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
-    Function("hello") {
+    Function("getInstance") {
       // "Hello world! 👋"
       var manager = PPSearchManager.getInstance()
-      manager.toString()
+      return@Function manager.toString()
     }
 
     // Defines a JavaScript function that always returns a Promise and whose native code
@@ -48,6 +58,56 @@ class LefuScaleModule : Module() {
       }
       // Defines an event that the view can send to JavaScript.
       Events("onLoad")
+    }
+
+    AsyncFunction("initializeSdk") { apiKey: String, apiSecret: String ->
+      val context = appContext.reactContext?.applicationContext
+      if (context != null) {
+        PPBluetoothKit.setDebug(true)
+    
+        PPBluetoothKit.initSdk(
+          context,
+          apiKey,
+          apiSecret,
+          "lefu.config"
+        )
+      }
+    }
+
+    AsyncFunction("startScan") {
+      discoveredDevices.clear()
+      if (ppScale == null) {
+        ppScale = PPSearchManager.getInstance()
+      }
+
+      ppScale?.startSearchDeviceList(
+        30000, // scan for 30 seconds
+        PPSearchDeviceInfoInterface { device, data ->
+          device?.let {
+            if (discoveredDevices.none { it.deviceMac == device.deviceMac }) {
+              discoveredDevices.add(device)
+              sendEvent("onDeviceDiscovered", mapOf(
+                "name" to device.deviceName,
+                "mac" to device.deviceMac,
+                "rssi" to device.rssi
+              ))
+            }
+          }
+        },
+        object : PPBleStateInterface() {
+          override fun monitorBluetoothWorkState(
+            state: PPBleWorkState,
+            deviceModel: PPDeviceModel?
+          ) {
+            val status = state.name
+            sendEvent("onBleStateChange", mapOf("state" to status))
+          }
+        }
+      )
+    }
+
+    AsyncFunction("stopScan") {
+      ppScale?.stopSearch()
     }
   }
 }

@@ -1,8 +1,5 @@
 {
-  "platforms": ["apple", "android", "web"],
-  "apple": {
-    "modules": ["LefuScaleModule"]
-  },
+  "platforms": ["android", "web"],
   "android": {
     "modules": ["expo.modules.lefuscale.LefuScaleModule"],
     "gradleAarProjects": [

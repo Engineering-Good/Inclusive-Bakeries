@@ -17,7 +17,7 @@ class LefuScaleModule : Module() {
     Name("LefuScale")
 
     // Defines event names that the module can send to JavaScript.
-    Events("onChange")
+    Events("onChange", "onDeviceDiscovered", "onBleStateChange")
 
     AsyncFunction("initializeSdk") { apiKey: String, apiSecret: String ->
       val context = requireNotNull(appContext.reactContext?.applicationContext) {
@@ -53,5 +53,6 @@ class LefuScaleModule : Module() {
     AsyncFunction("stopScan") {
       lefuService?.stopScan()
     }
+
   }
 }

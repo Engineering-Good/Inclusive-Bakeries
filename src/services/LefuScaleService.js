@@ -21,10 +21,11 @@ class LefuScaleService extends ScaleInterface {
         LefuScaleModule.addDeviceDiscoveredListener((device) => {
           console.log("Device found:", device);
           if (onDeviceFound) {
-            onDeviceFound(device);
-            if (device.name) {
-              this.device.name = device.name;
-            }
+            onDeviceFound(device).then(() => {
+              if (device.name) {
+                this.device.name = device.name;
+              }
+            });
           }
         });
 

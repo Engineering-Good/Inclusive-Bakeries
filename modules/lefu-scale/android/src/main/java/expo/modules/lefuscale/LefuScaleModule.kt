@@ -12,6 +12,7 @@ import com.peng.ppscale.business.ble.listener.PPSearchDeviceInfoInterface
 import com.peng.ppscale.business.state.PPBleWorkState
 import com.peng.ppscale.device.PPBlutoothPeripheralBaseController
 import com.peng.ppscale.device.PeripheralHamburger.PPBlutoothPeripheralHamburgerController
+import kotlinx.coroutines.Job
 import android.util.Log
 import java.net.URL
 

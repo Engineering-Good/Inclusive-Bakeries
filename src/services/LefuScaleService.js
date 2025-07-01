@@ -56,7 +56,6 @@ class LefuScaleService extends ScaleInterface {
   async connect(deviceId, onWeightUpdate) {
     try {
       await LefuScaleModule.connectToDevice(deviceId);
-      console.log("deviceid - ", deviceId);
       // Store the device info
       this.device = {
         id: deviceId,

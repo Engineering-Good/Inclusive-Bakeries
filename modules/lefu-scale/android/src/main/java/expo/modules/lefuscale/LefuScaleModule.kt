@@ -7,8 +7,13 @@ import com.peng.ppscale.PPBluetoothKit
 import com.lefu.ppbase.PPSDKKit
 import com.lefu.ppbase.PPDeviceModel
 import com.peng.ppscale.business.ble.listener.PPBleStateInterface
+import com.lefu.ppbase.PPScaleDefine.PPDevicePeripheralType
 import com.peng.ppscale.business.ble.listener.PPSearchDeviceInfoInterface
 import com.peng.ppscale.business.state.PPBleWorkState
+import com.peng.ppscale.device.PPBlutoothPeripheralBaseController
+import com.peng.ppscale.device.PeripheralHamburger.PPBlutoothPeripheralHamburgerController
+import kotlinx.coroutines.Job
+import android.util.Log
 import java.net.URL
 
 class LefuScaleModule : Module() {
@@ -18,6 +23,8 @@ class LefuScaleModule : Module() {
   private var ppScale: PPSearchManager? = null
   private val discoveredDevices = mutableListOf<PPDeviceModel>()
   private var connectedDevice: PPDeviceModel? = null
+  private var deviceController: PPBlutoothPeripheralBaseController? = null
+  private var _reconnectJob: Job? = null
 
   override fun definition() = ModuleDefinition {
     // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
@@ -71,13 +78,19 @@ class LefuScaleModule : Module() {
           apiSecret,
           "lefu.config"
         )
+
+        if (ppScale == null) {
+          ppScale = PPSearchManager.getInstance()
+        }
       }
     }
 
     AsyncFunction("startScan") {
       discoveredDevices.clear()
+
       if (ppScale == null) {
-        ppScale = PPSearchManager.getInstance()
+        sendEvent("onError", mapOf("state" to "ppScale not initialized"))
+        return@AsyncFunction null
       }
 
       ppScale?.startSearchDeviceList(
@@ -104,6 +117,54 @@ class LefuScaleModule : Module() {
           }
         }
       )
+    }
+
+    AsyncFunction("connectToDevice") { mac: String? -> 
+      if (mac.isNullOrEmpty()) {
+        sendEvent("onBleStateChange", mapOf("state" to "Invalid MAC address"))
+      }
+
+      if (ppScale == null) {
+        sendEvent("onError", mapOf("state" to "ppScale not initialized"))
+        return@AsyncFunction null
+      }
+
+      val device = discoveredDevices.find { it.deviceMac == mac}
+
+      if (device == null) {
+        sendEvent("onBleStateChange", mapOf("state" to "Device not found"))
+        return@AsyncFunction null
+      }
+
+     if (device!!.getDevicePeripheralType() != PPDevicePeripheralType.PeripheralHamburger) {
+        sendEvent("onBleStateChange", mapOf("state" to "Unsupported Device"))
+      }
+
+      deviceController = PPBlutoothPeripheralHamburgerController()
+
+      val bleStateInterface = object : PPBleStateInterface() {
+        override fun monitorBluetoothWorkState(
+          state: PPBleWorkState,
+          deviceModel: PPDeviceModel?
+        ) {
+          sendEvent("onBleStateChange", mapOf("state" to state.name))
+        }
+      }
+
+      (deviceController as? PPBlutoothPeripheralHamburgerController)?.let { controller ->
+        // Need it when implementing data change
+        // controller.registDataChangeListener(dataChangeListener)
+        controller.startSearch(device!!.deviceMac, bleStateInterface)
+        // deviceStatusState = PPBleWorkState.PPBleWorkStateConnecting.name
+      }
+    }
+
+    AsyncFunction("disconnect") {
+      deviceController?.disConnect()
+      deviceController = null
+      ppScale = null
+      _reconnectJob?.cancel()
+      sendEvent("onBleStateChange", mapOf("state" to "Disconnected"))
     }
 
     AsyncFunction("stopScan") {

@@ -1,58 +1,58 @@
-import LefuScale from '@modules/lefu-scale'
+import LefuScale from "@modules/lefu-scale";
 
 class LefuScaleModule {
-	constructor() {
-		this.lefuScale = LefuScale
-		console.log('LEFU_SCALE IMPORT HERE: ', this.lefuScale)
-	}
+  constructor() {
+    this.lefuScale = LefuScale;
+    console.log("LEFU_SCALE IMPORT HERE: ", this.lefuScale);
+  }
 
-	async initializeScale(key, secret) {
-		return await this.lefuScale.initializeSdk(key, secret)
-	}
+  async initializeScale(key, secret) {
+    return await this.lefuScale.initializeSdk(key, secret);
+  }
 
-	async startScan() {
-		return this.lefuScale.startScan()
-	}
+  async startScan() {
+    return this.lefuScale.startScan();
+  }
 
-	async stopScan() {
-		return this.lefuScale.stopScan()
-	}
+  async stopScan() {
+    return this.lefuScale.stopScan();
+  }
 
-	addDeviceDiscoveredListener(callback) {
-		return this.lefuScale.addListener('onDeviceDiscovered', callback)
-	}
+  addDeviceDiscoveredListener(callback) {
+    return this.lefuScale.addListener("onDeviceDiscovered", callback);
+  }
 
-	addBleStateChangeListener(callback) {
-		return this.lefuScale.addListener('onBleStateChange', callback)
-	}
+  addBleStateChangeListener(callback) {
+    return this.lefuScale.addListener("onBleStateChange", callback);
+  }
 
-	// async connectToDevice(deviceId) {
-	// 	return this.lefuScale.connectToDevice(deviceId)
-	// }
+  async connectToDevice(deviceId) {
+    return this.lefuScale.connectToDevice(deviceId);
+  }
 
-	// async disconnect() {
-	// 	return this.lefuScale.disconnect()
-	// }
+  async disconnect() {
+  	return this.lefuScale.disconnect()
+  }
 
-	// async hello() {
-	// 	return this.lefuScale.hello()
-	// }
+  // async hello() {
+  // 	return this.lefuScale.hello()
+  // }
 
-	// async getValueWithCallback(callback) {
-	// 	return this.lefuScale.getValueWithCallback(callback)
-	// }
+  // async getValueWithCallback(callback) {
+  // 	return this.lefuScale.getValueWithCallback(callback)
+  // }
 
-	// addWeightListener(callback) {
-	// 	return this.lefuScale.addListener('onWeightChange', callback)
-	// }
+  // addWeightListener(callback) {
+  // 	return this.lefuScale.addListener('onWeightChange', callback)
+  // }
 
-	// addConnectionStateListener(callback) {
-	// 	return this.lefuScale.addListener('onConnectionStateChange', callback)
-	// }
+  // addConnectionStateListener(callback) {
+  // 	return this.lefuScale.addListener('onConnectionStateChange', callback)
+  // }
 
-	// addErrorListener(callback) {
-	// 	return this.lefuScale.addListener('onError', callback)
-	// }
+  // addErrorListener(callback) {
+  // 	return this.lefuScale.addListener('onError', callback)
+  // }
 }
 
-export default new LefuScaleModule()
+export default new LefuScaleModule();

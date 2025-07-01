@@ -47,7 +47,6 @@ const ScaleConnectButton = ({ onConnect, onDisconnect }) => {
         await ScaleServiceFactory.disconnectFromScale();
         if (onDisconnect) onDisconnect();
       } else {
-        console.log("HEREEEEE CALLED")
         await ScaleServiceFactory.connectToScale();
         if (onConnect) onConnect();
       }

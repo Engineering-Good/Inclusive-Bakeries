@@ -13,7 +13,6 @@ class DeviceControllerFactory {
         /**
          * Creates and returns an instance of a device controller based on the device type.
          *
-         * @param context The application context, required for initializing device SDKs.
          * @param deviceType The type of the device peripheral from the PPScale SDK.
          * @return An [AbstractDevice] implementation for the specified device type.
          * @throws IllegalArgumentException if the device type is not supported by this factory.

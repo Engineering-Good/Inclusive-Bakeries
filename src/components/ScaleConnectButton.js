@@ -51,6 +51,8 @@ const ScaleConnectButton = ({ onConnect, onDisconnect }) => {
         if (onConnect) onConnect();
       }
     } catch (error) {
+      isConnectingRef.current = false;
+      forceUpdate({});
       setError(error.message);
     } 
   };

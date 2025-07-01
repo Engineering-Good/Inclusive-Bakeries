@@ -88,6 +88,11 @@ class LefuScaleModule : Module() {
     AsyncFunction("startScan") {
       discoveredDevices.clear()
 
+      if (ppScale == null) {
+        sendEvent("onError", mapOf("state" to "ppScale not initialized"))
+        return@AsyncFunction null
+      }
+
       ppScale?.startSearchDeviceList(
         30000, // scan for 30 seconds
         PPSearchDeviceInfoInterface { device, data ->
@@ -120,13 +125,15 @@ class LefuScaleModule : Module() {
       }
 
       if (ppScale == null) {
-        ppScale = PPSearchManager.getInstance()
+        sendEvent("onError", mapOf("state" to "ppScale not initialized"))
+        return@AsyncFunction null
       }
 
       val device = discoveredDevices.find { it.deviceMac == mac}
 
       if (device == null) {
         sendEvent("onBleStateChange", mapOf("state" to "Device not found"))
+        return@AsyncFunction null
       }
 
      if (device!!.getDevicePeripheralType() != PPDevicePeripheralType.PeripheralHamburger) {

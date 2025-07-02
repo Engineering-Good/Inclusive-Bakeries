@@ -45,7 +45,8 @@ class LefuScaleModule : Module() {
         sendEvent("onWeightChange", mapOf(
           "weight" to weight,
           "unit" to unit,
-          "isStable" to false
+          "isStable" to false,
+          "isTare" to (weight == 0f)
         ))
       }
     }
@@ -62,13 +63,11 @@ class LefuScaleModule : Module() {
 
         val unit = FoodScaleUnit.fromRawValue(it.unit.name).displayName
 
-        val isTare = (weight == 0f)
-
         sendEvent("onWeightChange", mapOf(
           "weight" to weight,
           "unit" to unit,
           "isStable" to true,
-          "isTare" to isTare
+          "isTare" to (weight == 0f)
         ))
       }
     }
@@ -225,7 +224,6 @@ class LefuScaleModule : Module() {
       deviceController = null
       ppScale = null
       disconnectMonitorJob?.cancel()
-      lastStableWeight = -1f
       sendEvent("onBleStateChange", mapOf("state" to "Disconnected"))
     }
 

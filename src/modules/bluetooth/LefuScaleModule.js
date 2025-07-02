@@ -42,9 +42,9 @@ class LefuScaleModule {
   // 	return this.lefuScale.getValueWithCallback(callback)
   // }
 
-  // addWeightListener(callback) {
-  // 	return this.lefuScale.addListener('onWeightChange', callback)
-  // }
+  addWeightListener(callback) {
+  	return this.lefuScale.addListener('onWeightChange', callback)
+  }
 
   // addConnectionStateListener(callback) {
   // 	return this.lefuScale.addListener('onConnectionStateChange', callback)

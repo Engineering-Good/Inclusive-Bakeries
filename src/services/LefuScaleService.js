@@ -62,16 +62,17 @@ class LefuScaleService extends ScaleInterface {
         name: "Lefu Kitchen Scale", // Default fallback name
       };
 
-      // Set up weight listener
-      // this.weightListener = LefuScaleModule.addWeightListener((data) => {
-      // 	if (onWeightUpdate) {
-      // 		onWeightUpdate({
-      // 			value: parseFloat(data.weight),
-      // 			unit: data.unit,
-      // 			isStable: data.isStable,
-      // 		})
-      // 	}
-      // })
+    //   Set up weight listener
+      this.weightListener = LefuScaleModule.addWeightListener((data) => {
+		console.log(data)
+      	if (onWeightUpdate) {
+      		onWeightUpdate({
+      			value: parseFloat(data.weight),
+      			unit: data.unit,
+      			isStable: data.isStable,
+      		})
+      	}
+      })
 
       return this.device;
     } catch (error) {

@@ -12,6 +12,8 @@ import com.peng.ppscale.business.ble.listener.PPSearchDeviceInfoInterface
 import com.peng.ppscale.business.state.PPBleWorkState
 import com.peng.ppscale.device.PPBlutoothPeripheralBaseController
 import com.peng.ppscale.device.PeripheralHamburger.PPBlutoothPeripheralHamburgerController
+import com.peng.ppscale.business.ble.listener.FoodScaleDataChangeListener
+import com.peng.ppscale.vo.LFFoodScaleGeneral
 import kotlinx.coroutines.Job
 import android.util.Log
 import java.net.URL
@@ -26,6 +28,36 @@ class LefuScaleModule : Module() {
   private var deviceController: PPBlutoothPeripheralBaseController? = null
   private var _reconnectJob: Job? = null
 
+  private val dataChangeListener = object : FoodScaleDataChangeListener() {
+    override fun processData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
+      foodScaleGeneral?.let {
+        val weight = it.lfWeightKg.toFloat()
+        // val unitRaw = it.unit.name
+        val unit = FoodScaleUnit.fromRawValue(it.unit.name).displayName
+        // val unit = it.unit.name
+        sendEvent("onWeightChange", mapOf(
+          "weight" to weight,
+          "unit" to unit,
+          "isStable" to false
+        ))
+      }
+    }
+
+    override fun lockedData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
+      foodScaleGeneral?.let {
+        val weight = it.lfWeightKg.toFloat()
+        val unit = FoodScaleUnit.fromRawValue(it.unit.name).displayName
+        // val unit = it.unit.name
+        sendEvent("onWeightChange", mapOf(
+          "weight" to weight,
+          "unit" to unit,
+          "isStable" to true
+        ))
+      }
+    }
+  }
+
+
   override fun definition() = ModuleDefinition {
     // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
     // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
@@ -38,7 +70,7 @@ class LefuScaleModule : Module() {
     )
 
     // Defines event names that the module can send to JavaScript.
-    Events("onChange", "onDeviceDiscovered", "onBleStateChange")
+    Events("onChange", "onDeviceDiscovered", "onBleStateChange", "onWeightChange")
 
     // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
     Function("getInstance") {
@@ -153,7 +185,7 @@ class LefuScaleModule : Module() {
 
       (deviceController as? PPBlutoothPeripheralHamburgerController)?.let { controller ->
         // Need it when implementing data change
-        // controller.registDataChangeListener(dataChangeListener)
+        controller.registDataChangeListener(dataChangeListener)
         controller.startSearch(device!!.deviceMac, bleStateInterface)
         // deviceStatusState = PPBleWorkState.PPBleWorkStateConnecting.name
       }
@@ -169,6 +201,22 @@ class LefuScaleModule : Module() {
 
     AsyncFunction("stopScan") {
       ppScale?.stopSearch()
+    }
+  }
+
+  enum class FoodScaleUnit(val rawValue: String, val displayName: String) {
+    GRAMS("ppunitg", "grams"),
+    KILOGRAMS("ppunitkg", "kg"),
+    MILLILITERS_WATER("ppunitmlwater", "ml"),
+    OUNCES("ppunitoz", "oz"),
+    POUNDS("unit_lb", "lb"),
+    OUNCESPOUNDS("ppunitlboz", "lb oz"),
+    UNKNOWN("unknown", "unknown");
+
+    companion object {
+        fun fromRawValue(value: String?): FoodScaleUnit {
+            return values().find { it.rawValue.equals(value, ignoreCase = true) } ?: UNKNOWN
+        }
     }
   }
 }

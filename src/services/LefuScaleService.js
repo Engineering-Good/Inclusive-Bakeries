@@ -12,6 +12,10 @@ class LefuScaleService extends ScaleInterface {
   }
 
   async startScan(onDeviceFound) {
+    if (this.deviceDiscoveredListener) {
+      this.deviceDiscoveredListener.remove();
+      this.deviceDiscoveredListener = null;
+    }
     try {
       const { LEFU_API_KEY, LEFU_API_SECRET } =
         Constants.expoConfig?.extra ?? {};
@@ -55,6 +59,15 @@ class LefuScaleService extends ScaleInterface {
 
   async connect(deviceId, onWeightUpdate) {
     try {
+			//cleanup previous listeners
+      if (this.weightListener) {
+        this.weightListener.remove();
+        this.weightListener = null;
+      }
+      if (this.disconnectListener) {
+        this.disconnectListener.remove();
+        this.disconnectListener = null;
+      }
       await LefuScaleModule.connectToDevice(deviceId);
       // Store the device info
       this.device = {
@@ -62,17 +75,24 @@ class LefuScaleService extends ScaleInterface {
         name: "Lefu Kitchen Scale", // Default fallback name
       };
 
-    //   Set up weight listener
+      //   Set up weight listener
       this.weightListener = LefuScaleModule.addWeightListener((data) => {
-		console.log(data)
-      	if (onWeightUpdate) {
-      		onWeightUpdate({
-      			value: parseFloat(data.weight),
-      			unit: data.unit,
-      			isStable: data.isStable,
-      		})
-      	}
-      })
+        console.log("Weight event:", data);
+        if (onWeightUpdate) {
+          onWeightUpdate({
+            value: parseFloat(data.weight),
+            unit: data.unit,
+            isStable: data.isStable,
+            isTare: data.isTare || false,
+          });
+        }
+      });
+
+			//reconnect scale if the connection has disconnected
+      this.disconnectListener = LefuScaleModule.addDisconnectListener(() => {
+        console.warn("Device disconnected, attempting to reconnect...");
+        this.connect(this.device.id, onWeightUpdate);
+      });
 
       return this.device;
     } catch (error) {
@@ -94,6 +114,9 @@ class LefuScaleService extends ScaleInterface {
       }
       if (this.errorListener) {
         this.errorListener.remove();
+      }
+      if (this.disconnectListener) {
+        this.disconnectListener.remove();
       }
     } catch (error) {
       console.error("Error disconnecting:", error);

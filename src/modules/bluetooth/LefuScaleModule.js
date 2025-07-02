@@ -31,7 +31,7 @@ class LefuScaleModule {
   }
 
   async disconnect() {
-  	return this.lefuScale.disconnect()
+    return this.lefuScale.disconnect();
   }
 
   // async hello() {
@@ -43,7 +43,11 @@ class LefuScaleModule {
   // }
 
   addWeightListener(callback) {
-  	return this.lefuScale.addListener('onWeightChange', callback)
+    return this.lefuScale.addListener("onWeightChange", callback);
+  }
+
+  addDisconnectListener(callback) {
+    return this.lefuScale.addListener("hasDisconnected", callback);
   }
 
   // addConnectionStateListener(callback) {

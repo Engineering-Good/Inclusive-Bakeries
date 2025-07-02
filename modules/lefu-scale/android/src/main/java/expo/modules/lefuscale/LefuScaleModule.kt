@@ -2,6 +2,7 @@ package expo.modules.lefuscale
 
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.lefuscale.util.FoodScaleUnit
 import com.peng.ppscale.search.PPSearchManager
 import com.peng.ppscale.PPBluetoothKit
 import com.lefu.ppbase.PPSDKKit
@@ -14,8 +15,9 @@ import com.peng.ppscale.device.PPBlutoothPeripheralBaseController
 import com.peng.ppscale.device.PeripheralHamburger.PPBlutoothPeripheralHamburgerController
 import com.peng.ppscale.business.ble.listener.FoodScaleDataChangeListener
 import com.peng.ppscale.vo.LFFoodScaleGeneral
-import kotlinx.coroutines.Job
 import android.util.Log
+import kotlinx.coroutines.*
+import java.util.concurrent.atomic.AtomicLong
 import java.net.URL
 
 class LefuScaleModule : Module() {
@@ -26,15 +28,21 @@ class LefuScaleModule : Module() {
   private val discoveredDevices = mutableListOf<PPDeviceModel>()
   private var connectedDevice: PPDeviceModel? = null
   private var deviceController: PPBlutoothPeripheralBaseController? = null
-  private var _reconnectJob: Job? = null
+  private var lastWeightReceivedTime = AtomicLong(0L)
+  private var disconnectMonitorJob: Job? = null
+  private val disconnectTimeoutMillis = 10_000L
+  private var lastStableWeight: Float = -1f
 
   private val dataChangeListener = object : FoodScaleDataChangeListener() {
     override fun processData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
       foodScaleGeneral?.let {
-        val weight = it.lfWeightKg.toFloat()
-        // val unitRaw = it.unit.name
+        lastWeightReceivedTime.set(System.currentTimeMillis())
+        val thanZero = it.thanZero
+        var weight = it.lfWeightKg.toFloat()
+        if (thanZero == 0) {
+          weight = -weight
+        }
         val unit = FoodScaleUnit.fromRawValue(it.unit.name).displayName
-        // val unit = it.unit.name
         sendEvent("onWeightChange", mapOf(
           "weight" to weight,
           "unit" to unit,
@@ -45,13 +53,23 @@ class LefuScaleModule : Module() {
 
     override fun lockedData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
       foodScaleGeneral?.let {
-        val weight = it.lfWeightKg.toFloat()
+        lastWeightReceivedTime.set(System.currentTimeMillis())
+        val thanZero = it.thanZero
+        var weight = it.lfWeightKg.toFloat()
+
+        if (thanZero == 0) {
+          weight = -weight
+        }
+
         val unit = FoodScaleUnit.fromRawValue(it.unit.name).displayName
-        // val unit = it.unit.name
+
+        val isTare = (weight == 0f)
+
         sendEvent("onWeightChange", mapOf(
           "weight" to weight,
           "unit" to unit,
-          "isStable" to true
+          "isStable" to true,
+          "isTare" to isTare
         ))
       }
     }
@@ -70,7 +88,7 @@ class LefuScaleModule : Module() {
     )
 
     // Defines event names that the module can send to JavaScript.
-    Events("onChange", "onDeviceDiscovered", "onBleStateChange", "onWeightChange")
+    Events("onChange", "onDeviceDiscovered", "onBleStateChange", "onWeightChange", "hasDisconnected")
 
     // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
     Function("getInstance") {
@@ -168,8 +186,8 @@ class LefuScaleModule : Module() {
         return@AsyncFunction null
       }
 
-     if (device!!.getDevicePeripheralType() != PPDevicePeripheralType.PeripheralHamburger) {
-        sendEvent("onBleStateChange", mapOf("state" to "Unsupported Device"))
+      if (device!!.getDevicePeripheralType() != PPDevicePeripheralType.PeripheralHamburger) {
+          sendEvent("onBleStateChange", mapOf("state" to "Unsupported Device"))
       }
 
       deviceController = PPBlutoothPeripheralHamburgerController()
@@ -188,6 +206,18 @@ class LefuScaleModule : Module() {
         controller.registDataChangeListener(dataChangeListener)
         controller.startSearch(device!!.deviceMac, bleStateInterface)
         // deviceStatusState = PPBleWorkState.PPBleWorkStateConnecting.name
+        lastWeightReceivedTime.set(System.currentTimeMillis()) // Initialize timestamp
+        disconnectMonitorJob?.cancel()
+        disconnectMonitorJob = CoroutineScope(Dispatchers.Default).launch {
+          while (isActive) {
+            val elapsed = System.currentTimeMillis() - lastWeightReceivedTime.get()
+            if (elapsed > disconnectTimeoutMillis) {
+              sendEvent("hasDisconnected", mapOf("reason" to "No weight data received"))
+              cancel()
+            }
+            delay(1000)
+          }
+        }
       }
     }
 
@@ -195,28 +225,13 @@ class LefuScaleModule : Module() {
       deviceController?.disConnect()
       deviceController = null
       ppScale = null
-      _reconnectJob?.cancel()
+      disconnectMonitorJob?.cancel()
+      lastStableWeight = -1f
       sendEvent("onBleStateChange", mapOf("state" to "Disconnected"))
     }
 
     AsyncFunction("stopScan") {
       ppScale?.stopSearch()
-    }
-  }
-
-  enum class FoodScaleUnit(val rawValue: String, val displayName: String) {
-    GRAMS("ppunitg", "grams"),
-    KILOGRAMS("ppunitkg", "kg"),
-    MILLILITERS_WATER("ppunitmlwater", "ml"),
-    OUNCES("ppunitoz", "oz"),
-    POUNDS("unit_lb", "lb"),
-    OUNCESPOUNDS("ppunitlboz", "lb oz"),
-    UNKNOWN("unknown", "unknown");
-
-    companion object {
-        fun fromRawValue(value: String?): FoodScaleUnit {
-            return values().find { it.rawValue.equals(value, ignoreCase = true) } ?: UNKNOWN
-        }
     }
   }
 }

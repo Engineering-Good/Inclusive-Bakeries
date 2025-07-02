@@ -31,7 +31,6 @@ class LefuScaleModule : Module() {
   private var lastWeightReceivedTime = AtomicLong(0L)
   private var disconnectMonitorJob: Job? = null
   private val disconnectTimeoutMillis = 10_000L
-  private var lastStableWeight: Float = -1f
 
   private val dataChangeListener = object : FoodScaleDataChangeListener() {
     override fun processData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {

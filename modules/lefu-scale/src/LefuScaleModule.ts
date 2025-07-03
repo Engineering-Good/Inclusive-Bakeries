@@ -10,6 +10,11 @@ declare class LefuScaleModule extends NativeModule<LefuScaleModuleEvents> {
   stopScan(): Promise<void>;
   connectToDevice(mac: string, disconnectTimeoutMillis?: number): Promise<void>;
   disconnect(): Promise<void>;
+  reconnect(): Promise<void>;
 }
 
 export default requireNativeModule<LefuScaleModule>("LefuScale");
+
+
+
+

@@ -83,10 +83,18 @@ const IngredientScreen = ({ route, navigation }) => {
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
 
   // Determine if the ingredient requires scale interaction
-  const requireScale = ingredient.unit === "g";
 
-  console.log("[IngredientScreen] Ingredient:", ingredient);
+  const requireScale = ingredient.unit === "g";
   const instructionRef = useRef("");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      ScaleServiceFactory.checkConnection();
+      console.log("Checking scale connection...");
+    }, 31000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     // Reset states when component mounts or ingredient changes
     setProgress(0);

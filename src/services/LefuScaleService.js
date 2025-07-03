@@ -1,6 +1,10 @@
 import Constants from "expo-constants";
 import LefuScaleModule from "../modules/bluetooth/LefuScaleModule";
 import { ScaleInterface } from "./ScaleInterface";
+import React, { useRef } from "react";
+import { Alert } from "react-native";
+
+const isAlertVisible = { current: false };
 
 class LefuScaleService extends ScaleInterface {
   constructor() {
@@ -9,6 +13,8 @@ class LefuScaleService extends ScaleInterface {
     this.weightListener = null;
     this.connectionStateListener = null;
     this.errorListener = null;
+    this.isAlertCurrentlyVisible = false;
+    this.lastAlertTimestamp = 0;
   }
 
   async startScan(onDeviceFound) {
@@ -33,8 +39,18 @@ class LefuScaleService extends ScaleInterface {
     );
 
     this.bleStateChangeListener = LefuScaleModule.addBleStateChangeListener(
-      (state) => {
-        console.log("BLE state changed:", state);
+      (event) => {
+        console.log("BLE state changed:", event);
+        switch (event.state) {
+          case "NotFound":
+            console.log("BLE state is NotFound — triggering alert.");
+            this.handleNotFound();
+            break;
+          case "PPBleWorkSearchTimeOut":
+            console.log(`Check connection, state: ${event.state}`);
+            this.checkConnection();
+            break;
+        }
       }
     );
 
@@ -48,7 +64,8 @@ class LefuScaleService extends ScaleInterface {
   }
 
   async connect(deviceId, onWeightUpdate) {
-		const { LEFU_DISCONNECT_TIMEOUT_MILLIS } = Constants.expoConfig?.extra ?? {};
+    const { LEFU_DISCONNECT_TIMEOUT_MILLIS } =
+      Constants.expoConfig?.extra ?? {};
     //cleanup previous listeners
     if (this.weightListener) {
       this.weightListener.remove();
@@ -58,7 +75,10 @@ class LefuScaleService extends ScaleInterface {
       this.disconnectListener.remove();
       this.disconnectListener = null;
     }
-    await LefuScaleModule.connectToDevice(deviceId, LEFU_DISCONNECT_TIMEOUT_MILLIS);
+    await LefuScaleModule.connectToDevice(
+      deviceId,
+      LEFU_DISCONNECT_TIMEOUT_MILLIS
+    );
     // Store the device info
     this.device = {
       id: deviceId,
@@ -105,6 +125,45 @@ class LefuScaleService extends ScaleInterface {
     }
   }
 
+  handleNotFound() {
+    const now = Date.now();
+    const ALERT_COOLDOWN_MS = 10000;
+
+    if (this.isAlertCurrentlyVisible) {
+      console.log("Alert already visible, skipping.");
+      return;
+    }
+
+    if (now - this.lastAlertTimestamp < ALERT_COOLDOWN_MS) {
+      console.log("In cooldown period, skipping alert.");
+      return;
+    }
+
+    this.isAlertCurrentlyVisible = true;
+    this.lastAlertTimestamp = now;
+
+    Alert.alert(
+      "Scale Not Connected",
+      "Please turn on the scale and ensure it's nearby.",
+      [
+        {
+          text: "OK",
+          onPress: () => {
+            console.log("OK Pressed");
+            this.isAlertCurrentlyVisible = false;
+          },
+        },
+      ],
+      {
+        cancelable: true,
+        onDismiss: () => {
+          console.log("Alert dismissed by tapping outside.");
+          this.isAlertCurrentlyVisible = false;
+        },
+      }
+    );
+  }
+
   async readWeight(device) {
     if (!this.device || this.device.id !== device.id) {
       throw new Error("Not connected to this device");
@@ -113,6 +172,18 @@ class LefuScaleService extends ScaleInterface {
     // For Lefu scale, we don't need to actively read the weight
     // as it's provided through notifications
     return 0;
+  }
+
+  //here should take in the last connected device ID
+  //if still found, reconnect to it
+  //if not found, clear the last connected device ID and display disconnect message
+  async checkConnection() {
+    try {
+      await LefuScaleModule.checkConnection();
+    } catch (error) {
+      console.error("Error starting reconnection:", error);
+      this.isReconnecting = false;
+    }
   }
 }
 

@@ -16,15 +16,17 @@ import com.peng.ppscale.device.PPBlutoothPeripheralBaseController
 import com.peng.ppscale.device.PeripheralHamburger.PPBlutoothPeripheralHamburgerController
 import com.peng.ppscale.business.ble.listener.FoodScaleDataChangeListener
 import com.peng.ppscale.vo.LFFoodScaleGeneral
+import kotlinx.coroutines.*
 import android.util.Log
 import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicLong
 import java.net.URL
 
+
 class LefuScaleModule : Module() {
-  // Each module class must implement the definition function. The definition consists of components
-  // that describes the module's functionality and behavior.
-  // See https://docs.expo.dev/modules/module-api for more details about available components.
+  // Coroutine scope for managing background tasks, tied to the module's lifecycle.
+  private val moduleScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
   private var ppScale: PPSearchManager? = null
   private val discoveredDevices = mutableListOf<PPDeviceModel>()
   private var connectedDevice: PPDeviceModel? = null
@@ -53,13 +55,14 @@ class LefuScaleModule : Module() {
   }
 
 
+  // Job to hold the reconnection coroutine, allowing it to be cancelled.
+  private var reconnectJob: Job? = null
+  // The MAC address of the device to reconnect to. This must be set from JS.
+  private var discoveredDeviceAddress: String? = null
+
   override fun definition() = ModuleDefinition {
-    // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
-    // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
-    // The module will be accessible from `requireNativeModule('LefuScale')` in JavaScript.
     Name("LefuScale")
 
-    // Sets constant properties on the module. Can take a dictionary or a closure that returns a dictionary.
     Constants(
       "PI" to Math.PI
     )
@@ -67,30 +70,21 @@ class LefuScaleModule : Module() {
     // Defines event names that the module can send to JavaScript.
     Events("onChange", "onDeviceDiscovered", "onBleStateChange", "onWeightChange", "hasDisconnected")
 
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
     Function("getInstance") {
-      // "Hello world! 👋"
-      var manager = PPSearchManager.getInstance()
+      val manager = PPSearchManager.getInstance()
       return@Function manager.toString()
     }
 
-    // Defines a JavaScript function that always returns a Promise and whose native code
-    // is by default dispatched on the different thread than the JavaScript runtime runs on.
     AsyncFunction("setValueAsync") { value: String ->
-      // Send an event to JavaScript.
       sendEvent("onChange", mapOf(
         "value" to value
       ))
     }
 
-    // Enables the module to be used as a native view. Definition components that are accepted as part of
-    // the view definition: Prop, Events.
     View(LefuScaleView::class) {
-      // Defines a setter for the `url` prop.
       Prop("url") { view: LefuScaleView, url: URL ->
         view.webView.loadUrl(url.toString())
       }
-      // Defines an event that the view can send to JavaScript.
       Events("onLoad")
     }
 
@@ -98,7 +92,7 @@ class LefuScaleModule : Module() {
       val context = appContext.reactContext?.applicationContext
       if (context != null) {
         PPBluetoothKit.setDebug(true)
-    
+
         PPBluetoothKit.initSdk(
           context,
           apiKey,
@@ -116,13 +110,13 @@ class LefuScaleModule : Module() {
       discoveredDevices.clear()
 
       if (ppScale == null) {
-        sendEvent("onError", mapOf("state" to "ppScale not initialized"))
+        sendEvent("onBleStateChange", mapOf("state" to "Error", "error" to "ppScale not initialized"))
         return@AsyncFunction null
       }
 
       ppScale?.startSearchDeviceList(
         30000, // scan for 30 seconds
-        PPSearchDeviceInfoInterface { device, data ->
+        PPSearchDeviceInfoInterface { device, _ ->
           device?.let {
             if (discoveredDevices.none { it.deviceMac == device.deviceMac }) {
               discoveredDevices.add(device)
@@ -146,45 +140,46 @@ class LefuScaleModule : Module() {
       )
     }
 
-    AsyncFunction("connectToDevice") { mac: String?, disconnectTimeoutMillis: Long? -> 
-      if (mac.isNullOrEmpty()) {
-        sendEvent("onBleStateChange", mapOf("state" to "Invalid MAC address"))
+      // Function to set the device address from JS before attempting to reconnect
+      Function("setDeviceAddress") { address: String ->
+          discoveredDeviceAddress = address
       }
 
+    fun connectToDeviceLogic(mac: String?, disconnectTimeoutMillis: Long? = null) {
+      if (mac.isNullOrEmpty()) {
+        sendEvent("onBleStateChange", mapOf("state" to "Error", "error" to "Invalid MAC address"))
+        return
+      }
+
+      // Set the address for future reconnections
+      discoveredDeviceAddress = mac
       val timeout = disconnectTimeoutMillis ?: 10_000L
 
-      if (ppScale == null) {
-        sendEvent("onError", mapOf("state" to "ppScale not initialized"))
-        return@AsyncFunction null
-      }
+      val device = discoveredDevices.find { it.deviceMac == mac }
 
-      val device = discoveredDevices.find { it.deviceMac == mac}
+      Log.d("LefuScaleModule", "device status: $device")
 
       if (device == null) {
         sendEvent("onBleStateChange", mapOf("state" to "Device not found"))
-        return@AsyncFunction null
+        return
       }
 
-      if (device!!.getDevicePeripheralType() != PPDevicePeripheralType.PeripheralHamburger) {
-          sendEvent("onBleStateChange", mapOf("state" to "Unsupported Device"))
+      if (device.getDevicePeripheralType() != PPDevicePeripheralType.PeripheralHamburger) {
+        sendEvent("onBleStateChange", mapOf("state" to "Unsupported Device"))
+        return
       }
 
       deviceController = PPBlutoothPeripheralHamburgerController()
 
       val bleStateInterface = object : PPBleStateInterface() {
-        override fun monitorBluetoothWorkState(
-          state: PPBleWorkState,
-          deviceModel: PPDeviceModel?
-        ) {
+        override fun monitorBluetoothWorkState(state: PPBleWorkState, deviceModel: PPDeviceModel?) {
           sendEvent("onBleStateChange", mapOf("state" to state.name))
         }
       }
 
       (deviceController as? PPBlutoothPeripheralHamburgerController)?.let { controller ->
-        // Need it when implementing data change
         controller.registDataChangeListener(dataChangeListener)
-        controller.startSearch(device!!.deviceMac, bleStateInterface)
-        // deviceStatusState = PPBleWorkState.PPBleWorkStateConnecting.name
+        controller.startSearch(device.deviceMac, bleStateInterface)
         lastWeightReceivedTime.set(System.currentTimeMillis()) // Initialize timestamp
         disconnectMonitorJob?.cancel()
         disconnectMonitorJob = CoroutineScope(Dispatchers.Default).launch {
@@ -200,6 +195,12 @@ class LefuScaleModule : Module() {
       }
     }
 
+
+    AsyncFunction("connectToDevice") { mac: String?, disconnectTimeoutMillis: Long? ->
+      connectToDeviceLogic(mac, disconnectTimeoutMillis)
+    }
+
+
     AsyncFunction("disconnect") {
       deviceController?.disConnect()
       deviceController = null
@@ -208,8 +209,73 @@ class LefuScaleModule : Module() {
       sendEvent("onBleStateChange", mapOf("state" to "Disconnected"))
     }
 
+
+    AsyncFunction("checkConnection") {
+      Log.d("LefuScaleModule", "reconnect called")
+      val address = discoveredDeviceAddress
+      discoveredDevices.clear()
+
+      if (ppScale == null) {
+        sendEvent("onBleStateChange", mapOf("state" to "Error", "error" to "ppScale not initialized"))
+        return@AsyncFunction null
+      }
+
+      var foundMatchingDevice = false
+
+      val handler = android.os.Handler(android.os.Looper.getMainLooper())
+      // This Runnable will now be the ONLY source of the "NotFound" event from this function.
+      val notFoundRunnable = Runnable {
+        if (!foundMatchingDevice) {
+          Log.d("LefuScaleModule", "Device not found after timeout.")
+          sendEvent("onBleStateChange", mapOf("state" to "NotFound"))
+        }
+      }
+
+      ppScale?.startSearchDeviceList(
+        10000, // Scan for 10 seconds
+        PPSearchDeviceInfoInterface { device, _ ->
+          device?.let {
+            discoveredDevices.add(it)
+            if (it.deviceMac == address) {
+              foundMatchingDevice = true
+              Log.d("LefuScaleModule", "Device is found: true")
+              handler.removeCallbacks(notFoundRunnable)
+              // connectToDeviceLogic(address)
+            }
+          }
+        },
+        object : PPBleStateInterface() {
+          override fun monitorBluetoothWorkState(
+            state: PPBleWorkState,
+            deviceModel: PPDeviceModel?
+          ) {
+            // REMOVED the faulty "if(!foundMatchingDevice)" check.
+            // Now, we just forward the actual state of the scanner.
+            val status = state.name
+            sendEvent("onBleStateChange", mapOf("state" to status))
+
+            // You could also use the SDK's timeout event for a more robust solution
+            if (status == "PPBleWorkSearchTimeOut" && !foundMatchingDevice) {
+              sendEvent("onBleStateChange", mapOf("state" to "NotFound"))
+            }
+          }
+        }
+      )
+
+      // Schedule the "NotFound" check. Let's increase the delay slightly to give the scan more time.
+      handler.postDelayed(notFoundRunnable, 5000) // Check after 5 seconds
+
+      return@AsyncFunction null
+    }
+
+
     AsyncFunction("stopScan") {
       ppScale?.stopSearch()
+    }
+
+    OnDestroy {
+      // Cancel all coroutines when the module is destroyed to prevent memory leaks.
+      moduleScope.cancel()
     }
   }
 }

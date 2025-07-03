@@ -1,4 +1,10 @@
-import { ScaleInterface } from './ScaleInterface';
+import { ScaleInterface } from "./ScaleInterface";
+import LefuScaleModule from "../modules/bluetooth/LefuScaleModule";
+import { NativeEventEmitter, NativeModules } from "react-native";
+
+const connectionEventEmitter = new NativeEventEmitter(
+  NativeModules.LefuScaleModule
+);
 
 class MockScaleService extends ScaleInterface {
   constructor() {
@@ -7,22 +13,25 @@ class MockScaleService extends ScaleInterface {
     this.connectedDevice = null;
     this.weightUpdateInterval = null;
     this.currentWeight = 0;
-    this.deviceId = '';
+    this.deviceId = "";
     this.needsTare = false;
+    this.isReconnecting = false;
+    this.deviceCheckTimeout = null;
+    this.lastConnectedDeviceId = "";
+    this.scannedDevices = {};
   }
 
   startScan(onDeviceFound) {
     if (this.isScanning) return;
-    
+
     this.isScanning = true;
-    console.log('Mock scale: Starting scan...');
-    
+
     // Simulate finding a device after 1 second
     setTimeout(() => {
       const mockDevice = {
-        id: 'mock-device-1',
-        name: 'Mock Scale',
-        rssi: -50
+        id: "mock-device-1",
+        name: "Mock Scale",
+        rssi: -50,
       };
       onDeviceFound(mockDevice);
       this.stopScan();
@@ -31,23 +40,21 @@ class MockScaleService extends ScaleInterface {
 
   stopScan() {
     this.isScanning = false;
-    console.log('Mock scale: Stopping scan...');
   }
 
   async connect(deviceId, onWeightUpdate) {
     if (this.connectedDevice) {
-      throw new Error('Already connected to a device');
+      throw new Error("Already connected to a device");
     }
 
-    console.log('Mock scale: Connecting to device:', deviceId);
-    
     // Simulate connection delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     this.connectedDevice = {
       id: deviceId,
-      name: 'Mock Scale',
+      name: "Mock Scale",
     };
+    this.lastConnectedDeviceId = deviceId;
     this.deviceId = deviceId;
     // Start sending random weight updates
     this.startWeightUpdates(onWeightUpdate);
@@ -68,12 +75,12 @@ class MockScaleService extends ScaleInterface {
         // Cap at 200
         this.currentWeight = Math.min(this.currentWeight, 200);
       }
-      
+
       onWeightUpdate({
         value: this.currentWeight,
-        unit: 'g',
+        unit: "g",
         isStable: true,
-        isTare: this.needsTare
+        isTare: this.needsTare,
       });
 
       // Reset tare flag after sending it once
@@ -93,9 +100,56 @@ class MockScaleService extends ScaleInterface {
     this.currentWeight = 0;
   }
 
+  addConnectionStateListener() {
+    this.bleStateChangeListener = LefuScaleModule.addBleStateChangeListener(
+      (event) => {
+        console.log("BLE State Change:", event.state);
+
+        switch (event.state) {
+          case "Reconnecting":
+            console.log(`Reconnection attempt: ${event.attempt}`);
+            this.isReconnecting = true;
+            break;
+          case "ReconnectedSuccessfully":
+            console.log("Reconnected successfully");
+            this.isReconnecting = false;
+            break;
+          case "NotFound":
+            console.log("Failed to reconnect to the device.");
+            this.isReconnecting = false;
+            connectionEventEmitter.emit("notFound");
+            break;
+          case "PPBleWorkStateDisconnected":
+            // Only attempt to reconnect if not already trying
+            if (!this.isReconnecting && this.device) {
+              console.log("Device disconnected. Attempting to reconnect...");
+              this.checkConnection();
+            }
+            break;
+        }
+      }
+    );
+  }
+
+  //here should take in the last connected device ID
+  //if still found, reconnect to it
+  //if not found, clear the last connected device ID and display disconnect message
+  async checkConnection() {
+    try {
+      await LefuScaleModule.checkConnection();
+    } catch (error) {
+      console.error("Error starting reconnection:", error);
+      this.isReconnecting = false;
+    }
+  }
+
+  onNotFound(callback) {
+    connectionEventEmitter.addListener("notFound", callback);
+  }
+
   async readWeight(device) {
     if (!this.connectedDevice || this.connectedDevice.id !== device.id) {
-      throw new Error('Not connected to this device');
+      throw new Error("Not connected to this device");
     }
 
     // Return a random weight between 0-1000g

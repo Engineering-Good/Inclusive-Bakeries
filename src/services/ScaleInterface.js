@@ -8,14 +8,14 @@ export class ScaleInterface {
    * @param {Function} onDeviceFound - Callback when a device is found
    */
   startScan(onDeviceFound) {
-    throw new Error('startScan must be implemented');
+    throw new Error("startScan must be implemented");
   }
 
   /**
    * Stop scanning for devices
    */
   stopScan() {
-    throw new Error('stopScan must be implemented');
+    throw new Error("stopScan must be implemented");
   }
 
   /**
@@ -25,14 +25,21 @@ export class ScaleInterface {
    * @returns {Promise<Object>} The connected device object
    */
   connect(deviceId) {
-    throw new Error('connect must be implemented');
+    throw new Error("connect must be implemented");
   }
 
   /**
    * Disconnect from a specific device
    */
   disconnect() {
-    throw new Error('disconnect must be implemented');
+    throw new Error("disconnect must be implemented");
+  }
+
+  /**
+   * Ping to a specific device
+   */
+  pingDevice() {
+    throw new Error("ping device must be implemented");
   }
 
   /**
@@ -41,6 +48,6 @@ export class ScaleInterface {
    * @returns {Promise<number>} The current weight reading
    */
   readWeight(device) {
-    throw new Error('readWeight must be implemented');
+    throw new Error("readWeight must be implemented");
   }
-} 
+}

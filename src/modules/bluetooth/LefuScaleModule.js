@@ -57,6 +57,10 @@ class LefuScaleModule {
   // addErrorListener(callback) {
   // 	return this.lefuScale.addListener('onError', callback)
   // }
+  async checkConnection() {
+    console.log("Calling checkConnection in LefuScaleModule");
+    return this.lefuScale.checkConnection();
+  }
 }
 
 export default new LefuScaleModule();

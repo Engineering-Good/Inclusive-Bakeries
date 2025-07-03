@@ -97,6 +97,7 @@ const ScaleReadingComponent = ({
       // Handle tare event
       if (weightData.isTare) {
         setTareStatus("tared");
+        return;
       }
 
       // Announce tare needed if there's weight and tareStatus is pending

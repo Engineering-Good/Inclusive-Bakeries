@@ -3,10 +3,7 @@
     "name": "InclusiveBakerApp",
     "slug": "InclusiveBakerApp",
     "version": "1.0.0",
-    "platforms": [
-      "android",
-      "web"
-    ],
+    "platforms": ["android", "web"],
     "orientation": "landscape",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -39,10 +36,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "react-native-ble-plx",
-      "expo-build-properties"
-    ],
+    "plugins": ["react-native-ble-plx", "expo-build-properties"],
     "ios": {
       "bundleIdentifier": "com.inclusivebakerapp",
       "runtimeVersion": {

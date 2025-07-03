@@ -26,12 +26,12 @@ class LefuScaleModule {
     return this.lefuScale.addListener("onBleStateChange", callback);
   }
 
-  async connectToDevice(deviceId) {
-    return this.lefuScale.connectToDevice(deviceId);
+  async connectToDevice(deviceId, disconnectTimeoutMillis) {
+    return this.lefuScale.connectToDevice(deviceId, disconnectTimeoutMillis);
   }
 
   async disconnect() {
-  	return this.lefuScale.disconnect()
+    return this.lefuScale.disconnect();
   }
 
   // async hello() {
@@ -42,9 +42,13 @@ class LefuScaleModule {
   // 	return this.lefuScale.getValueWithCallback(callback)
   // }
 
-  // addWeightListener(callback) {
-  // 	return this.lefuScale.addListener('onWeightChange', callback)
-  // }
+  addWeightListener(callback) {
+    return this.lefuScale.addListener("onWeightChange", callback);
+  }
+
+  addDisconnectListener(callback) {
+    return this.lefuScale.addListener("hasDisconnected", callback);
+  }
 
   // addConnectionStateListener(callback) {
   // 	return this.lefuScale.addListener('onConnectionStateChange', callback)

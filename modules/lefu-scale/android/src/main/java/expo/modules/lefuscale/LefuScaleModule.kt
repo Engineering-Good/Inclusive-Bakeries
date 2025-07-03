@@ -2,6 +2,8 @@ package expo.modules.lefuscale
 
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.lefuscale.util.FoodScaleUnit
+import expo.modules.lefuscale.util.FoodScaleUtils
 import com.peng.ppscale.search.PPSearchManager
 import com.peng.ppscale.PPBluetoothKit
 import com.lefu.ppbase.PPSDKKit
@@ -12,8 +14,11 @@ import com.peng.ppscale.business.ble.listener.PPSearchDeviceInfoInterface
 import com.peng.ppscale.business.state.PPBleWorkState
 import com.peng.ppscale.device.PPBlutoothPeripheralBaseController
 import com.peng.ppscale.device.PeripheralHamburger.PPBlutoothPeripheralHamburgerController
-import kotlinx.coroutines.Job
+import com.peng.ppscale.business.ble.listener.FoodScaleDataChangeListener
+import com.peng.ppscale.vo.LFFoodScaleGeneral
 import android.util.Log
+import kotlinx.coroutines.*
+import java.util.concurrent.atomic.AtomicLong
 import java.net.URL
 
 class LefuScaleModule : Module() {
@@ -24,7 +29,29 @@ class LefuScaleModule : Module() {
   private val discoveredDevices = mutableListOf<PPDeviceModel>()
   private var connectedDevice: PPDeviceModel? = null
   private var deviceController: PPBlutoothPeripheralBaseController? = null
-  private var _reconnectJob: Job? = null
+  private var lastWeightReceivedTime = AtomicLong(0L)
+  private var disconnectMonitorJob: Job? = null
+
+  private val dataChangeListener = object : FoodScaleDataChangeListener() {
+    override fun processData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
+      foodScaleGeneral?.let {
+        lastWeightReceivedTime.set(System.currentTimeMillis())
+        FoodScaleUtils.handleScaleData(it, isStable = false) { event, payload ->
+          sendEvent(event, payload)
+        }
+      }
+    }
+
+    override fun lockedData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
+      foodScaleGeneral?.let {
+        lastWeightReceivedTime.set(System.currentTimeMillis())
+        FoodScaleUtils.handleScaleData(it, isStable = true) { event, payload ->
+          sendEvent(event, payload)
+        }
+      }
+    }
+  }
+
 
   override fun definition() = ModuleDefinition {
     // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
@@ -38,7 +65,7 @@ class LefuScaleModule : Module() {
     )
 
     // Defines event names that the module can send to JavaScript.
-    Events("onChange", "onDeviceDiscovered", "onBleStateChange")
+    Events("onChange", "onDeviceDiscovered", "onBleStateChange", "onWeightChange", "hasDisconnected")
 
     // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
     Function("getInstance") {
@@ -119,10 +146,12 @@ class LefuScaleModule : Module() {
       )
     }
 
-    AsyncFunction("connectToDevice") { mac: String? -> 
+    AsyncFunction("connectToDevice") { mac: String?, disconnectTimeoutMillis: Long? -> 
       if (mac.isNullOrEmpty()) {
         sendEvent("onBleStateChange", mapOf("state" to "Invalid MAC address"))
       }
+
+      val timeout = disconnectTimeoutMillis ?: 10_000L
 
       if (ppScale == null) {
         sendEvent("onError", mapOf("state" to "ppScale not initialized"))
@@ -136,8 +165,8 @@ class LefuScaleModule : Module() {
         return@AsyncFunction null
       }
 
-     if (device!!.getDevicePeripheralType() != PPDevicePeripheralType.PeripheralHamburger) {
-        sendEvent("onBleStateChange", mapOf("state" to "Unsupported Device"))
+      if (device!!.getDevicePeripheralType() != PPDevicePeripheralType.PeripheralHamburger) {
+          sendEvent("onBleStateChange", mapOf("state" to "Unsupported Device"))
       }
 
       deviceController = PPBlutoothPeripheralHamburgerController()
@@ -153,9 +182,21 @@ class LefuScaleModule : Module() {
 
       (deviceController as? PPBlutoothPeripheralHamburgerController)?.let { controller ->
         // Need it when implementing data change
-        // controller.registDataChangeListener(dataChangeListener)
+        controller.registDataChangeListener(dataChangeListener)
         controller.startSearch(device!!.deviceMac, bleStateInterface)
         // deviceStatusState = PPBleWorkState.PPBleWorkStateConnecting.name
+        lastWeightReceivedTime.set(System.currentTimeMillis()) // Initialize timestamp
+        disconnectMonitorJob?.cancel()
+        disconnectMonitorJob = CoroutineScope(Dispatchers.Default).launch {
+          while (isActive) {
+            val elapsed = System.currentTimeMillis() - lastWeightReceivedTime.get()
+            if (elapsed > timeout) {
+              sendEvent("hasDisconnected", mapOf("reason" to "No weight data received"))
+              cancel()
+            }
+            delay(1000)
+          }
+        }
       }
     }
 
@@ -163,7 +204,7 @@ class LefuScaleModule : Module() {
       deviceController?.disConnect()
       deviceController = null
       ppScale = null
-      _reconnectJob?.cancel()
+      disconnectMonitorJob?.cancel()
       sendEvent("onBleStateChange", mapOf("state" to "Disconnected"))
     }
 

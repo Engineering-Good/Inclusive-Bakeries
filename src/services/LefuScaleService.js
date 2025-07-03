@@ -48,6 +48,7 @@ class LefuScaleService extends ScaleInterface {
   }
 
   async connect(deviceId, onWeightUpdate) {
+		const { LEFU_DISCONNECT_TIMEOUT_MILLIS } = Constants.expoConfig?.extra ?? {};
     //cleanup previous listeners
     if (this.weightListener) {
       this.weightListener.remove();
@@ -57,7 +58,7 @@ class LefuScaleService extends ScaleInterface {
       this.disconnectListener.remove();
       this.disconnectListener = null;
     }
-    await LefuScaleModule.connectToDevice(deviceId);
+    await LefuScaleModule.connectToDevice(deviceId, LEFU_DISCONNECT_TIMEOUT_MILLIS);
     // Store the device info
     this.device = {
       id: deviceId,

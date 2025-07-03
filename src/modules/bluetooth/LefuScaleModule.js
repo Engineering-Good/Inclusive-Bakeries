@@ -26,8 +26,8 @@ class LefuScaleModule {
     return this.lefuScale.addListener("onBleStateChange", callback);
   }
 
-  async connectToDevice(deviceId) {
-    return this.lefuScale.connectToDevice(deviceId);
+  async connectToDevice(deviceId, disconnectTimeoutMillis) {
+    return this.lefuScale.connectToDevice(deviceId, disconnectTimeoutMillis);
   }
 
   async disconnect() {

@@ -8,7 +8,7 @@ declare class LefuScaleModule extends NativeModule<LefuScaleModuleEvents> {
   initializeSdk(apiKey: string, apiSecret: string): Promise<void>;
   startScan(): Promise<void>;
   stopScan(): Promise<void>;
-  connectToDevice(mac: String): Promise<void>;
+  connectToDevice(mac: String, disconnectTimeoutMillis: String): Promise<void>;
   disconnect(): Promise<void>;
 }
 

@@ -30,7 +30,6 @@ class LefuScaleModule : Module() {
   private var deviceController: PPBlutoothPeripheralBaseController? = null
   private var lastWeightReceivedTime = AtomicLong(0L)
   private var disconnectMonitorJob: Job? = null
-  private val disconnectTimeoutMillis = 10_000L
 
   private val dataChangeListener = object : FoodScaleDataChangeListener() {
     override fun processData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
@@ -167,7 +166,7 @@ class LefuScaleModule : Module() {
       )
     }
 
-    AsyncFunction("connectToDevice") { mac: String? -> 
+    AsyncFunction("connectToDevice") { mac: String?, disconnectTimeoutMillis: String -> 
       if (mac.isNullOrEmpty()) {
         sendEvent("onBleStateChange", mapOf("state" to "Invalid MAC address"))
       }

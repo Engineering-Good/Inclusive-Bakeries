@@ -3,6 +3,7 @@ package expo.modules.lefuscale
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.lefuscale.util.FoodScaleUnit
+import expo.modules.lefuscale.util.FoodScaleUtils
 import com.peng.ppscale.search.PPSearchManager
 import com.peng.ppscale.PPBluetoothKit
 import com.lefu.ppbase.PPSDKKit
@@ -35,39 +36,18 @@ class LefuScaleModule : Module() {
     override fun processData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
       foodScaleGeneral?.let {
         lastWeightReceivedTime.set(System.currentTimeMillis())
-        val thanZero = it.thanZero
-        var weight = it.lfWeightKg.toFloat()
-        if (thanZero == 0) {
-          weight = -weight
+        FoodScaleUtils.handleScaleData(it, isStable = false) { event, payload ->
+          sendEvent(event, payload)
         }
-        val unit = FoodScaleUnit.fromRawValue(it.unit.name).displayName
-        sendEvent("onWeightChange", mapOf(
-          "weight" to weight,
-          "unit" to unit,
-          "isStable" to false,
-          "isTare" to (weight == 0f)
-        ))
       }
     }
 
     override fun lockedData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
       foodScaleGeneral?.let {
         lastWeightReceivedTime.set(System.currentTimeMillis())
-        val thanZero = it.thanZero
-        var weight = it.lfWeightKg.toFloat()
-
-        if (thanZero == 0) {
-          weight = -weight
+        FoodScaleUtils.handleScaleData(it, isStable = true) { event, payload ->
+          sendEvent(event, payload)
         }
-
-        val unit = FoodScaleUnit.fromRawValue(it.unit.name).displayName
-
-        sendEvent("onWeightChange", mapOf(
-          "weight" to weight,
-          "unit" to unit,
-          "isStable" to true,
-          "isTare" to (weight == 0f)
-        ))
       }
     }
   }
@@ -166,10 +146,12 @@ class LefuScaleModule : Module() {
       )
     }
 
-    AsyncFunction("connectToDevice") { mac: String?, disconnectTimeoutMillis: String -> 
+    AsyncFunction("connectToDevice") { mac: String?, disconnectTimeoutMillis: Long? -> 
       if (mac.isNullOrEmpty()) {
         sendEvent("onBleStateChange", mapOf("state" to "Invalid MAC address"))
       }
+
+      val timeout = disconnectTimeoutMillis ?: 10_000L
 
       if (ppScale == null) {
         sendEvent("onError", mapOf("state" to "ppScale not initialized"))
@@ -208,7 +190,7 @@ class LefuScaleModule : Module() {
         disconnectMonitorJob = CoroutineScope(Dispatchers.Default).launch {
           while (isActive) {
             val elapsed = System.currentTimeMillis() - lastWeightReceivedTime.get()
-            if (elapsed > disconnectTimeoutMillis) {
+            if (elapsed > timeout) {
               sendEvent("hasDisconnected", mapOf("reason" to "No weight data received"))
               cancel()
             }

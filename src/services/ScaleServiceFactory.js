@@ -88,7 +88,7 @@ class ScaleServiceFactory {
 				await requestPermissions()
 				// The startScan method in EtekcityBluetoothService now handles reconnection logic
 				await scaleService.startScan(async (device) => {
-					console.log('Found scale or reconnected:', device.name, device.mac)
+					console.log('Found scale for reconnected:', device.name, device.mac)
 					scaleService.stopScan() // Stop scan once device is found/reconnected
 
 					try {
@@ -167,6 +167,16 @@ class ScaleServiceFactory {
 		// Clean up all subscriptions
 		EventEmitterService.removeAllListeners('weightUpdate')
 		EventEmitterService.removeAllListeners('connectionStatus')
+	}
+
+	static async checkConnection() {
+		const scaleService = await this.getScaleService();
+
+		try {
+			scaleService.checkConnection();
+		} catch (error) {
+			console.error("Error starting reconnection:", error);
+		}
 	}
 }
 

@@ -223,7 +223,6 @@ class LefuScaleModule : Module() {
       var foundMatchingDevice = false
 
       val handler = android.os.Handler(android.os.Looper.getMainLooper())
-      // This Runnable will now be the ONLY source of the "NotFound" event from this function.
       val notFoundRunnable = Runnable {
         if (!foundMatchingDevice) {
           Log.d("LefuScaleModule", "Device not found after timeout.")
@@ -249,12 +248,9 @@ class LefuScaleModule : Module() {
             state: PPBleWorkState,
             deviceModel: PPDeviceModel?
           ) {
-            // REMOVED the faulty "if(!foundMatchingDevice)" check.
-            // Now, we just forward the actual state of the scanner.
             val status = state.name
             sendEvent("onBleStateChange", mapOf("state" to status))
 
-            // You could also use the SDK's timeout event for a more robust solution
             if (status == "PPBleWorkSearchTimeOut" && !foundMatchingDevice) {
               sendEvent("onBleStateChange", mapOf("state" to "NotFound"))
             }
@@ -262,7 +258,6 @@ class LefuScaleModule : Module() {
         }
       )
 
-      // Schedule the "NotFound" check. Let's increase the delay slightly to give the scan more time.
       handler.postDelayed(notFoundRunnable, 5000) // Check after 5 seconds
 
       return@AsyncFunction null

@@ -15,6 +15,7 @@ class LefuScaleService extends ScaleInterface {
     this.errorListener = null;
     this.isAlertCurrentlyVisible = false;
     this.lastAlertTimestamp = 0;
+    this.isActive = false;
   }
 
   async startScan(onDeviceFound) {
@@ -123,9 +124,25 @@ class LefuScaleService extends ScaleInterface {
     if (this.disconnectListener) {
       this.disconnectListener.remove();
     }
+    if (this.deviceDiscoveredListener) {
+      this.deviceDiscoveredListener.remove();
+      this.deviceDiscoveredListener = null;
+    }
+    if (this.bleStateChangeListener) {
+      this.bleStateChangeListener.remove();
+      this.bleStateChangeListener = null;
+    }
+  }
+  setActive(isActive) {
+    this.isActive = isActive;
   }
 
   handleNotFound() {
+    if (!this.isActive) {
+      console.log("Service is not active, suppressing NotFound alert.");
+      return;
+    }
+
     const now = Date.now();
     const ALERT_COOLDOWN_MS = 10000;
 
@@ -133,7 +150,6 @@ class LefuScaleService extends ScaleInterface {
       console.log("Alert already visible, skipping.");
       return;
     }
-
     if (now - this.lastAlertTimestamp < ALERT_COOLDOWN_MS) {
       console.log("In cooldown period, skipping alert.");
       return;
@@ -174,9 +190,6 @@ class LefuScaleService extends ScaleInterface {
     return 0;
   }
 
-  //here should take in the last connected device ID
-  //if still found, reconnect to it
-  //if not found, clear the last connected device ID and display disconnect message
   async checkConnection() {
     try {
       await LefuScaleModule.checkConnection();

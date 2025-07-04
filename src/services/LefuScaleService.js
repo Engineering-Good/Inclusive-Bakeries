@@ -139,7 +139,7 @@ class LefuScaleService extends ScaleInterface {
 
   handleNotFound() {
     if (!this.isActive) {
-      console.log("Service is not active, suppressing NotFound alert.");
+      console.log("Service is not active. No NotFound alert.");
       return;
     }
 

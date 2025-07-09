@@ -27,17 +27,20 @@ class LefuScaleModule {
 		return this.lefuScale.stopScan()
 	}
 
-	async connectToDevice(deviceId, disconnectTimeoutMillis) {
-		return this.lefuScale.connectToDevice(deviceId, disconnectTimeoutMillis)
+	async connectToDevice(deviceId) {
+		return this.lefuScale.connectToDevice(deviceId)
 	}
 
 	async disconnect() {
 		return this.lefuScale.disconnect()
 	}
 
+	checkConnection() {
+		this.lefuScale.checkConnection()
+	}
+
 	#addListener(eventName, callback) {
 		if (this.events[eventName]) {
-			console.log("Event '" + eventName + "' has already been added.")
 			return this.events[eventName]
 		}
 

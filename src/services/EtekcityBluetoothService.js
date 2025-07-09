@@ -373,6 +373,10 @@ class EtekcityScaleService extends ScaleInterface {
 		// as it's provided through notifications
 		return 0
 	}
+
+  checkConnection() {
+    // Not implemented
+  }
 }
 
 export default new EtekcityScaleService()

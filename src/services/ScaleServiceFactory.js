@@ -168,6 +168,16 @@ class ScaleServiceFactory {
 		EventEmitterService.removeAllListeners('weightUpdate')
 		EventEmitterService.removeAllListeners('connectionStatus')
 	}
+
+	static async checkConnection() {
+		const scaleService = await this.getScaleService();
+
+		try {
+			scaleService.checkConnection();
+		} catch (error) {
+			console.error("Error starting reconnection:", error);
+		}
+	}
 }
 
 export default ScaleServiceFactory

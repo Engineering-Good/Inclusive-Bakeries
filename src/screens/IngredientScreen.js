@@ -28,6 +28,7 @@ import SpeechService from "../services/SpeechService";
 import { INGREDIENT_MESSAGES, RECIPE_MESSAGES } from "../constants/speechText";
 import { SCALE_MESSAGES } from "../constants/speechText";
 import ingredientDatabase from "../data/ingredientDatabase";
+import { useFocusEffect } from "@react-navigation/native";
 
 const IngredientColumns = ({
   ingredient,
@@ -87,6 +88,37 @@ const IngredientScreen = ({ route, navigation }) => {
 
   console.log("[IngredientScreen] Ingredient:", ingredient);
   const instructionRef = useRef("");
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      async function activateService() {
+        const scaleService = await ScaleServiceFactory.getScaleService();
+        if (active && scaleService.setActive) {
+          scaleService.setActive(requireScale);
+        }
+      }
+
+      activateService();
+
+      const interval = setInterval(() => {
+        ScaleServiceFactory.checkConnection();
+      }, 31000);
+
+      return () => {
+        active = false;
+        console.log("Cleaning up scale connection check...");
+        ScaleServiceFactory.getScaleService().then((service) => {
+          if (service.setActive) {
+            service.setActive(false);
+          }
+        });
+        clearInterval(interval);
+      };
+    }, [requireScale])
+  );
+
   useEffect(() => {
     // Reset states when component mounts or ingredient changes
     setProgress(0);
@@ -161,6 +193,7 @@ const IngredientScreen = ({ route, navigation }) => {
       setProgress(0);
       setWeightReached(false);
       SpeechService.stop();
+      ScaleServiceFactory.unsubscribeAll();
     };
   }, [ingredient, requireScale, ingredientIndex]);
 
@@ -199,7 +232,7 @@ const IngredientScreen = ({ route, navigation }) => {
 
   const handleProgressUpdate = (currentProgress, isStable) => {
     console.log(
-      "REUQIRE SCALE - ",
+      "REQUIRE SCALE - ",
       currentProgress,
       " ",
       currentProgress > 0.01

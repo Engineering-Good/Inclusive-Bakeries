@@ -115,7 +115,7 @@ class LefuScaleService {
      * Connection status is reported via the [onConnectionStateChange] callback.
      * @param device The [PPDeviceModel] of the device to connect to.
      */
-    fun connectToDevice(deviceMac: String, disconnectTimeoutMillis: Long) {
+    fun connectToDevice(deviceMac: String) {
         stopScan()
         Log.d(TAG, "Attempting to connect to $deviceMac")
 
@@ -187,6 +187,50 @@ class LefuScaleService {
             connectedDevice = null
             deviceImpl = null
         }
+    }
+
+    fun checkConnection() {
+        discoveredDevices.clear()
+
+        var foundMatchingDevice = false
+
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        val notFoundRunnable = Runnable {
+            if (!foundMatchingDevice) {
+                Log.d(TAG, "Device not found after timeout.")
+                onConnectionStateChange?.invoke("NotFound")
+            }
+        }
+
+        searchManager?.startSearchDeviceList(
+            10000, // Scan for 10 seconds
+            PPSearchDeviceInfoInterface { device, _ ->
+                device?.let {
+                    discoveredDevices.add(it)
+                    if (it.deviceMac == connectedDevice?.deviceMac) {
+                        foundMatchingDevice = true
+                        Log.d(TAG, "Device is found: true")
+                        handler.removeCallbacks(notFoundRunnable)
+                    }
+                }
+            },
+            object : PPBleStateInterface() {
+                override fun monitorBluetoothWorkState(
+                    state: PPBleWorkState,
+                    deviceModel: PPDeviceModel?
+                ) {
+                    val status = state.name
+                    onConnectionStateChange?.invoke(status)
+
+                    Log.d(TAG, "monitorBluetoothWorkState: $status")
+                    if (status == "PPBleWorkSearchTimeOut" && !foundMatchingDevice) {
+                        onConnectionStateChange?.invoke("NotFound")
+                    }
+                }
+            }
+        )
+
+        handler.postDelayed(notFoundRunnable, 5000) // Check after 5 seconds
     }
 
     private fun setupEventListeners() {

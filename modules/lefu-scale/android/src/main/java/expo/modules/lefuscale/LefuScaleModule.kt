@@ -4,8 +4,11 @@ import expo.modules.kotlin.modules.Module
 import com.lefu.ppbase.PPDeviceModel
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.lefuscale.device.LefuScaleService
+import kotlinx.coroutines.*
 
 class LefuScaleModule : Module() {
+  private val moduleScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
   private var lefuService: LefuScaleService? = null
 
   override fun definition() = ModuleDefinition {
@@ -30,11 +33,9 @@ class LefuScaleModule : Module() {
       lefuService?.startScan()
     }
 
-    AsyncFunction("connectToDevice") { mac: String?, disconnectTimeoutMillis: Long? ->
-      val timeout = disconnectTimeoutMillis ?: 4_000L
-
+    AsyncFunction("connectToDevice") { mac: String? ->
       mac?.let {
-        lefuService?.connectToDevice(it, timeout)
+        lefuService?.connectToDevice(it)
       }
     }
 
@@ -45,6 +46,15 @@ class LefuScaleModule : Module() {
 
     AsyncFunction("stopScan") {
       lefuService?.stopScan()
+    }
+
+    AsyncFunction("checkConnection") {
+      lefuService?.checkConnection()
+    }
+
+    OnDestroy {
+      // Cancel all coroutines when the module is destroyed to prevent memory leaks.
+      moduleScope.cancel()
     }
   }
 

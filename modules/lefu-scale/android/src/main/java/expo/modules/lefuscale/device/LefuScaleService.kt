@@ -35,10 +35,13 @@ class LefuScaleService {
     var onBleStateChange: ((PPBleWorkState, PPDeviceModel?) -> Unit)? = null
 
     /** Callback for changes in the device connection state. */
-    var onConnectionStateChange: ((PPBleWorkState, PPDeviceModel?) -> Unit)? = null
+    var onConnectionStateChange: ((String) -> Unit)? = null
+
+    /** Callback for changes in the device data. */
+    var onWeightDataChange: ((Map<String, Any>) -> Unit)? = null
 
     /** Callback for when an error occurs during the data measurement process. */
-    var onProcessError: ((String) -> Unit)? = null
+    var onConnectError: ((Map<String, Any>) -> Unit)? = null
     // endregion
 
     /**
@@ -69,8 +72,12 @@ class LefuScaleService {
         Log.d(TAG, "Start device scan")
         if (searchManager == null) {
             val errorMsg = "SDK not initialized. Call initializeSdk first."
+            val eventData = mapOf(
+                "state" to "connectToDevice",
+                "errorMessage" to errorMsg
+            )
             Log.e(TAG, errorMsg)
-            onProcessError?.invoke(errorMsg)
+            onConnectError?.invoke(eventData)
             return
         }
         searchManager?.startSearchDeviceList(
@@ -109,14 +116,18 @@ class LefuScaleService {
      * Connection status is reported via the [onConnectionStateChange] callback.
      * @param device The [PPDeviceModel] of the device to connect to.
      */
-    fun connectToDevice(deviceMac: String) {
+    fun connectToDevice(deviceMac: String, disconnectTimeoutMillis: Long) {
         stopScan()
         Log.d(TAG, "Attempting to connect to $deviceMac")
 
         if (deviceMac.isNullOrEmpty()) {
             val errorMsg = "Invalid MAC address provided."
+            val eventData = mapOf(
+                "state" to "connectToDevice",
+                "errorMessage" to errorMsg
+            )
             Log.e(TAG, errorMsg)
-            onProcessError?.invoke(errorMsg)
+            onConnectError?.invoke(eventData)
             return
         }
 
@@ -124,31 +135,40 @@ class LefuScaleService {
 
         if (device == null) {
             val errorMsg = "Device with MAC $deviceMac not found in discovered devices."
+            val eventData = mapOf(
+                "state" to "connectToDevice",
+                "errorMessage" to errorMsg
+            )
             Log.e(TAG, errorMsg)
-            onProcessError?.invoke("Device not found")
+            onConnectError?.invoke(eventData)
             return
         }
 
         try {
-            val newDeviceImpl = DeviceControllerFactory.getInstance(device.getDevicePeripheralType())
+            this.deviceImpl = DeviceControllerFactory.getInstance(device.getDevicePeripheralType())
 
-            newDeviceImpl.setDevice(device)
-            newDeviceImpl.addBleStatusListener(object : PPBleStateInterface() {
+            this.deviceImpl?.setDevice(device)
+            this.deviceImpl?.addBleStatusListener(object : PPBleStateInterface() {
                 override fun monitorBluetoothWorkState(
                     state: PPBleWorkState,
                     deviceModel: PPDeviceModel?
                 ) {
-                    onConnectionStateChange?.invoke(state, deviceModel)
+                    onConnectionStateChange?.invoke(state.name)
                 }
             })
+            setupEventListeners()
+            this.deviceImpl?.startDataListener()
 
-            this.deviceImpl = newDeviceImpl
             this.connectedDevice = device
-            newDeviceImpl.connect()
+            this.deviceImpl?.connect()
             Log.d(TAG, "Connection process started for ${device.deviceMac}")
         } catch (e: IllegalArgumentException) {
             Log.e(TAG, "Unsupported device type: ${device.getDevicePeripheralType()}", e)
-            onProcessError?.invoke("Unsupported Device")
+            val eventData = mapOf(
+                "state" to "connectToDevice",
+                "errorMessage" to "Unsupported Device"
+            )
+            onConnectError?.invoke(eventData)
         }
     }
 
@@ -161,6 +181,13 @@ class LefuScaleService {
             deviceToDisconnect.disconnect()
             connectedDevice = null
             deviceImpl = null
+        }
+    }
+
+    private fun setupEventListeners() {
+        this.deviceImpl?.onDataChange = { payload ->
+            Log.d(TAG, "Weight data change detected: ${payload}")
+            this.onWeightDataChange?.invoke(payload)
         }
     }
 }

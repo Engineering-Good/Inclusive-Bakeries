@@ -1,13 +1,39 @@
 package expo.modules.lefuscale.device.impl
 
+import java.util.concurrent.atomic.AtomicLong
 import expo.modules.lefuscale.device.AbstractDevice
+import expo.modules.lefuscale.device.utils.FoodScaleUtils
+import com.lefu.ppbase.PPDeviceModel
 import com.peng.ppscale.device.PeripheralHamburger.PPBlutoothPeripheralHamburgerController
 import com.peng.ppscale.business.ble.listener.FoodScaleDataChangeListener
 import com.peng.ppscale.business.ble.listener.PPBleStateInterface
+import com.peng.ppscale.vo.LFFoodScaleGeneral
 
 class HamburgerDeviceImpl : AbstractDevice() {
+    private var lastWeightReceivedTime = AtomicLong(0L)
+
     private val hamburgerController: PPBlutoothPeripheralHamburgerController?
         get() = controller as? PPBlutoothPeripheralHamburgerController
+
+    private val dataChangeListener = object : FoodScaleDataChangeListener() {
+        override fun processData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
+            foodScaleGeneral?.let {
+                lastWeightReceivedTime.set(System.currentTimeMillis())
+                FoodScaleUtils.handleScaleData(it, isStable = false) { payload ->
+                    onDataChange!!.invoke(payload)
+                }
+            }
+        }
+
+        override fun lockedData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
+            foodScaleGeneral?.let {
+                lastWeightReceivedTime.set(System.currentTimeMillis())
+                FoodScaleUtils.handleScaleData(it, isStable = true) { payload ->
+                    onDataChange!!.invoke(payload)
+                }
+            }
+        }
+    }
 
     init {
         controller = PPBlutoothPeripheralHamburgerController()
@@ -36,8 +62,15 @@ class HamburgerDeviceImpl : AbstractDevice() {
     /**
      * Registers a listener for data received from the food scale.
      */
-    override fun addDataListener(listener: FoodScaleDataChangeListener) {
-        hamburgerController?.registDataChangeListener(listener)
+    override fun startDataListener() {
+        hamburgerController?.registDataChangeListener(dataChangeListener)
+    }
+
+    /**
+     * Unregister listener to receive data from the device.
+     */
+    override fun removeDataListener() {
+        hamburgerController?.registDataChangeListener(null)
     }
 
     /**

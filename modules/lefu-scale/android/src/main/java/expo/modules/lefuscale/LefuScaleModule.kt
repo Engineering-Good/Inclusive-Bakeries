@@ -12,7 +12,7 @@ class LefuScaleModule : Module() {
     Name("LefuScale")
 
     // Declare all events that can be sent to JavaScript.
-    Events("onDeviceDiscovered", "onBleStateChange", "onConnectionStateChange", "onProcessError")
+    Events("onDeviceDiscovered", "onBleStateChange", "onWeightChange", "hasDisconnected", "onConnectError")
 
     AsyncFunction("initializeSdk") { apiKey: String, apiSecret: String ->
       val context = requireNotNull(appContext.reactContext?.applicationContext) {
@@ -30,9 +30,11 @@ class LefuScaleModule : Module() {
       lefuService?.startScan()
     }
 
-    AsyncFunction("connectToDevice") { mac: String? ->
+    AsyncFunction("connectToDevice") { mac: String?, disconnectTimeoutMillis: Long? ->
+      val timeout = disconnectTimeoutMillis ?: 4_000L
+
       mac?.let {
-        lefuService?.connectToDevice(it)
+        lefuService?.connectToDevice(it, timeout)
       }
     }
 
@@ -55,6 +57,19 @@ class LefuScaleModule : Module() {
         "deviceType" to device.getDevicePeripheralType().name
       )
       sendEvent("onDeviceDiscovered", deviceInfo)
+    }
+
+    lefuService?.onConnectError = { errorMessage ->
+      sendEvent("onConnectError", errorMessage)
+    }
+
+    lefuService?.onConnectionStateChange = { state ->
+      val eventData = mapOf("state" to state)
+      sendEvent("onBleStateChange", eventData)
+    }
+
+    lefuService?.onWeightDataChange = { payload ->
+      sendEvent("onWeightChange", payload)
     }
   }
 }

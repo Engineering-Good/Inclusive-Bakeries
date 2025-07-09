@@ -13,6 +13,8 @@ abstract class AbstractDevice {
     var controller: PPBlutoothPeripheralBaseController? = null
     var bleStateInterface: PPBleStateInterface? = null
 
+    var onDataChange: ((Map<String, Any>) -> Unit)? = null
+
     open fun setDevice(device: PPDeviceModel) {
         this.lefuDevice = device
     }
@@ -29,9 +31,14 @@ abstract class AbstractDevice {
     abstract fun addBleStatusListener(listener: PPBleStateInterface)
 
     /**
-     * Adds a listener to receive data from the device.
+     * Register listener to receive data from the device.
      */
-    abstract fun addDataListener(listener: FoodScaleDataChangeListener)
+    abstract fun startDataListener()
+
+    /**
+     * Unregister listener to receive data from the device.
+     */
+    abstract fun removeDataListener()
 
     /**
      * Gets the current status of the device.

@@ -14,6 +14,7 @@ abstract class AbstractDevice {
     var bleStateInterface: PPBleStateInterface? = null
 
     var onDataChange: ((Map<String, Any>) -> Unit)? = null
+    var onDisconnect: ((String) -> Unit)? = null
 
     open fun setDevice(device: PPDeviceModel) {
         this.lefuDevice = device
@@ -45,6 +46,8 @@ abstract class AbstractDevice {
      * @return `true` if the device is discoverable, `false` otherwise.
      */
     abstract fun getDeviceStatus(): Boolean
+
+    abstract fun autoReconnect()
 
     abstract fun disconnect()
 }

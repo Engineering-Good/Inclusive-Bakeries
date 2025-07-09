@@ -64,8 +64,11 @@ class LefuScaleModule : Module() {
     }
 
     lefuService?.onConnectionStateChange = { state ->
-      val eventData = mapOf("state" to state)
-      sendEvent("onBleStateChange", eventData)
+      if (state == "hasDisconnected") {
+        sendEvent("hasDisconnected", mapOf("reason" to "No weight data received"))
+      } else {
+        sendEvent("onBleStateChange", mapOf("state" to state))
+      }
     }
 
     lefuService?.onWeightDataChange = { payload ->

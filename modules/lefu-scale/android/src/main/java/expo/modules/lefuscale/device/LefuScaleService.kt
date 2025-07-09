@@ -15,7 +15,6 @@ import com.lefu.ppbase.PPDeviceModel
  * all BLE operations like scanning, connecting, and data processing.
  */
 class LefuScaleService {
-
     companion object {
         val instance: LefuScaleService by lazy { LefuScaleService() }
         private const val TAG = "LefuScaleService"
@@ -156,11 +155,17 @@ class LefuScaleService {
                     onConnectionStateChange?.invoke(state.name)
                 }
             })
-            setupEventListeners()
             this.deviceImpl?.startDataListener()
 
             this.connectedDevice = device
             this.deviceImpl?.connect()
+
+            // initialize event listeners to transmit device state to react native app
+            this.setupEventListeners()
+
+            // device reconnection
+            this.deviceImpl?.autoReconnect()
+
             Log.d(TAG, "Connection process started for ${device.deviceMac}")
         } catch (e: IllegalArgumentException) {
             Log.e(TAG, "Unsupported device type: ${device.getDevicePeripheralType()}", e)
@@ -185,9 +190,16 @@ class LefuScaleService {
     }
 
     private fun setupEventListeners() {
+        Log.d(TAG, "Event listeners initiated.")
+
         this.deviceImpl?.onDataChange = { payload ->
             Log.d(TAG, "Weight data change detected: ${payload}")
             this.onWeightDataChange?.invoke(payload)
+        }
+
+        this.deviceImpl?.onDisconnect = { payload ->
+            Log.d(TAG, "Device disconnection detected with state: ${payload}")
+            this.onConnectionStateChange?.invoke(payload)
         }
     }
 }

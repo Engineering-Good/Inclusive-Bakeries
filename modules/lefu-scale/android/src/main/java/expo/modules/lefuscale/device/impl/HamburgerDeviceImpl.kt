@@ -8,9 +8,15 @@ import com.peng.ppscale.device.PeripheralHamburger.PPBlutoothPeripheralHamburger
 import com.peng.ppscale.business.ble.listener.FoodScaleDataChangeListener
 import com.peng.ppscale.business.ble.listener.PPBleStateInterface
 import com.peng.ppscale.vo.LFFoodScaleGeneral
+import android.util.Log
+import kotlinx.coroutines.*
 
 class HamburgerDeviceImpl : AbstractDevice() {
+
+    private val TAG = "LefuScaleService: HamburgerDevice"
+    private val timeout = 4_000L
     private var lastWeightReceivedTime = AtomicLong(0L)
+    private var disconnectMonitorJob: Job? = null
 
     private val hamburgerController: PPBlutoothPeripheralHamburgerController?
         get() = controller as? PPBlutoothPeripheralHamburgerController
@@ -47,6 +53,7 @@ class HamburgerDeviceImpl : AbstractDevice() {
     override fun connect(): Boolean {
         lefuDevice?.let {
             hamburgerController?.startSearch(it.deviceMac, this.bleStateInterface)
+            lastWeightReceivedTime.set(System.currentTimeMillis())
         }
         return true
     }
@@ -80,6 +87,22 @@ class HamburgerDeviceImpl : AbstractDevice() {
     override fun getDeviceStatus(): Boolean {
         
         return true
+    }
+
+    override fun autoReconnect() {
+        lastWeightReceivedTime.set(System.currentTimeMillis())
+        this.disconnectMonitorJob?.cancel()
+        this.disconnectMonitorJob = CoroutineScope(Dispatchers.Default).launch {
+            while (isActive) {
+                val elapsed = System.currentTimeMillis() - lastWeightReceivedTime.get()
+                if (elapsed > timeout) {
+                    Log.d(TAG, "Device broadcast not recieved for $elapsed ms.")
+                    onDisconnect!!.invoke("hasDisconnected")
+                    cancel()
+                }
+                delay(1000)
+            }
+        }
     }
 
     override fun disconnect() {

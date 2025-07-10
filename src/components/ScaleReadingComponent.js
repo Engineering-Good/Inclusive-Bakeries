@@ -22,7 +22,21 @@ const ScaleReadingComponent = ({
   const [connectionStatus, setConnectionStatus] = useState('idle'); // 'idle', 'connecting', 'connected', 'reconnectionFailed', 'connectionFailed'
   const [tareStatus, setTareStatus] = useState(requireTare ? 'pending' : 'not_required');
   const hasSpokenRef = useRef(false);
-  const targetWeight = targetIngredient?.amount || 0;
+  const targetWeight = parseFloat(targetIngredient?.amount) || 0;
+  const tolerance = parseFloat(targetIngredient?.tolerance) || 0;
+
+  // Helper function to check if weight is within tolerance
+  const isWithinTolerance = (weight) => {
+    const minWeight = targetWeight - tolerance;
+    const maxWeight = targetWeight + tolerance;
+    return weight >= minWeight && weight <= maxWeight;
+  };
+
+  // Helper function to check if weight is over tolerance
+  const isOverTolerance = (weight) => {
+    const maxWeight = targetWeight + tolerance;
+    return weight > maxWeight;
+  };
 
   const handleConnectPress = useCallback(async () => {
     setError(null);
@@ -93,9 +107,17 @@ const ScaleReadingComponent = ({
         console.log('[ScaleReadingComponent] Setting currentWeight to:', weightData.value); // Added log
         setCurrentWeight(weightData.value);
         
-        const newProgress = weightData.value / targetIngredient?.amount || 0;
-        const isStable = weightData.isStable;
-        onProgressUpdate(newProgress, isStable);
+        // For non-weight weighable items (like eggs), we just need to detect weight change
+        if (targetIngredient.stepType === 'weighable') {
+          // If we detect any significant weight change (more than 1g), consider it progress
+          if (weightData.value > 1) {
+            onProgressUpdate(1, true); // Send progress of 1 to indicate item is present
+          }
+        } else {
+          // For regular weight-based ingredients, calculate progress as before
+          const progress = weightData.value / targetWeight;
+          onProgressUpdate(progress, weightData.isStable);
+        }
       }
   
       onWeightData?.(weightData);
@@ -120,7 +142,6 @@ const ScaleReadingComponent = ({
       unsubscribeConnection();
       unsubscribeWeight();
       ScaleServiceFactory.unsubscribeAll(); // Ensure all listeners are removed from ScaleServiceFactory
-      // setCurrentWeight(0); // Removed this line
       hasSpokenRef.current = false;
       SpeechService.stop();
     };
@@ -128,7 +149,7 @@ const ScaleReadingComponent = ({
 
   const progress = (tareStatus === 'tared' || tareStatus === 'not_required') ? (currentWeight / targetWeight) : 0;
   
-  console.log('[ScaleReadingComponent] Render. currentWeight:', currentWeight, 'tareStatus:', tareStatus); // Added log
+  console.log('[ScaleReadingComponent] Render. currentWeight:', currentWeight, 'tareStatus:', tareStatus, 'tolerance:', tolerance);
 
   return (
     <View style={styles.container}>
@@ -169,13 +190,15 @@ const ScaleReadingComponent = ({
             <ProgressBar
               progress={progress}
               color={
-                progress > 1.05 ? '#FF1111' :  // Red for overweight (blue background)
-                progress >= 0.95 ? '#4CAF50' : // Green for perfect
-                '#2196F3'                      // Default blue for underweight
+                isOverTolerance(currentWeight) ? '#FF1111' :  // Red for over tolerance
+                isWithinTolerance(currentWeight) ? '#4CAF50' : // Green for within tolerance
+                '#2196F3'                                      // Blue for under
               }
               style={styles.progressBar}
             />
-            
+            <Text style={styles.targetText}>
+              Target: {targetWeight}{targetIngredient.unit} ± {tolerance}{targetIngredient.unit}
+            </Text>
           </View>
           )}
         </>
@@ -231,9 +254,10 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   targetText: {
-    textAlign: "right",
+    textAlign: "center",
     marginTop: 8,
     color: "white",
+    fontSize: 16,
   },
   error: {
     color: "#f44336",

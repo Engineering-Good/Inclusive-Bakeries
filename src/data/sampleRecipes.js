@@ -13,10 +13,47 @@ export const sampleRecipes = [
     id: '1',
     title: 'Chocolate Chip Cookies',
     ingredients: [
-      //{ id: '1001', name: 'Butter', amount: 125, unit: 'g', requireTare: true, imageUri: recipeImages.butter },
-      { id: '1002', name: 'Sugar', amount: 125, unit: 'g', requireTare: true },
-      { id: '1003', name: 'Take a new bowl', amount: '', unit: '', requireTare: false },
-      { id: '1004', name: 'Flour', amount: 200, unit: 'g', requireTare: true },
+      { 
+        id: '1001', 
+        name: 'Butter', 
+        amount: 125, 
+        unit: 'g', 
+        requireTare: true, 
+        imageUri: recipeImages.butter,
+        stepType: 'weight'
+      },
+      { 
+        id: '1002', 
+        name: 'Sugar', 
+        amount: 125, 
+        unit: 'g', 
+        requireTare: true,
+        stepType: 'weight'
+      },
+      {
+        id: '1003',
+        name: 'Mix butter and sugar',
+        stepType: 'instruction',
+        instructionText: 'Mix butter and sugar until light and fluffy. The mixture should be pale in color.',
+        requiresCheck: true
+      },
+      { 
+        id: '1004', 
+        name: 'Eggs', 
+        amount: 2, 
+        unit: 'eggs', 
+        requireTare: false,
+        stepType: 'weighable',
+        instructionText: 'Add eggs one at a time, mixing well after each addition.'
+      },
+      { 
+        id: '1005', 
+        name: 'Flour', 
+        amount: 200, 
+        unit: 'g', 
+        requireTare: true,
+        stepType: 'weight'
+      },
     ],
     imageUri: recipeImages.chocolatechipcookie,
   },
@@ -24,9 +61,37 @@ export const sampleRecipes = [
     id: '2',
     title: 'Banana Cake',
     ingredients: [
-      { id: '2001', name: 'Flour', amount: 150, unit: 'g', requireTare: true },
-      { id: '2002', name: 'Sugar', amount: 100, unit: 'g', requireTare: true },
-      { id: '2003', name: 'Butter', amount: 120, unit: 'g', requireTare: true }
+      { 
+        id: '2001', 
+        name: 'Flour', 
+        amount: 150, 
+        unit: 'g', 
+        requireTare: true,
+        stepType: 'weight'
+      },
+      {
+        id: '2002',
+        name: 'Preheat oven',
+        stepType: 'instruction',
+        instructionText: 'Preheat the oven to 180 degrees Celsius',
+        requiresCheck: false
+      },
+      { 
+        id: '2003', 
+        name: 'Sugar', 
+        amount: 100, 
+        unit: 'g', 
+        requireTare: true,
+        stepType: 'weight'
+      },
+      { 
+        id: '2004', 
+        name: 'Butter', 
+        amount: 120, 
+        unit: 'g', 
+        requireTare: true,
+        stepType: 'weight'
+      }
     ],
     imageUri: recipeImages.bananacake,
   },
@@ -34,12 +99,46 @@ export const sampleRecipes = [
     id: '3',
     title: 'Portuguese Egg Tarts',
     ingredients: [
-      { id: '3001', name: 'Butter', amount: 125, unit: 'g', requireTare: true },
-      { id: '3002', name: 'Sugar', amount: 125, unit: 'g', requireTare: true },
-      { id: '3004', name: 'Take a new bowl', amount: '', unit: '', requireTare: false },
-      { id: '3005', name: 'Flour', amount: 200, unit: 'g', requireTare: true},
-      { id: '3007', name: 'Baking Powder', amount: 5, unit: 'g', requireTare: true },
-      { id: '3008', name: 'Cocoa Powder', amount: 10, unit: 'g', requireTare: true }
+      { 
+        id: '3001', 
+        name: 'Butter', 
+        amount: 125, 
+        unit: 'g', 
+        requireTare: true,
+        stepType: 'weight'
+      },
+      { 
+        id: '3002', 
+        name: 'Sugar', 
+        amount: 125, 
+        unit: 'g', 
+        requireTare: true,
+        stepType: 'weight'
+      },
+      {
+        id: '3003',
+        name: 'Check mixture consistency',
+        stepType: 'instruction',
+        instructionText: 'Mix until the butter and sugar are well combined. The mixture should be smooth with no sugar granules visible.',
+        requiresCheck: true
+      },
+      { 
+        id: '3004', 
+        name: 'Eggs', 
+        amount: 3, 
+        unit: 'eggs', 
+        requireTare: false,
+        stepType: 'weighable',
+        instructionText: 'Add eggs one at a time, ensuring each egg is fully incorporated before adding the next one.'
+      },
+      { 
+        id: '3005', 
+        name: 'Flour', 
+        amount: 200, 
+        unit: 'g', 
+        requireTare: true,
+        stepType: 'weight'
+      }
     ],
     imageUri: recipeImages.portugueseeggtarts,
   },
@@ -47,12 +146,37 @@ export const sampleRecipes = [
     id: '4',
     title: 'Brownies',
     ingredients: [
-      //{ id: '4001', name: 'Flour', amount: 180, unit: 'g', requireTare: false },
-      //{ id: '4002', name: 'Sugar', amount: 100, unit: 'g', requireTare: true },
-      { id: '4003', name: 'Eggs', amount: 2, unit: '', requireTare: false },
-      { id: '4004', name: 'Butter', amount: 160, unit: 'g', requireTare: false },
-      { id: '4005', name: 'Salt', amount: 0.5, unit: 'tsp', requireTare: false }
-      
+      {
+        id: '4001',
+        name: 'Preheat oven',
+        stepType: 'instruction',
+        instructionText: 'Preheat the oven to 180 degrees Celsius and line a baking tin with parchment paper',
+        requiresCheck: false
+      },
+      { 
+        id: '4002', 
+        name: 'Eggs', 
+        amount: 2, 
+        unit: 'eggs', 
+        requireTare: false,
+        stepType: 'weighable',
+        instructionText: 'Add eggs and mix until well combined'
+      },
+      { 
+        id: '4003', 
+        name: 'Butter', 
+        amount: 160, 
+        unit: 'g', 
+        requireTare: false,
+        stepType: 'weight'
+      },
+      {
+        id: '4004',
+        name: 'Check mixture',
+        stepType: 'instruction',
+        instructionText: 'The mixture should be glossy and smooth. Check that all ingredients are well combined.',
+        requiresCheck: true
+      }
     ],
     imageUri: recipeImages.brownies,
   }

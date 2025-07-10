@@ -148,6 +148,7 @@ web_modules/
 .env.test.local
 .env.production.local
 .env.local
+eas.json
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -431,9 +432,4 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/reactnative,visualstudiocode,macos,windows,node
 
 tmp
-node_modules
-node_modules
-node_modules
-node_modules
-node_modules
 node_modules

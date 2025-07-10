@@ -101,6 +101,10 @@ class MockScaleService extends ScaleInterface {
     // Return a random weight between 0-1000g
     return Math.floor(Math.random() * 1000);
   }
+
+  checkConnection() {
+    // Not implemented
+  }
 }
 
 export default new MockScaleService();

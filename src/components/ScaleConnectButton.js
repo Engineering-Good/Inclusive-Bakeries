@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Button } from 'react-native-paper';
+
 import ScaleServiceFactory from '../services/ScaleServiceFactory';
 
 const ScaleConnectButton = ({ onConnect, onDisconnect }) => {
@@ -42,7 +43,6 @@ const ScaleConnectButton = ({ onConnect, onDisconnect }) => {
       isConnectingRef.current = true;
       forceUpdate({});
       setError(null);
-      
       if (isConnected) {
         await ScaleServiceFactory.disconnectFromScale();
         if (onDisconnect) onDisconnect();
@@ -51,6 +51,8 @@ const ScaleConnectButton = ({ onConnect, onDisconnect }) => {
         if (onConnect) onConnect();
       }
     } catch (error) {
+      isConnectingRef.current = false;
+      forceUpdate({});
       setError(error.message);
     } 
   };

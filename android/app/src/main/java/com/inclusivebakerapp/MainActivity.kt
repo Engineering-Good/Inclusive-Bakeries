@@ -2,8 +2,6 @@ package com.inclusivebakerapp
 
 import android.os.Build
 import android.os.Bundle
-import android.content.pm.ActivityInfo 
-
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -18,9 +16,6 @@ class MainActivity : ReactActivity() {
     // coloring the background, status bar, and navigation bar.
     // This is required for expo-splash-screen.
     setTheme(R.style.AppTheme);
-     // Force landscape orientation
-    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-
     super.onCreate(null)
   }
 

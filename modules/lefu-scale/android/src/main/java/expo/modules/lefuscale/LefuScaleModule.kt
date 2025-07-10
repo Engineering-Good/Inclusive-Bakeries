@@ -1,50 +1,88 @@
 package expo.modules.lefuscale
 
 import expo.modules.kotlin.modules.Module
+import com.lefu.ppbase.PPDeviceModel
 import expo.modules.kotlin.modules.ModuleDefinition
-import java.net.URL
+import expo.modules.lefuscale.device.LefuScaleService
+import kotlinx.coroutines.*
 
 class LefuScaleModule : Module() {
-  // Each module class must implement the definition function. The definition consists of components
-  // that describes the module's functionality and behavior.
-  // See https://docs.expo.dev/modules/module-api for more details about available components.
+  private val moduleScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+  private var lefuService: LefuScaleService? = null
+
   override fun definition() = ModuleDefinition {
-    // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
-    // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
-    // The module will be accessible from `requireNativeModule('LefuScale')` in JavaScript.
     Name("LefuScale")
 
-    // Sets constant properties on the module. Can take a dictionary or a closure that returns a dictionary.
-    Constants(
-      "PI" to Math.PI
-    )
+    // Declare all events that can be sent to JavaScript.
+    Events("onDeviceDiscovered", "onBleStateChange", "onWeightChange", "hasDisconnected", "onConnectError")
 
-    // Defines event names that the module can send to JavaScript.
-    Events("onChange")
-
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
-    Function("hello") {
-      "Hello world! 👋"
-    }
-
-    // Defines a JavaScript function that always returns a Promise and whose native code
-    // is by default dispatched on the different thread than the JavaScript runtime runs on.
-    AsyncFunction("setValueAsync") { value: String ->
-      // Send an event to JavaScript.
-      sendEvent("onChange", mapOf(
-        "value" to value
-      ))
-    }
-
-    // Enables the module to be used as a native view. Definition components that are accepted as part of
-    // the view definition: Prop, Events.
-    View(LefuScaleView::class) {
-      // Defines a setter for the `url` prop.
-      Prop("url") { view: LefuScaleView, url: URL ->
-        view.webView.loadUrl(url.toString())
+    AsyncFunction("initializeSdk") { apiKey: String, apiSecret: String ->
+      val context = requireNotNull(appContext.reactContext?.applicationContext) {
+        "Application context is not available."
       }
-      // Defines an event that the view can send to JavaScript.
-      Events("onLoad")
+      
+      if (lefuService == null) {
+        lefuService = LefuScaleService.instance
+        setupLefuEventListeners()
+      }
+      lefuService?.initializeSdk(context, apiKey, apiSecret)
+    }
+
+    AsyncFunction("startScan") {
+      lefuService?.startScan()
+    }
+
+    AsyncFunction("connectToDevice") { mac: String? ->
+      mac?.let {
+        lefuService?.connectToDevice(it)
+      }
+    }
+
+    AsyncFunction("disconnect") {
+      lefuService?.disconnect()
+      sendEvent("onBleStateChange", mapOf("state" to "Disconnected"))
+    }
+
+    AsyncFunction("stopScan") {
+      lefuService?.stopScan()
+    }
+
+    AsyncFunction("checkConnection") {
+      lefuService?.checkConnection()
+    }
+
+    OnDestroy {
+      // Cancel all coroutines when the module is destroyed to prevent memory leaks.
+      moduleScope.cancel()
+    }
+  }
+
+  private fun setupLefuEventListeners() {
+    lefuService?.onDeviceDiscovered = { device ->
+      val deviceInfo = mapOf(
+        "name" to device.deviceName,
+        "mac" to device.deviceMac,
+        "rssi" to device.rssi,
+        "deviceType" to device.getDevicePeripheralType().name
+      )
+      sendEvent("onDeviceDiscovered", deviceInfo)
+    }
+
+    lefuService?.onConnectError = { errorMessage ->
+      sendEvent("onConnectError", errorMessage)
+    }
+
+    lefuService?.onConnectionStateChange = { state ->
+      if (state == "hasDisconnected") {
+        sendEvent("hasDisconnected", mapOf("reason" to "No weight data received"))
+      } else {
+        sendEvent("onBleStateChange", mapOf("state" to state))
+      }
+    }
+
+    lefuService?.onWeightDataChange = { payload ->
+      sendEvent("onWeightChange", payload)
     }
   }
 }

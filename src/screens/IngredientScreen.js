@@ -1,15 +1,42 @@
-import React, { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Alert, Image } from 'react-native';
-import { Divider, TouchableRipple, Dialog, Portal, Button, Paragraph } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import ScaleReadingComponent from '../components/ScaleReadingComponent';
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  Image,
+} from "react-native";
+import {
+  Divider,
+  TouchableRipple,
+  Dialog,
+  Portal,
+  Button,
+  Paragraph,
+} from "react-native-paper";
+import Icon from "react-native-vector-icons/MaterialIcons";
+import ScaleReadingComponent from "../components/ScaleReadingComponent";
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
-import SpeechService from '../services/SpeechService';
-import { INGREDIENT_MESSAGES, RECIPE_MESSAGES } from '../constants/speechText';
-import { SCALE_MESSAGES } from '../constants/speechText';
-import ingredientDatabase from '../data/ingredientDatabase';
+import SpeechService from "../services/SpeechService";
+import { INGREDIENT_MESSAGES, RECIPE_MESSAGES } from "../constants/speechText";
+import { SCALE_MESSAGES } from "../constants/speechText";
+import ingredientDatabase from "../data/ingredientDatabase";
+import { useFocusEffect } from "@react-navigation/native";
 
-const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles }) => (
+const IngredientColumns = ({
+  ingredient,
+  progress,
+  handleProgressUpdate,
+  requireScale,
+  styles,
+}) => (
   <>
     {/* Middle Column */}
     <View style={styles.column}>
@@ -20,31 +47,30 @@ const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, require
             onProgressUpdate={handleProgressUpdate}
             requireTare={ingredient.requireTare}
           />
-          <Divider style={{ height: 1, backgroundColor: 'black' }} />
+          <Divider style={{ height: 1, backgroundColor: "black" }} />
           <Text style={styles.addMoreText}>
-            {
-              progress >= 1.05 ? 'Take some out' :
-                progress >= 0.95 ? 'Perfect!' :
-                  progress >= 0.05 ? 'Add more' : ''
-            }
+            {progress >= 1.05
+              ? "Take some out"
+              : progress >= 0.95
+              ? "Perfect!"
+              : progress >= 0.05
+              ? "Add more"
+              : ""}
           </Text>
-          <Divider style={{ height: 1, backgroundColor: 'black' }} />
+          <Divider style={{ height: 1, backgroundColor: "black" }} />
         </>
       ) : (
         <>
           <Text style={styles.addMoreText}>
             {`${ingredient.amount} ${ingredient.unit} ${ingredient.name}`}
           </Text>
-          <Text style={styles.addMoreText}>
-            Ready for next step!
-          </Text>
+          <Text style={styles.addMoreText}>Ready for next step!</Text>
         </>
       )}
     </View>
 
     {/* Right Column (blank for now) */}
-    <View style={styles.column}>
-    </View>
+    <View style={styles.column}></View>
   </>
 );
 
@@ -58,16 +84,47 @@ const IngredientScreen = ({ route, navigation }) => {
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
 
   // Determine if the ingredient requires scale interaction
-  const requireScale = ingredient.unit === 'g';
+  const requireScale = ingredient.unit === "g";
 
-  console.log('[IngredientScreen] Ingredient:', ingredient);
-  const instructionRef = useRef('');
+  console.log("[IngredientScreen] Ingredient:", ingredient);
+  const instructionRef = useRef("");
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      async function activateService() {
+        const scaleService = await ScaleServiceFactory.getScaleService();
+        if (active && scaleService.setActive) {
+          scaleService.setActive(requireScale);
+        }
+      }
+
+      activateService();
+
+      const interval = setInterval(() => {
+        ScaleServiceFactory.checkConnection();
+      }, 31000);
+
+      return () => {
+        active = false;
+        console.log("Cleaning up scale connection check...");
+        ScaleServiceFactory.getScaleService().then((service) => {
+          if (service.setActive) {
+            service.setActive(false);
+          }
+        });
+        clearInterval(interval);
+      };
+    }, [requireScale])
+  );
+
   useEffect(() => {
     // Reset states when component mounts or ingredient changes
     setProgress(0);
     setWeightReached(false);
     hasSpokenRef.current = null; // Reset the spoken ref
-    
+
     const announceIngredientOrder = async () => {
       // First ingredient needs the "Let's start baking!" announcement
       if (ingredientIndex === 0) {
@@ -107,14 +164,14 @@ const IngredientScreen = ({ route, navigation }) => {
 
       // Determine base instruction text
       let instructionLine = ingredient.instructionText?.trim();
-      if (!instructionLine || instructionLine === '') {
+      if (!instructionLine || instructionLine === "") {
         instructionLine = `${INGREDIENT_MESSAGES.INGREDIENT_INSTRUCTION} ${ingredient.name}`;
       }
 
       // Append appropriate final instruction
       instructionLine += isLastIngredient
-        ? '. Press finish to complete.'
-        : '. Press next.';
+        ? ". Press finish to complete."
+        : ". Press next.";
 
       // Save it so we can replay later
       instructionRef.current = instructionLine;
@@ -122,7 +179,6 @@ const IngredientScreen = ({ route, navigation }) => {
       // Speak it
       await SpeechService.speak(instructionLine);
       await SpeechService.waitUntilDone();
-
     };
 
     announceIngredientOrder();
@@ -137,16 +193,17 @@ const IngredientScreen = ({ route, navigation }) => {
       setProgress(0);
       setWeightReached(false);
       SpeechService.stop();
-    }
+      ScaleServiceFactory.unsubscribeAll();
+    };
   }, [ingredient, requireScale, ingredientIndex]);
 
   const proceedToNextStep = () => {
     if (isLastIngredient) {
       SpeechService.stop();
       ScaleServiceFactory.unsubscribeAll();
-      navigation.replace('Celebration');
+      navigation.replace("Celebration");
     } else {
-      navigation.replace('Ingredient', {
+      navigation.replace("Ingredient", {
         ingredientIndex: ingredientIndex + 1,
         recipe,
       });
@@ -154,24 +211,32 @@ const IngredientScreen = ({ route, navigation }) => {
   };
 
   const handleNext = () => {
-    console.log('[IngredientScreen] Next button pressed');
+    console.log("[IngredientScreen] Next button pressed");
 
     if (!requireScale) {
       setShowConfirmationDialog(true);
-      SpeechService.speak(`${INGREDIENT_MESSAGES.CONFIRM_ADDED} ${ingredient.name}?`);
+      SpeechService.speak(
+        `${INGREDIENT_MESSAGES.CONFIRM_ADDED} ${ingredient.name}?`
+      );
     } else {
       proceedToNextStep();
     }
   };
 
   const getBackgroundColor = (progress) => {
-    if (progress >= 1.05) return '#0900FF'; // Blue
-    if (progress >= 0.95) return '#4CAF50'; // Green
-    if (progress >= 0.01) return '#F44336'; // Red
-    return '#F44336'; // Red for empty scale
+    if (progress >= 1.05) return "#0900FF"; // Blue
+    if (progress >= 0.95) return "#4CAF50"; // Green
+    if (progress >= 0.01) return "#F44336"; // Red
+    return "#F44336"; // Red for empty scale
   };
 
   const handleProgressUpdate = (currentProgress, isStable) => {
+    console.log(
+      "REQUIRE SCALE - ",
+      currentProgress,
+      " ",
+      currentProgress > 0.01
+    );
     if (!requireScale) {
       // For non-weight items, enable Next as soon as any change in mass is detected
       if (currentProgress > 0.01) {
@@ -186,62 +251,66 @@ const IngredientScreen = ({ route, navigation }) => {
       return;
     }
 
-    console.log('[IngredientScreen] Ingredient Progress update:', ingredient, currentProgress);
+    console.log(
+      "[IngredientScreen] Ingredient Progress update:",
+      ingredient,
+      currentProgress
+    );
     // Only update progress if scale has been tared
     setProgress(currentProgress);
 
     // Perfect weight range
     if (currentProgress >= 0.95 && currentProgress <= 1.05) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'perfect') {
+      if (!hasSpokenRef.current || hasSpokenRef.current !== "perfect") {
         setWeightReached(true);
-        hasSpokenRef.current = 'perfect';
+        hasSpokenRef.current = "perfect";
         SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT);
       }
     }
     // Underweight range
     else if (currentProgress < 0.95 && currentProgress >= 0.05) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'under') {
+      if (!hasSpokenRef.current || hasSpokenRef.current !== "under") {
         setWeightReached(false);
-        hasSpokenRef.current = 'under';
-        SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
+        hasSpokenRef.current = "under";
+        SpeechService.speak(
+          `${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`
+        );
       }
     }
     // Overweight range
     else if (currentProgress > 1.05) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'over') {
+      if (!hasSpokenRef.current || hasSpokenRef.current !== "over") {
         setWeightReached(false);
-        hasSpokenRef.current = 'over';
+        hasSpokenRef.current = "over";
         SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
       }
     }
     // Starting/empty scale
     else if (currentProgress < 0.01) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'start') {
+      if (!hasSpokenRef.current || hasSpokenRef.current !== "start") {
         setWeightReached(false);
-        hasSpokenRef.current = 'start';
+        hasSpokenRef.current = "start";
         SpeechService.speak(INGREDIENT_MESSAGES.START_WEIGHING);
       }
     }
 
     // Reset hasSpokenRef when weight changes significantly
-    if ((hasSpokenRef.current === 'start' && currentProgress >= 0.05) ||
-        (hasSpokenRef.current === 'under' && currentProgress >= 0.95) ||
-        (hasSpokenRef.current === 'perfect' && (currentProgress < 0.95 || currentProgress > 1.05)) ||
-        (hasSpokenRef.current === 'over' && currentProgress <= 1.05)) {
+    if (
+      (hasSpokenRef.current === "start" && currentProgress >= 0.05) ||
+      (hasSpokenRef.current === "under" && currentProgress >= 0.95) ||
+      (hasSpokenRef.current === "perfect" &&
+        (currentProgress < 0.95 || currentProgress > 1.05)) ||
+      (hasSpokenRef.current === "over" && currentProgress <= 1.05)
+    ) {
       hasSpokenRef.current = null;
     }
   };
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: () => (
-<></>
-      ),
-      headerTitleAlign: 'center',
-      headerRight: () => (
-          <></>
-
-      ),
+      headerTitle: () => <></>,
+      headerTitleAlign: "center",
+      headerRight: () => <></>,
     });
   }, [navigation, ingredient, weightReached, isLastIngredient]);
 
@@ -249,52 +318,57 @@ const IngredientScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container]}>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>
-            {ingredient.name + '\n'}
-            {`${ingredient.amount} ${ingredient.unit}`}
-          </Text>
-        </View>
-        <View
-          style={{
-            position: 'absolute',
-            right: '2.5%',
-            top: '5.5%',
-            transform: [{ translateY: -25 }],
-            zIndex: 10,
-          }}
+      <View style={styles.headerTitleContainer}>
+        <Text style={styles.headerTitle}>
+          {ingredient.name + "\n"}
+          {`${ingredient.amount} ${ingredient.unit}`}
+        </Text>
+      </View>
+      <View
+        style={{
+          position: "absolute",
+          right: "2.5%",
+          top: "5.5%",
+          transform: [{ translateY: -25 }],
+          zIndex: 10,
+        }}
+      >
+        <TouchableOpacity
+          style={[
+            styles.nextButton,
+            !weightReached && styles.nextButtonDisabled,
+          ]}
+          onPress={handleNext}
+          disabled={!weightReached}
         >
-          <TouchableOpacity
-            style={[
-              styles.nextButton,
-              !weightReached && styles.nextButtonDisabled
-            ]}
-            onPress={handleNext}
-            disabled={!weightReached}
-          >
-            <Text style={styles.nextButtonText}>
-              {isLastIngredient ? 'FINISH' : 'NEXT'}
-            </Text>
-            <Icon
-              name={isLastIngredient ? "check-circle" : "arrow-forward"}
-              size={24}
-              color="white"
-            />
-          </TouchableOpacity>
-        </View>
+          <Text style={styles.nextButtonText}>
+            {isLastIngredient ? "FINISH" : "NEXT"}
+          </Text>
+          <Icon
+            name={isLastIngredient ? "check-circle" : "arrow-forward"}
+            size={24}
+            color="white"
+          />
+        </TouchableOpacity>
+      </View>
 
       {/* Middle Section */}
-      <View style={[
-        styles.middleSection,
-        { backgroundColor: requireScale ? getBackgroundColor(progress) : '#4CAF50' }
-      ]}>
+      <View
+        style={[
+          styles.middleSection,
+          {
+            backgroundColor: requireScale
+              ? getBackgroundColor(progress)
+              : "#4CAF50",
+          },
+        ]}
+      >
         {fullIngredient && fullIngredient.imageUri && (
-            <Image
-              source={{ uri: fullIngredient.imageUri }}
-              style={styles.ingredientImage}
-            />
-          )
-        }
+          <Image
+            source={{ uri: fullIngredient.imageUri }}
+            style={styles.ingredientImage}
+          />
+        )}
         <IngredientColumns
           ingredient={ingredient}
           progress={progress}
@@ -306,26 +380,27 @@ const IngredientScreen = ({ route, navigation }) => {
 
       {/* Bottom Section */}
       <View style={styles.bottomSection}>
-        <Text style={styles.addMoreText}>
-          '.'
-        </Text>
+        <Text style={styles.addMoreText}>'.'</Text>
 
         <TouchableOpacity
           onPress={() => SpeechService.speak(instructionRef.current)}
           style={{
-            backgroundColor: '#FFFFFFAA',
+            backgroundColor: "#FFFFFFAA",
             borderRadius: 50,
             padding: 10,
-            alignItems: 'center',
+            alignItems: "center",
           }}
         >
           <Icon name="volume-up" size={64} color="black" />
         </TouchableOpacity>
-
       </View>
 
       <Portal>
-        <Dialog visible={showConfirmationDialog} onDismiss={() => setShowConfirmationDialog(false)} style={styles.confirmationDialog}>
+        <Dialog
+          visible={showConfirmationDialog}
+          onDismiss={() => setShowConfirmationDialog(false)}
+          style={styles.confirmationDialog}
+        >
           <Dialog.Title>Confirm {`${ingredient.name}`}</Dialog.Title>
           <Dialog.Content>
             <Paragraph>Have you completed this step?</Paragraph>
@@ -362,16 +437,16 @@ const IngredientScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white', // Assuming a white background for the overall page
-    justifyContent: 'center',
+    backgroundColor: "white", // Assuming a white background for the overall page
+    justifyContent: "center",
   },
   topSection: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     padding: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    alignContent: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    alignContent: "center",
   },
   backButton: {
     padding: 8,
@@ -379,31 +454,31 @@ const styles = StyleSheet.create({
   },
   headerTitleContainer: {
     //flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 10,
   },
   headerTitle: {
     fontSize: 48,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 18,
-    color: 'white', // Changed to white for better visibility on colored backgrounds
-    textAlign: 'center',
+    color: "white", // Changed to white for better visibility on colored backgrounds
+    textAlign: "center",
     marginBottom: 10, // Add some space below the subtitle
   },
   nextButton: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#007AFF',
+    alignSelf: "flex-end",
+    backgroundColor: "#007AFF",
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     zIndex: 999, // Ensure button is above other content
     elevation: 5, // Add elevation for Android
-    shadowColor: '#000', // Add shadow for iOS
+    shadowColor: "#000", // Add shadow for iOS
     shadowOffset: {
       width: 0,
       height: 2,
@@ -412,27 +487,27 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   nextButtonDisabled: {
-    backgroundColor: '#cccccc',
+    backgroundColor: "#cccccc",
   },
   nextButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 50,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginRight: 8, // Space between text and icon
   },
   middleSection: {
     flex: 1,
-    backgroundColor: '#F44336',
-    flexDirection: 'column', // Arrange children in a row
-    justifyContent: 'center', // Distribute space evenly
-    alignItems: 'center', // Center items vertically
+    backgroundColor: "#F44336",
+    flexDirection: "column", // Arrange children in a row
+    justifyContent: "center", // Distribute space evenly
+    alignItems: "center", // Center items vertically
     paddingHorizontal: 10, // Add some horizontal padding
   },
   column: {
     flex: 1, // Each column takes equal space
-    flexDirection: 'column',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
+    flexDirection: "column",
+    justifyContent: "flex-start",
+    alignItems: "center",
   },
   ingredientImage: {
     width: 300,
@@ -441,30 +516,30 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   targetWeightText: {
-    color: 'white',
+    color: "white",
     fontSize: 48,
-    fontWeight: 'bold',
-    alignSelf: 'center',
+    fontWeight: "bold",
+    alignSelf: "center",
   },
   addMoreText: {
-    color: 'white',
+    color: "white",
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   quantityText: {
-    color: 'white',
+    color: "white",
     fontSize: 48,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   bottomSection: {
-    backgroundColor: 'white', // Or any color for the bottom section
+    backgroundColor: "white", // Or any color for the bottom section
     padding: 0,
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   confirmationDialog: {
     maxWidth: 350, // Adjust as needed
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   dialogButton: {
     flex: 1,
@@ -472,15 +547,15 @@ const styles = StyleSheet.create({
     paddingVertical: 5, // Adjust padding to match Next button's height
     paddingHorizontal: 10, // Adjust padding to match Next button's width
   },
-    imageContainer: {
-    width: '100%',
+  imageContainer: {
+    width: "100%",
     height: 150, // Same height as recipeImage
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden', // Ensure image doesn't overflow rounded corners
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden", // Ensure image doesn't overflow rounded corners
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
-  }
+  },
 });
 
 export default IngredientScreen;

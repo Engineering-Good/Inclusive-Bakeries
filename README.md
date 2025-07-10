@@ -105,9 +105,10 @@ Note: Development builds require a physical Android device for testing Bluetooth
 ```
 InclusiveBakerApp/
 ├── src/
-│   ├── components/      # Reusable UI components
-│   ├── screens/         # Screen components
-│   └── services/        # Business logic and services
+│   ├── components/     # Reusable UI components
+│   ├── screens/        # Screen components
+│   └── services/       # Business logic and services
+├── modules/            # Native modules
 ├── assets/             # Images, fonts, and other static files
 ├── App.js              # Application entry point
 └── package.json        # Project dependencies and scripts

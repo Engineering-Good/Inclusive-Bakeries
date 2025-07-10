@@ -98,7 +98,7 @@ export default function RecipeDetailScreen({ route, navigation }) {
             <Image
               source={typeof recipe.imageUri === 'string' ? { uri: recipe.imageUri } : recipe.imageUri}
               style={styles.recipeImage}
-              defaultSource={require('../assets/recipes/placeholder.png')}
+              // defaultSource={require('../assets/recipes/placeholder.png')}
             />
         </View>
       <TouchableOpacity 
@@ -114,6 +114,8 @@ export default function RecipeDetailScreen({ route, navigation }) {
 
       <Text style={styles.sectionTitle}>Ingredients</Text>
       <View style={styles.ingredientsContainer}>
+        
+      
         {recipe.ingredients && recipe.ingredients
           .filter(ingredient => ingredient.amount || ['g', 'eggs', 'tsp', 'tbsp'].includes(ingredient.unit))
           .map((ingredient, index) => (
@@ -122,6 +124,14 @@ export default function RecipeDetailScreen({ route, navigation }) {
               style={styles.ingredientItem}
               onPress={() => selectIngredient(index)}
             >
+              <Image
+                source={
+                  typeof ingredient.imageUri === 'string'
+                    ? { uri: ingredient.imageUri }
+                    : null
+                }
+                style={styles.ingredientImage}
+              />
               <Text style={styles.ingredientText}>
                 {ingredient.name}: {ingredient.amount} {ingredient.unit === 'g' ? 'grams' : ingredient.unit}
               </Text>
@@ -211,6 +221,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+  },
+  ingredientImage: {
+    width: 50,
+    height: 50,
+    resizeMode: 'contain',
+    marginRight: 10,
   },
   ingredientText: {
     fontSize: 36,

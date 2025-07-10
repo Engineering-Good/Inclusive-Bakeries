@@ -47,7 +47,13 @@ abstract class AbstractDevice {
      */
     abstract fun getDeviceStatus(): Boolean
 
+    /**
+     * Initialize the auto reconnect mechanism of the device
+     */
     abstract fun autoReconnect()
 
+    /**
+     * Disconnect from the device.
+     */
     abstract fun disconnect()
 }

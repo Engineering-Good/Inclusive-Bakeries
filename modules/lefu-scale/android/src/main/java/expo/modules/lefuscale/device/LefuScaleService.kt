@@ -189,6 +189,9 @@ class LefuScaleService {
         }
     }
 
+    /**
+     * Check for the connection status of the device
+     */
     fun checkConnection() {
         discoveredDevices.clear()
 
@@ -233,6 +236,9 @@ class LefuScaleService {
         handler.postDelayed(notFoundRunnable, 5000) // Check after 5 seconds
     }
 
+    /**
+     * Initialize the event listeners of the service
+     */
     private fun setupEventListeners() {
         Log.d(TAG, "Event listeners initiated.")
 

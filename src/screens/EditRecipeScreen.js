@@ -216,9 +216,9 @@ export default function EditRecipeScreen({ route, navigation }) {
 
     if (!result.canceled) {
       if (forRecipe) {
-        setRecipeImage(result.assets[0]);
+        setRecipeImage(result.assets[0].uri);
       } else {
-        updateIngredient(ingredientId, 'imageUri', result.assets[0]);
+        updateIngredient(ingredientId, 'imageUri', result.assets[0].uri);
       }
     }
   };

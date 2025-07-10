@@ -94,7 +94,7 @@ export default function RecipeDetailScreen({ route, navigation }) {
             <Image
               source={typeof recipe.imageUri === 'string' ? { uri: recipe.imageUri } : recipe.imageUri}
               style={styles.recipeImage}
-              defaultSource={require('../assets/recipes/placeholder.png')}
+              // defaultSource={require('../assets/recipes/placeholder.png')}
             />
         </View>
       <TouchableOpacity 
@@ -110,23 +110,33 @@ export default function RecipeDetailScreen({ route, navigation }) {
 
       <Text style={styles.sectionTitle}>Ingredients</Text>
       <View style={styles.ingredientsContainer}>
+        
+      
         {recipe.ingredients && recipe.ingredients
-          .filter(ingredient => ingredient.amount || ['g', 'eggs', 'tsp', 'tbsp'].includes(ingredient.unit))
-          .map((ingredient, index) => (
-            <TouchableOpacity 
-              key={index} 
-              style={styles.ingredientItem}
-              onPress={() => selectIngredient(index)}
-            >
-              <Text style={styles.ingredientText}>
-                {ingredient.name}: {ingredient.amount} {ingredient.unit}
-              </Text>
-              <IconButton
-                icon="volume-high"
-                size={20}
-                onPress={() => announceIngredient(ingredient)}
-              />
-            </TouchableOpacity>
+        .filter(ingredient => ingredient.amount || ['g', 'eggs', 'tsp', 'tbsp'].includes(ingredient.unit))
+        .map((ingredient, index) => (
+          <TouchableOpacity 
+            key={index} 
+            style={styles.ingredientItem}
+            onPress={() => selectIngredient(index)}
+          >
+            <Image
+              source={
+                typeof ingredient.imageUri === 'string'
+                  ? { uri: ingredient.imageUri }
+                  : null
+              }
+              style={styles.ingredientImage}
+            />
+            <Text style={styles.ingredientText}>
+              {ingredient.name}: {ingredient.amount} {ingredient.unit}
+            </Text>
+            <IconButton
+              icon="volume-high"
+              size={20}
+              onPress={() => announceIngredient(ingredient)}
+            />
+          </TouchableOpacity>
         ))}
       </View>
 

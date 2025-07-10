@@ -8,6 +8,7 @@ import SpeechService from '../services/SpeechService';
 import { INGREDIENT_MESSAGES, RECIPE_MESSAGES } from '../constants/speechText';
 import { SCALE_MESSAGES } from '../constants/speechText';
 import ingredientDatabase from '../data/ingredientDatabase';
+import { Animated, Easing } from 'react-native';
 
 const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles }) => (
   <>
@@ -56,6 +57,8 @@ const IngredientScreen = ({ route, navigation }) => {
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const hasSpokenRef = useRef(false);
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const animationRef = useRef(null);
 
   // Determine if the ingredient requires scale interaction
   const requireScale = ingredient.unit === 'g';
@@ -139,6 +142,16 @@ const IngredientScreen = ({ route, navigation }) => {
       SpeechService.stop();
     }
   }, [ingredient, requireScale, ingredientIndex]);
+
+  useEffect(() => {
+    if (weightReached) {
+      startPulse();
+    } else {
+      stopPulse();
+    }
+    return stopPulse;
+  }, [weightReached]);
+  
 
   const proceedToNextStep = () => {
     if (isLastIngredient) {
@@ -247,6 +260,35 @@ const IngredientScreen = ({ route, navigation }) => {
 
   const fullIngredient = ingredientDatabase[ingredient.name];
 
+  const startPulse = () => {
+    animationRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.15,
+          duration: 500,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        }),
+      ])
+    );
+    animationRef.current.start();
+  };
+  
+  const stopPulse = () => {
+    if (animationRef.current) {
+      animationRef.current.stop();
+      animationRef.current = null;
+    }
+    scaleAnim.setValue(1); // Reset scale
+  };
+  
+
   return (
     <View style={[styles.container]}>
         <View style={styles.headerTitleContainer}>
@@ -264,7 +306,27 @@ const IngredientScreen = ({ route, navigation }) => {
             zIndex: 10,
           }}
         >
-          <TouchableOpacity
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <TouchableOpacity
+              style={[
+                styles.nextButton,
+                !weightReached && styles.nextButtonDisabled
+              ]}
+              onPress={handleNext}
+              disabled={!weightReached}
+            >
+              <Text style={styles.nextButtonText}>
+                {isLastIngredient ? 'FINISH' : 'NEXT'}
+              </Text>
+              <Icon
+                name={isLastIngredient ? "check-circle" : "arrow-forward"}
+                size={24}
+                color="white"
+              />
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* <TouchableOpacity
             style={[
               styles.nextButton,
               !weightReached && styles.nextButtonDisabled
@@ -280,7 +342,7 @@ const IngredientScreen = ({ route, navigation }) => {
               size={24}
               color="white"
             />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
       {/* Middle Section */}

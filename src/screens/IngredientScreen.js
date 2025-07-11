@@ -10,44 +10,56 @@ import { SCALE_MESSAGES } from '../constants/speechText';
 import ingredientDatabase from '../data/ingredientDatabase';
 import { Animated, Easing } from 'react-native';
 
-const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles }) => (
-  <>
-    {/* Middle Column */}
-    <View style={styles.column}>
-      {requireScale ? (
-        <>
-          <ScaleReadingComponent
-            targetIngredient={ingredient}
-            onProgressUpdate={handleProgressUpdate}
-            requireTare={ingredient.requireTare}
-          />
-          <Divider style={{ height: 1, backgroundColor: 'black' }} />
-          <Text style={styles.addMoreText}>
-            {
-              progress >= 1.05 ? 'Take some out' :
-                progress >= 0.95 ? 'Perfect!' :
-                  progress >= 0.05 ? 'Add more' : ''
-            }
-          </Text>
-          <Divider style={{ height: 1, backgroundColor: 'black' }} />
-        </>
-      ) : (
-        <>
-          <Text style={styles.addMoreText}>
-            {`${ingredient.amount} ${ingredient.unit} ${ingredient.name}`}
-          </Text>
-          <Text style={styles.addMoreText}>
-            Ready for next step!
-          </Text>
-        </>
-      )}
-    </View>
+const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles }) => {
+  const isWeighable = ingredient.stepType === 'weighable';
+  const isInstruction = ingredient.stepType === 'instruction';
+  const isWeightBased = ingredient.stepType === 'weight';
 
-    {/* Right Column (blank for now) */}
-    <View style={styles.column}>
-    </View>
-  </>
-);
+  return (
+    <>
+      {/* Middle Column */}
+      <View style={styles.column}>
+        {isWeightBased && (
+          <>
+            <ScaleReadingComponent
+              targetIngredient={ingredient}
+              onProgressUpdate={handleProgressUpdate}
+              requireTare={ingredient.requireTare}
+            />
+            <Divider style={{ height: 1, backgroundColor: 'black' }} />
+            <Text style={styles.addMoreText}>
+              {
+                progress >= 1.05 ? 'Take some out' :
+                  progress >= 0.95 ? 'Perfect!' :
+                    progress >= 0.05 ? 'Add more' : ''
+              }
+            </Text>
+            <Divider style={{ height: 1, backgroundColor: 'black' }} />
+          </>
+        )}
+        {(isWeighable || isInstruction) && (
+          <>
+            {isWeighable && (
+              <ScaleReadingComponent
+                targetIngredient={ingredient}
+                onProgressUpdate={handleProgressUpdate}
+                requireTare={false}
+                isWeighableOnly={true}
+              />
+            )}
+            <Text style={styles.addMoreText}>
+              Ready for next step!
+            </Text>
+          </>
+        )}
+      </View>
+
+      {/* Right Column (blank for now) */}
+      <View style={styles.column}>
+      </View>
+    </>
+  );
+};
 
 const IngredientScreen = ({ route, navigation }) => {
   const { ingredientIndex, recipe } = route.params;
@@ -79,8 +91,8 @@ const IngredientScreen = ({ route, navigation }) => {
         await SpeechService.delay(SpeechService.SPEECH_DELAY);
       }
 
-      // // Announce tare if needed
-      if (ingredient.requireTare) {
+      // Announce tare if needed for weight-based ingredients
+      if (ingredient.stepType === 'weight' && ingredient.requireTare) {
         await SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
         await SpeechService.waitUntilDone();
         await SpeechService.delay(SpeechService.SPEECH_DELAY);
@@ -102,22 +114,28 @@ const IngredientScreen = ({ route, navigation }) => {
       await SpeechService.waitUntilDone();
       await SpeechService.delay(SpeechService.SPEECH_DELAY);
 
-      // Now announce the ingredient details and instructions
-      const goalAnnouncement = `${ingredient.amount} ${ingredient.unit} of ${ingredient.name}`;
-      await SpeechService.speak(goalAnnouncement);
-      await SpeechService.waitUntilDone();
-      await SpeechService.delay(SpeechService.SPEECH_DELAY);
+      // For weight-based and weighable ingredients, announce the quantity
+      if (ingredient.stepType !== 'instruction') {
+        const goalAnnouncement = `${ingredient.amount} ${ingredient.unit} of ${ingredient.name}`;
+        await SpeechService.speak(goalAnnouncement);
+        await SpeechService.waitUntilDone();
+        await SpeechService.delay(SpeechService.SPEECH_DELAY);
+      }
 
-      // Determine base instruction text
+      // Announce the instruction text
       let instructionLine = ingredient.instructionText?.trim();
       if (!instructionLine || instructionLine === '') {
-        instructionLine = `${INGREDIENT_MESSAGES.INGREDIENT_INSTRUCTION} ${ingredient.name}`;
+        if (ingredient.stepType === 'weight') {
+          instructionLine = `${INGREDIENT_MESSAGES.INGREDIENT_INSTRUCTION} ${ingredient.name}`;
+        } else if (ingredient.stepType === 'weighable') {
+          instructionLine = `Place ${ingredient.name} on the scale`;
+        }
       }
 
       // Append appropriate final instruction
       instructionLine += isLastIngredient
         ? '. Press finish to complete.'
-        : '. Press next.';
+        : '. Press next when ready.';
 
       // Save it so we can replay later
       instructionRef.current = instructionLine;
@@ -125,13 +143,12 @@ const IngredientScreen = ({ route, navigation }) => {
       // Speak it
       await SpeechService.speak(instructionLine);
       await SpeechService.waitUntilDone();
-
     };
 
     announceIngredientOrder();
 
-    // If no scale is required, set weightReached to true immediately
-    if (!requireScale) {
+    // If it's an instruction step, set weightReached to true immediately
+    if (ingredient.stepType === 'instruction') {
       setWeightReached(true);
     }
 
@@ -141,7 +158,7 @@ const IngredientScreen = ({ route, navigation }) => {
       setWeightReached(false);
       SpeechService.stop();
     }
-  }, [ingredient, requireScale, ingredientIndex]);
+  }, [ingredient, ingredientIndex]);
 
   useEffect(() => {
     if (weightReached) {
@@ -177,23 +194,25 @@ const IngredientScreen = ({ route, navigation }) => {
     }
   };
 
-  const getBackgroundColor = (progress) => {
-    if (progress >= 1.05) return '#0900FF'; // Blue
-    if (progress >= 0.95) return '#4CAF50'; // Green
-    if (progress >= 0.01) return '#F44336'; // Red
-    return '#F44336'; // Red for empty scale
-  };
-
   const handleProgressUpdate = (currentProgress, isStable) => {
-    if (!requireScale) {
-      // For non-weight items, enable Next as soon as any change in mass is detected
+    const isWeighable = ingredient.stepType === 'weighable';
+    const isInstruction = ingredient.stepType === 'instruction';
+    const isWeightBased = ingredient.stepType === 'weight';
+
+    if (isInstruction) {
+      // For instructions, enable Next button immediately
+      setWeightReached(true);
+      return;
+    }
+
+    if (isWeighable) {
+      // For non-weight weighable items, enable Next as soon as any change in mass is detected
       if (currentProgress > 0.01) {
         setWeightReached(true);
-      } else {
-        setWeightReached(false);
       }
       return;
     }
+
     if (!isStable) {
       // If scale is not stable, do nothing for weight items
       return;
@@ -203,46 +222,42 @@ const IngredientScreen = ({ route, navigation }) => {
     // Only update progress if scale has been tared
     setProgress(currentProgress);
 
-    // Perfect weight range
-    if (currentProgress >= 0.95 && currentProgress <= 1.05) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'perfect') {
-        setWeightReached(true);
-        hasSpokenRef.current = 'perfect';
-        SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT);
-      }
-    }
-    // Underweight range
-    else if (currentProgress < 0.95 && currentProgress >= 0.05) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'under') {
-        setWeightReached(false);
-        hasSpokenRef.current = 'under';
-        SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
-      }
-    }
-    // Overweight range
-    else if (currentProgress > 1.05) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'over') {
-        setWeightReached(false);
-        hasSpokenRef.current = 'over';
-        SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
-      }
-    }
-    // Starting/empty scale
-    else if (currentProgress < 0.01) {
-      if (!hasSpokenRef.current || hasSpokenRef.current !== 'start') {
-        setWeightReached(false);
-        hasSpokenRef.current = 'start';
-        SpeechService.speak(INGREDIENT_MESSAGES.START_WEIGHING);
-      }
-    }
+    // Get target weight and tolerance in grams
+    const targetWeight = parseFloat(ingredient.amount);
+    const toleranceGrams = parseFloat(ingredient.tolerance || '0');
+    const currentWeight = currentProgress * targetWeight;
+    
+    // Calculate acceptable range
+    const minWeight = targetWeight - toleranceGrams;
+    const maxWeight = targetWeight + toleranceGrams;
 
-    // Reset hasSpokenRef when weight changes significantly
-    if ((hasSpokenRef.current === 'start' && currentProgress >= 0.05) ||
-        (hasSpokenRef.current === 'under' && currentProgress >= 0.95) ||
-        (hasSpokenRef.current === 'perfect' && (currentProgress < 0.95 || currentProgress > 1.05)) ||
-        (hasSpokenRef.current === 'over' && currentProgress <= 1.05)) {
-      hasSpokenRef.current = null;
-    }
+    console.log('[IngredientScreen] Weight validation:', {
+      currentWeight,
+      targetWeight,
+      toleranceGrams,
+      minWeight,
+      maxWeight
+    });
+
+    // Update weightReached based on whether we're within tolerance
+    setWeightReached(currentWeight >= minWeight && currentWeight <= maxWeight);
+  };
+
+  const getBackgroundColor = (progress) => {
+    if (!requireScale) return '#4CAF50'; // Green for non-weight items
+    
+    const targetWeight = parseFloat(ingredient.amount);
+    const toleranceGrams = parseFloat(ingredient.tolerance || '0');
+    const currentWeight = progress * targetWeight;
+    
+    // Calculate acceptable range
+    const minWeight = targetWeight - toleranceGrams;
+    const maxWeight = targetWeight + toleranceGrams;
+
+    if (currentWeight > maxWeight) return '#0900FF'; // Blue for over
+    if (currentWeight >= minWeight) return '#4CAF50'; // Green for perfect
+    if (currentWeight >= 0.01 * targetWeight) return '#F44336'; // Red for under
+    return '#F44336'; // Red for empty scale
   };
 
   useLayoutEffect(() => {

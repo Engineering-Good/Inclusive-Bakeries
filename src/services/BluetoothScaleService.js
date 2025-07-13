@@ -168,6 +168,10 @@ class BluetoothScaleService extends ScaleInterface {
     const weight = buffer.readFloatLE(0);
     return weight;
   }
+
+  checkConnection() {
+    // Not implemented
+  }
 }
 
 export default new BluetoothScaleService();

@@ -26,14 +26,15 @@
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.BLUETOOTH_SCAN",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
       "package": "com.inclusivebakerapp",
-      "maven": [
-        {
-          "url": "https://raw.githubusercontent.com/LefuHengqi/PPBaseKit-Android/main/"
-        }
-      ]
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -43,11 +44,9 @@
       "expo-build-properties"
     ],
     "ios": {
-      "bundleIdentifier": "com.anonymous.InclusiveBakerApp"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "46d48457-3d50-40e2-8a3f-011aa2939a79"
+      "bundleIdentifier": "com.inclusivebakerapp",
+      "runtimeVersion": {
+        "policy": "appVersion"
       }
     }
   }

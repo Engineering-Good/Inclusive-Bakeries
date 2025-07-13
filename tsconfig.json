@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".", // Root directory
+		"paths": {
+			"@components/*": ["src/components/*"],
+			"@utils/*": ["src/utils/*"],
+			"@modules/*": ["modules/*"]
+		}
+	},
+	"extends": "expo/tsconfig.base"
+}

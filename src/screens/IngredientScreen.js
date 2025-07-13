@@ -1,50 +1,82 @@
-import React, { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Alert, Image, Dimensions } from 'react-native';
-import { Divider, TouchableRipple, Dialog, Portal, Button, Paragraph } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import ScaleReadingComponent from '../components/ScaleReadingComponent';
-import MockScaleComponent from '../components/MockScaleComponent'; // Import MockScaleComponent
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  Image,
+  Dimensions
+} from "react-native";
+import {
+  Divider,
+  TouchableRipple,
+  Dialog,
+  Portal,
+  Button,
+  Paragraph,
+} from "react-native-paper";
+import Icon from "react-native-vector-icons/MaterialIcons";
+import ScaleReadingComponent from "../components/ScaleReadingComponent";
+import MockScaleComponent from '../components/MockScaleComponent'; 
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
-import SpeechService from '../services/SpeechService';
-import { INGREDIENT_MESSAGES, RECIPE_MESSAGES } from '../constants/speechText';
-import { SCALE_MESSAGES } from '../constants/speechText';
-import ingredientDatabase from '../data/ingredientDatabase';
+import SpeechService from "../services/SpeechService";
+import { INGREDIENT_MESSAGES, RECIPE_MESSAGES } from "../constants/speechText";
+import { SCALE_MESSAGES } from "../constants/speechText";
+import ingredientDatabase from "../data/ingredientDatabase";
 import { Animated, Easing } from 'react-native';
+import { useFocusEffect } from "@react-navigation/native";
 
-const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, isMockScaleActive, styles }) => (
-  <View style={styles.columnsContainer}>
-    {/* Middle Column */}
-    <View style={styles.column}>
-      {requireScale ? (
-        <>
-          <ScaleReadingComponent
-            targetIngredient={ingredient}
-            onProgressUpdate={handleProgressUpdate}
-            requireTare={ingredient.requireTare}
-          />
-          <Divider style={{ height: 1, backgroundColor: 'black' }} />
-          <Text style={styles.addMoreText}>
-            {
-              progress >= 1.05 ? 'Take some out' :
-                progress >= 0.95 ? 'Perfect!' :
-                  progress >= 0.05 ? 'Add more' : ''
-            }
-          </Text>
-          <Divider style={{ height: 1, backgroundColor: 'black' }} />
-        </>
-      ) : (
-        <>
-          <Text style={styles.addMoreText}>
-            {`${ingredient.amount} ${ingredient.unit} ${ingredient.name}`}
-          </Text>
-          <Text style={styles.addMoreText}>
-            Ready for next step!
-          </Text>
-        </>
-      )}
-    </View>
+const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles, isMockScaleActive }) => {
+  const isWeighable = ingredient.stepType === 'weighable';
+  const isInstruction = ingredient.stepType === 'instruction';
+  const isWeightBased = ingredient.stepType === 'weight';
 
-    {/* Right Column */}
+  return (
+    <View style={styles.columnsContainer}>
+      {/* Middle Column */}
+      <View style={styles.column}>
+        {isWeightBased && (
+          <>
+            <ScaleReadingComponent
+              targetIngredient={ingredient}
+              onProgressUpdate={handleProgressUpdate}
+              requireTare={ingredient.requireTare}
+            />
+            <Divider style={{ height: 1, backgroundColor: 'black' }} />
+            <Text style={styles.addMoreText}>
+              {
+                progress >= 1.05 ? 'Take some out' :
+                  progress >= 0.95 ? 'Perfect!' :
+                    progress >= 0.05 ? 'Add more' : ''
+              }
+            </Text>
+            <Divider style={{ height: 1, backgroundColor: 'black' }} />
+          </>
+        )}
+        {(isWeighable || isInstruction) && (
+          <>
+            {isWeighable && (
+              <ScaleReadingComponent
+                targetIngredient={ingredient}
+                onProgressUpdate={handleProgressUpdate}
+                requireTare={false}
+                isWeighableOnly={true}
+              />
+            )}
+            <Text style={styles.addMoreText}>
+              Ready for next step!
+            </Text>
+          </>
+        )}
+      </View>
+       {/* Right Column */}
     {requireScale && isMockScaleActive && (
     <View style={styles.column}>
        <MockScaleComponent />
@@ -52,6 +84,10 @@ const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, require
     )}
   </View>
 );
+}
+
+
+   
 
 const IngredientScreen = ({ route, navigation }) => {
   const { ingredientIndex, recipe } = route.params;
@@ -67,11 +103,40 @@ const IngredientScreen = ({ route, navigation }) => {
   const animationRef = useRef(null);
 
   // Determine if the ingredient requires scale interaction
-  const requireScale = ingredient.unit === 'g';
+  const requireScale = ingredient.unit === "g";
 
-  console.log('[IngredientScreen] Ingredient:', ingredient);
-  const instructionRef = useRef('');
-  const addMoreIntervalRef = useRef(null); // New ref for the interval ID
+  console.log("[IngredientScreen] Ingredient:", ingredient);
+  const instructionRef = useRef("");
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      async function activateService() {
+        const scaleService = await ScaleServiceFactory.getScaleService();
+        if (active && scaleService.setActive) {
+          scaleService.setActive(requireScale);
+        }
+      }
+
+      activateService();
+
+      const interval = setInterval(() => {
+        ScaleServiceFactory.checkConnection();
+      }, 31000);
+
+      return () => {
+        active = false;
+        console.log("Cleaning up scale connection check...");
+        ScaleServiceFactory.getScaleService().then((service) => {
+          if (service.setActive) {
+            service.setActive(false);
+          }
+        });
+        clearInterval(interval);
+      };
+    }, [requireScale])
+  );
 
   useEffect(() => {
     const checkMockScaleStatus = async () => {
@@ -90,17 +155,16 @@ const IngredientScreen = ({ route, navigation }) => {
     // Reset states when component mounts or ingredient changes
     setProgress(0);
     setWeightReached(false);
-    setnextButtonEnabled(false); // Reset this state for a new ingredient session
-    hasSpokenRef.current = ''; // Reset the spoken ref
-    
+    hasSpokenRef.current = null; // Reset the spoken ref
+
     const announceIngredientOrder = async () => {
       // First ingredient needs the "Let's start baking!" announcement
       if (ingredientIndex === 0) {
         await SpeechService.speak(RECIPE_MESSAGES.START_BAKING);
       }
 
-      // Announce tare if needed
-      if (ingredient.requireTare) {
+      // Announce tare if needed for weight-based ingredients
+      if (ingredient.stepType === 'weight' && ingredient.requireTare) {
         await SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
       }
 
@@ -118,33 +182,41 @@ const IngredientScreen = ({ route, navigation }) => {
 
       await SpeechService.speak(orderMessage);
 
-      // Now announce the ingredient details and instructions
-      let displayUnit = ingredient.unit;
-      if (displayUnit === 'g') {
-        displayUnit = 'grams';
+      // For weight-based and weighable ingredients, announce the quantity
+      if (ingredient.stepType !== 'instruction') {
+        const goalAnnouncement = `${ingredient.amount} ${ingredient.unit} of ${ingredient.name}`;
+        await SpeechService.speak(goalAnnouncement);
+        await SpeechService.waitUntilDone();
+        await SpeechService.delay(SpeechService.SPEECH_DELAY);
       }
-      const goalAnnouncement = `${ingredient.amount} ${displayUnit} of ${ingredient.name}`;
-      await SpeechService.speak(goalAnnouncement);
 
-      // Determine base instruction text
+      // Announce the instruction text
       let instructionLine = ingredient.instructionText?.trim();
       if (!instructionLine || instructionLine === '') {
-        instructionLine = `${INGREDIENT_MESSAGES.INGREDIENT_INSTRUCTION} ${ingredient.name}`;
+        if (ingredient.stepType === 'weight') {
+          instructionLine = `${INGREDIENT_MESSAGES.INGREDIENT_INSTRUCTION} ${ingredient.name}`;
+        } else if (ingredient.stepType === 'weighable') {
+          instructionLine = `Place ${ingredient.name} on the scale`;
+        }
       }
+
+      // Append appropriate final instruction
+      instructionLine += isLastIngredient
+        ? '. Press finish to complete.'
+        : '. Press next when ready.';
 
       // Save it so we can replay later
       instructionRef.current = instructionLine;
 
       // Speak it
       await SpeechService.speak(instructionLine);
-
-     
+      await SpeechService.waitUntilDone();
     };
 
     announceIngredientOrder();
 
-    // If no scale is required, set weightReached to true immediately
-    if (!requireScale) {
+    // If it's an instruction step, set weightReached to true immediately
+    if (ingredient.stepType === 'instruction') {
       setWeightReached(true);
     }
 
@@ -152,13 +224,10 @@ const IngredientScreen = ({ route, navigation }) => {
     return () => {
       setProgress(0);
       setWeightReached(false);
-      if (addMoreIntervalRef.current) {
-        console.log('[IngredientScreen] Clearing add more interval for:', ingredient.name);
-        clearInterval(addMoreIntervalRef.current); // Clear the interval
-        addMoreIntervalRef.current = null;
-      }
-    }
-  }, [ingredient, requireScale, ingredientIndex]); // Removed progress from dependency array
+      SpeechService.stop();
+      ScaleServiceFactory.unsubscribeAll();
+    };
+  }, [ingredient, ingredientIndex]);
 
   useEffect(() => {
     if (weightReached) {
@@ -174,9 +243,9 @@ const IngredientScreen = ({ route, navigation }) => {
     if (isLastIngredient) {
       SpeechService.stop();
       ScaleServiceFactory.unsubscribeAll();
-      navigation.replace('Celebration');
+      navigation.replace("Celebration");
     } else {
-      navigation.replace('Ingredient', {
+      navigation.replace("Ingredient", {
         ingredientIndex: ingredientIndex + 1,
         recipe,
       });
@@ -184,124 +253,93 @@ const IngredientScreen = ({ route, navigation }) => {
   };
 
   const handleNext = () => {
-    console.log('[IngredientScreen] Next button pressed');
+    console.log("[IngredientScreen] Next button pressed");
 
     if (!requireScale) {
       setShowConfirmationDialog(true);
-      SpeechService.speak(`${INGREDIENT_MESSAGES.CONFIRM_ADDED} ${ingredient.name}?`);
+      SpeechService.speak(
+        `${INGREDIENT_MESSAGES.CONFIRM_ADDED} ${ingredient.name}?`
+      );
     } else {
       proceedToNextStep();
     }
   };
 
-  const getBackgroundColor = (progress) => {
-    if (progress >= 1.05) return '#0900FF'; // Blue
-    if (progress >= 0.95) return '#4CAF50'; // Green
-    if (progress >= 0.8) return '#F44336'; // Yellow
-    if (progress >= 0.01) return '#F44336'; // Red
-    return '#F44336'; // Red for empty scale
-  };
-
   const handleProgressUpdate = (currentProgress, isStable) => {
-    if (!requireScale) {
-      // For non-weight items, enable Next as soon as any change in mass is detected
+    const isWeighable = ingredient.stepType === 'weighable';
+    const isInstruction = ingredient.stepType === 'instruction';
+    const isWeightBased = ingredient.stepType === 'weight';
+
+    if (isInstruction) {
+      // For instructions, enable Next button immediately
+      setWeightReached(true);
+      return;
+    }
+
+    if (isWeighable) {
+      // For non-weight weighable items, enable Next as soon as any change in mass is detected
       if (currentProgress > 0.01) {
         setWeightReached(true);
-        SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT + (isLastIngredient ? '. Press finish to complete.' : '. Press next.'));
-      } else {
-        setWeightReached(false);
       }
       return;
     }
 
-    console.log('[IngredientScreen] Ingredient Progress update:', ingredient, currentProgress);
+    if (!isStable) {
+      // If scale is not stable, do nothing for weight items
+      return;
+    }
+
+    console.log(
+      "[IngredientScreen] Ingredient Progress update:",
+      ingredient,
+      currentProgress
+    );
+    // Only update progress if scale has been tared
     setProgress(currentProgress);
 
-    // Overweight range - check this first, without stability check
-    if (currentProgress > 1.05) {
-      if (hasSpokenRef.current !== 'over') {
-        setWeightReached(false);
-        hasSpokenRef.current = 'over';
-        SpeechService.stop();
-        SpeechService.speak(INGREDIENT_MESSAGES.TOO_MUCH);
-      }
-    }
-    // Yellow zone: Add Slowly
-    else if (currentProgress >= 0.8 && currentProgress < 0.95) {
-      if (hasSpokenRef.current !== 'add_slowly') {
-        setWeightReached(false);
-        hasSpokenRef.current = 'add_slowly';
-        console.log('[IngredientScreen] Add slowly:', ingredient.name);
-        SpeechService.stop();
-        SpeechService.speak(INGREDIENT_MESSAGES.ADD_SLOWLY);
-      }
-    }
-    // Underweight range (below yellow zone)
-    else if (currentProgress < 0.8 && currentProgress >= 0.05) {
-      // No immediate speech here, interval handles it
+    // Get target weight and tolerance in grams
+    const targetWeight = parseFloat(ingredient.amount);
+    const toleranceGrams = parseFloat(ingredient.tolerance || '0');
+    const currentWeight = currentProgress * targetWeight;
+    
+    // Calculate acceptable range
+    const minWeight = targetWeight - toleranceGrams;
+    const maxWeight = targetWeight + toleranceGrams;
 
-      // Start the "Add more" interval after initial announcements
-      if(!addMoreIntervalRef.current) {
-        addMoreIntervalRef.current = setInterval(() => {
-          console.log('[IngredientScreen] Add more interval running. Progress', currentProgress);
-          // Only speak if progress is in the "red zone" (0.05 to 0.8)
-          // Use the current value of progress from the state, not the closure
-          SpeechService.speak(`${INGREDIENT_MESSAGES.ADD_MORE} ${ingredient.name}`);
-        }, 10000); // Every 10 seconds
-      }
+    console.log('[IngredientScreen] Weight validation:', {
+      currentWeight,
+      targetWeight,
+      toleranceGrams,
+      minWeight,
+      maxWeight
+    });
 
-      setWeightReached(false);
-      hasSpokenRef.current = 'under'; // Set to 'under' to avoid repeated announcements
-    }
-    // Starting/empty scale
-    else if (currentProgress < 0.05) { // Changed from 0.01 to 0.05 to align with "Add more" lower bound
-      if (hasSpokenRef.current !== 'start') {
-        setWeightReached(false);
-        hasSpokenRef.current = 'start';
-        SpeechService.speak(INGREDIENT_MESSAGES.START_WEIGHING);
-      }
-    }
+    // Update weightReached based on whether we're within tolerance
+    setWeightReached(currentWeight >= minWeight && currentWeight <= maxWeight);
+  };
 
-    // Perfect weight range
-    if (isStable && currentProgress >= 0.95 && currentProgress <= 1.05) {
-      if (hasSpokenRef.current !== 'perfect') {
-        setWeightReached(true);
-        setnextButtonEnabled(true); // Keep button enabled once perfect weight is reached
-        hasSpokenRef.current = 'perfect';
-        console.log('[IngredientScreen] Perfect weight reached:', ingredient.name);
-        SpeechService.stop();
-        SpeechService.speak(INGREDIENT_MESSAGES.PERFECT_WEIGHT );
-        const nextInstruction =  isLastIngredient ? INGREDIENT_MESSAGES.PRESS_FINISH : INGREDIENT_MESSAGES.PRESS_NEXT;
-        SpeechService.speak(nextInstruction);
-      }
-    }
-   
+  const getBackgroundColor = (progress) => {
+    if (!requireScale) return '#4CAF50'; // Green for non-weight items
+    
+    const targetWeight = parseFloat(ingredient.amount);
+    const toleranceGrams = parseFloat(ingredient.tolerance || '0');
+    const currentWeight = progress * targetWeight;
+    
+    // Calculate acceptable range
+    const minWeight = targetWeight - toleranceGrams;
+    const maxWeight = targetWeight + toleranceGrams;
 
-    if(hasSpokenRef.current !== 'under' && addMoreIntervalRef.current) {
-          //Reset the Add More interval if it was running
-        clearInterval(addMoreIntervalRef.current);
-        addMoreIntervalRef.current = null;
-    }
-
-    // Reset hasSpokenRef when weight changes significantly
-    if ((hasSpokenRef.current === 'start' && currentProgress >= 0.05) ||
-        (hasSpokenRef.current === 'add_slowly' && (currentProgress < 0.8 || currentProgress >= 0.95)) ||
-        (hasSpokenRef.current === 'perfect' && (currentProgress < 0.95 || currentProgress > 1.05)) ||
-        (hasSpokenRef.current === 'over' && currentProgress <= 1.05)) {
-      hasSpokenRef.current = '';
-    }
+    if (currentWeight > maxWeight) return '#0900FF'; // Blue for over
+    if (currentWeight >= minWeight) return '#4CAF50'; // Green for perfect
+    if (currentWeight >= 0.01 * targetWeight) return '#F44336'; // Red for under
+    return '#F44336'; // Red for empty scale
   };
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: () => (
-<></>
-      ),
-      headerTitleAlign: 'center',
-      headerRight: () => (
-          <></>
-
-      ),
+      headerTitle: () => <></>,
+      headerTitleAlign: "center",
+      headerRight: () => <></>,
     });
   }, [navigation, ingredient, weightReached, isLastIngredient]);
 
@@ -393,17 +431,22 @@ const IngredientScreen = ({ route, navigation }) => {
         </View>
 
       {/* Middle Section */}
-      <View style={[
-        styles.middleSection,
-        { backgroundColor: requireScale ? getBackgroundColor(progress) : '#4CAF50' }
-      ]}>
+      <View
+        style={[
+          styles.middleSection,
+          {
+            backgroundColor: requireScale
+              ? getBackgroundColor(progress)
+              : "#4CAF50",
+          },
+        ]}
+      >
         {fullIngredient && fullIngredient.imageUri && (
-            <Image
-              source={{ uri: fullIngredient.imageUri }}
-              style={styles.ingredientImage}
-            />
-          )
-        }
+          <Image
+            source={{ uri: fullIngredient.imageUri }}
+            style={styles.ingredientImage}
+          />
+        )}
         <IngredientColumns
           ingredient={ingredient}
           progress={progress}
@@ -416,26 +459,27 @@ const IngredientScreen = ({ route, navigation }) => {
 
       {/* Bottom Section */}
       <View style={styles.bottomSection}>
-        <Text style={styles.addMoreText}>
-          '.'
-        </Text>
+        <Text style={styles.addMoreText}>'.'</Text>
 
         <TouchableOpacity
           onPress={() => SpeechService.speak(instructionRef.current)}
           style={{
-            backgroundColor: '#FFFFFFAA',
+            backgroundColor: "#FFFFFFAA",
             borderRadius: 50,
             padding: 10,
-            alignItems: 'center',
+            alignItems: "center",
           }}
         >
           <Icon name="volume-up" size={64} color="black" />
         </TouchableOpacity>
-
       </View>
 
       <Portal>
-        <Dialog visible={showConfirmationDialog} onDismiss={() => setShowConfirmationDialog(false)} style={styles.confirmationDialog}>
+        <Dialog
+          visible={showConfirmationDialog}
+          onDismiss={() => setShowConfirmationDialog(false)}
+          style={styles.confirmationDialog}
+        >
           <Dialog.Title>Confirm {`${ingredient.name}`}</Dialog.Title>
           <Dialog.Content>
             <Paragraph>Have you completed this step?</Paragraph>
@@ -475,16 +519,16 @@ const ingredientImageMaxHeight = screenHeight * 0.20; // 20% of screen height
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white', // Assuming a white background for the overall page
-    justifyContent: 'center',
+    backgroundColor: "white", // Assuming a white background for the overall page
+    justifyContent: "center",
   },
   topSection: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     padding: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    alignContent: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    alignContent: "center",
   },
   backButton: {
     padding: 8,
@@ -492,31 +536,31 @@ const styles = StyleSheet.create({
   },
   headerTitleContainer: {
     //flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 10,
   },
   headerTitle: {
     fontSize: 48,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 18,
-    color: 'white', // Changed to white for better visibility on colored backgrounds
-    textAlign: 'center',
+    color: "white", // Changed to white for better visibility on colored backgrounds
+    textAlign: "center",
     marginBottom: 10, // Add some space below the subtitle
   },
   nextButton: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#007AFF',
+    alignSelf: "flex-end",
+    backgroundColor: "#007AFF",
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     zIndex: 999, // Ensure button is above other content
     elevation: 5, // Add elevation for Android
-    shadowColor: '#000', // Add shadow for iOS
+    shadowColor: "#000", // Add shadow for iOS
     shadowOffset: {
       width: 0,
       height: 2,
@@ -525,27 +569,27 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   nextButtonDisabled: {
-    backgroundColor: '#cccccc',
+    backgroundColor: "#cccccc",
   },
   nextButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 50,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginRight: 8, // Space between text and icon
   },
   middleSection: {
     flex: 1,
-    backgroundColor: '#F44336',
-    flexDirection: 'column', // Arrange children in a row
-    justifyContent: 'center', // Distribute space evenly
-    alignItems: 'center', // Center items vertically
+    backgroundColor: "#F44336",
+    flexDirection: "column", // Arrange children in a row
+    justifyContent: "center", // Distribute space evenly
+    alignItems: "center", // Center items vertically
     paddingHorizontal: 10, // Add some horizontal padding
   },
   column: {
     flex: 1, // Each column takes equal space
-    flexDirection: 'column',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
+    flexDirection: "column",
+    justifyContent: "flex-start",
+    alignItems: "center",
   },
   ingredientImage: {
     width: 300,
@@ -556,30 +600,30 @@ const styles = StyleSheet.create({
     resizeMode: 'contain', // Ensure the image scales down to fit within the maxHeight
   },
   targetWeightText: {
-    color: 'white',
+    color: "white",
     fontSize: 48,
-    fontWeight: 'bold',
-    alignSelf: 'center',
+    fontWeight: "bold",
+    alignSelf: "center",
   },
   addMoreText: {
-    color: 'white',
+    color: "white",
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   quantityText: {
-    color: 'white',
+    color: "white",
     fontSize: 48,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   bottomSection: {
-    backgroundColor: 'white', // Or any color for the bottom section
+    backgroundColor: "white", // Or any color for the bottom section
     padding: 0,
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   confirmationDialog: {
     maxWidth: 350, // Adjust as needed
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   dialogButton: {
     flex: 1,
@@ -587,12 +631,12 @@ const styles = StyleSheet.create({
     paddingVertical: 5, // Adjust padding to match Next button's height
     paddingHorizontal: 10, // Adjust padding to match Next button's width
   },
-    imageContainer: {
-    width: '100%',
+  imageContainer: {
+    width: "100%",
     height: 150, // Same height as recipeImage
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden', // Ensure image doesn't overflow rounded corners
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden", // Ensure image doesn't overflow rounded corners
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },

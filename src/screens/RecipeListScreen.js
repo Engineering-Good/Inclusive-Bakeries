@@ -46,15 +46,13 @@ export default function RecipeListScreen({ navigation }) {
     navigation.setOptions({
       headerTitle: () => <View><Text>My Recipes</Text></View>, // Empty view as header title
       headerRight: () => (
-        
         <View>
-          
-        <IconButton
-          icon="cog"
-          size={48}
-          onPress={() => navigation.navigate('Settings')}
-          style={styles.headerButton}
-        />
+          <IconButton
+            icon="cog"
+            size={48}
+            onPress={() => navigation.navigate('Settings')}
+            style={styles.headerButton}
+          />
         </View>
       ),
     });
@@ -63,7 +61,7 @@ export default function RecipeListScreen({ navigation }) {
   const onChangeSearch = query => setSearchQuery(query);
 
   const renderRecipeCard = ({ item }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.recipeCard}
       onPress={() => navigation.navigate('Recipe Details', { recipeId: item.id })}
     >
@@ -86,14 +84,14 @@ export default function RecipeListScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      
+
       <Searchbar
         placeholder="Search recipes"
         onChangeText={onChangeSearch}
         value={searchQuery}
         style={styles.searchBar}
       />
-      
+
       <FlatList
         data={filteredRecipes}
         renderItem={renderRecipeCard}
@@ -103,7 +101,7 @@ export default function RecipeListScreen({ navigation }) {
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
       />
-      
+
       <FAB
         style={styles.fab}
         icon="account-circle"

@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 
 group = 'expo.modules.lefuscale'
-version = '0.6.3'
+version = '0.7.2'
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
 apply from: expoModulesCorePlugin
@@ -35,22 +35,14 @@ android {
   namespace "expo.modules.lefuscale"
   defaultConfig {
     versionCode 1
-    versionName "0.6.3"
+    versionName "0.7.2"
   }
   lintOptions {
     abortOnError false
   }
-
-  packagingOptions {
-      exclude 'AndroidManifest.xml'
-      exclude 'R.txt'
-      exclude 'classes.jar'
-  }
-
 }
-dependencies {
 
-  // implementation project(":${project.name}\$ppbasekit")
-  // implementation project(":${project.name}\$ppbluetoothkit")
-  // implementation project(":${project.name}\$ppcalculatekit")
+dependencies {
+    implementation(name: 'ppbasekit-4.2.1', ext: 'aar')
+    implementation(name: 'ppbluetoothkit-4.2.1', ext: 'aar')
 }

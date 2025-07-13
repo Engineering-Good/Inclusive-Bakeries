@@ -1,20 +1,20 @@
-import React, { useState, useEffect, Fragment } from 'react';
-import { View, StyleSheet, ScrollView, Text, TextInput } from 'react-native';
-import { List, Switch, Button, Divider, Snackbar, Menu } from 'react-native-paper';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SCALE_SERVICES } from '../constants/ScaleServices';
-import ScaleServiceFactory from '../services/ScaleServiceFactory';
-import ScaleConnectButton from '../components/ScaleConnectButton';
-import RecipeService from '../services/RecipeService';
-import speechService from '../services/SpeechService'; // Import speechService
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import React, { Fragment, useEffect, useState } from 'react' // Import Fragment
+import { ScrollView, StyleSheet, View, TextInput  } from 'react-native'
+import { Button, Divider, List, Snackbar, Switch } from 'react-native-paper'
+import ScaleConnectButton from '../components/ScaleConnectButton'
+import { SCALE_SERVICES } from '../constants/ScaleServices'
+import RecipeService from '../services/RecipeService' // Import RecipeService
+import ScaleServiceFactory from '../services/ScaleServiceFactory'
+import speechService from '../services/SpeechService'; 
 
 const SettingsScreen = ({ navigation }) => {
-  const [selectedScale, setSelectedScale] = useState(SCALE_SERVICES.MOCK);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [currentDevice, setCurrentDevice] = useState(null);
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
+	const [selectedScale, setSelectedScale] = useState(SCALE_SERVICES.MOCK)
+	const [isDarkMode, setIsDarkMode] = useState(false)
+	const [isConnected, setIsConnected] = useState(false)
+	const [currentDevice, setCurrentDevice] = useState(null)
+	const [snackbarVisible, setSnackbarVisible] = useState(false)
+	const [snackbarMessage, setSnackbarMessage] = useState('')
 
   // Speech settings states
   const [speechDelay, setSpeechDelay] = useState(speechService.getSpeechDelay());
@@ -31,21 +31,21 @@ const SettingsScreen = ({ navigation }) => {
     loadSpeechSettings();
   }, []);
 
-  // Check connection status periodically
-  useEffect(() => {
-    const checkConnection = () => {
-      const status = ScaleServiceFactory.getConnectionStatus();
-      setIsConnected(status.isConnected);
-      setCurrentDevice(status.currentDevice);
-    };
+	// Check connection status periodically
+	useEffect(() => {
+		const checkConnection = () => {
+			const status = ScaleServiceFactory.getConnectionStatus()
+			setIsConnected(status.isConnected)
+			setCurrentDevice(status.currentDevice)
+		}
 
-    // Check immediately
-    checkConnection();
+		// Check immediately
+		checkConnection()
 
-    // Check every 2 seconds
-    const interval = setInterval(checkConnection, 2000);
-    return () => clearInterval(interval);
-  }, []);
+		// Check every 2 seconds
+		const interval = setInterval(checkConnection, 2000)
+		return () => clearInterval(interval)
+	}, [])
 
   const loadSettings = async () => {
     try {
@@ -80,42 +80,43 @@ const SettingsScreen = ({ navigation }) => {
     }
   };
 
-  const handleScaleChange = async (scale) => {
-    try {
-      await AsyncStorage.setItem('selectedScale', scale);
-      setSelectedScale(scale);
-      await ScaleServiceFactory.setScaleService(scale);
-    } catch (error) {
-      console.error('Error saving scale setting:', error);
-    }
-  };
+	const handleScaleChange = async (scale) => {
+		try {
+			await AsyncStorage.setItem('selectedScale', scale)
+			setSelectedScale(scale)
+			await ScaleServiceFactory.setScaleService(scale)
+		} catch (error) {
+			console.error('Error saving scale setting:', error)
+		}
+	}
 
-  const handleThemeChange = async (value) => {
-    try {
-      await AsyncStorage.setItem('isDarkMode', value.toString());
-      setIsDarkMode(value);
-    } catch (error) {
-      console.error('Error saving theme setting:', error);
-    }
-  };
+	const handleThemeChange = async (value) => {
+		try {
+			await AsyncStorage.setItem('isDarkMode', value.toString())
+			setIsDarkMode(value)
+		} catch (error) {
+			console.error('Error saving theme setting:', error)
+		}
+	}
 
-  const handleScaleLoad = ({ nativeEvent }) => {
-    console.log('Scale view loaded:', nativeEvent.url);
-  };
+	const handleScaleLoad = ({ nativeEvent }) => {
+		console.log('Scale view loaded:', nativeEvent.url)
+	}
 
-  const onDismissSnackBar = () => setSnackbarVisible(false);
+	const onDismissSnackBar = () => setSnackbarVisible(false)
 
-  const handleResetRecipes = async () => {
-    try {
-      await RecipeService.resetRecipesToSampleData();
-      setSnackbarMessage("Recipes have been reloaded with sample data.");
-      setSnackbarVisible(true);
-    } catch (error) {
-      setSnackbarMessage("Failed to reset recipes.");
-      setSnackbarVisible(true);
-      console.error('Error resetting recipes:', error);
-    }
-  };
+	const handleResetRecipes = async () => {
+		try {
+			await RecipeService.resetRecipesToSampleData()
+			setSnackbarMessage('Recipes have been reloaded with sample data.')
+			setSnackbarVisible(true)
+		} catch (error) {
+			setSnackbarMessage('Failed to reset recipes.')
+			setSnackbarVisible(true)
+			console.error('Error resetting recipes:', error)
+		}
+	}
+
 
   const handleDisconnectScale = async () => {
     try {
@@ -164,80 +165,82 @@ const SettingsScreen = ({ navigation }) => {
     return voice ? `${voice.name} (${voice.language})` : 'Default Voice';
   };
 
-  return (
-    <Fragment>
-      <ScrollView style={styles.container}>
-        <List.Section>
-          <List.Subheader>Scale Settings</List.Subheader>
-          <List.Item
-            title="Mock Scale"
-            description="Use simulated scale readings"
-            left={(props) => <List.Icon {...props} icon="scale" />}
-            right={() => (
-              <Switch
-                value={selectedScale === SCALE_SERVICES.MOCK}
-                onValueChange={() => handleScaleChange(SCALE_SERVICES.MOCK)}
-              />
-            )}
-          />
-          <List.Item
-            title="Etekcity Scale"
-            description="Use Etekcity Bluetooth scale"
-            left={(props) => <List.Icon {...props} icon="scale" />}
-            right={() => (
-              <Switch
-                value={selectedScale === SCALE_SERVICES.ETEKCITY}
-                onValueChange={() => handleScaleChange(SCALE_SERVICES.ETEKCITY)}
-              />
-            )}
-          />
-          <List.Item
-            title="Generic Bluetooth Scale"
-            description="Use generic Bluetooth scale"
-            left={(props) => <List.Icon {...props} icon="scale" />}
-            right={() => (
-              <Switch
-                value={selectedScale === SCALE_SERVICES.BLUETOOTH}
-                onValueChange={() => handleScaleChange(SCALE_SERVICES.BLUETOOTH)}
-              />
-            )}
-          />
-          {/* <List.Item
-            title="Lefu Kitchen Scale"
-            description="Use Lefu Kitchen Scale"
-            left={(props) => <List.Icon {...props} icon="scale" />}
-            right={() => (
-              <Switch
-                value={selectedScale === SCALE_SERVICES.LEFU}
-                onValueChange={() => handleScaleChange(SCALE_SERVICES.LEFU)}
-              />
-            )}
-          /> */}
-        </List.Section>
+	return (
+		<Fragment>
+			<ScrollView style={styles.container}>
+				<List.Section>
+					<List.Subheader>Scale Settings</List.Subheader>
+					<List.Item
+						title="Mock Scale"
+						description="Use simulated scale readings"
+						left={(props) => <List.Icon {...props} icon="scale" />}
+						right={() => (
+							<Switch
+								value={selectedScale === SCALE_SERVICES.MOCK}
+								onValueChange={() => handleScaleChange(SCALE_SERVICES.MOCK)}
+							/>
+						)}
+					/>
+					<List.Item
+						title="Etekcity Scale"
+						description="Use Etekcity Bluetooth scale"
+						left={(props) => <List.Icon {...props} icon="scale" />}
+						right={() => (
+							<Switch
+								value={selectedScale === SCALE_SERVICES.ETEKCITY}
+								onValueChange={() => handleScaleChange(SCALE_SERVICES.ETEKCITY)}
+							/>
+						)}
+					/>
+					<List.Item
+						title="Generic Bluetooth Scale"
+						description="Use generic Bluetooth scale"
+						left={(props) => <List.Icon {...props} icon="scale" />}
+						right={() => (
+							<Switch
+								value={selectedScale === SCALE_SERVICES.BLUETOOTH}
+								onValueChange={() =>
+									handleScaleChange(SCALE_SERVICES.BLUETOOTH)
+								}
+							/>
+						)}
+					/>
+					<List.Item
+						title="Lefu Kitchen Scale"
+						description="Use Lefu Kitchen Scale"
+						left={(props) => <List.Icon {...props} icon="scale" />}
+						right={() => (
+							<Switch
+								value={selectedScale === SCALE_SERVICES.LEFU}
+								onValueChange={() => handleScaleChange(SCALE_SERVICES.LEFU)}
+							/>
+						)}
+					/>
+				</List.Section>
 
-        <Divider />
+				<Divider />
 
-        <List.Section>
-          <List.Subheader>Connection Status</List.Subheader>
-          <List.Item
-            title="Connection Status"
-            description={isConnected ? "Connected" : "Disconnected"}
-            left={(props) => (
-              <List.Icon
-                {...props}
-                icon={isConnected ? "check-circle" : "close-circle"}
-                color={isConnected ? "#4CAF50" : "#f44336"}
-              />
-            )}
-          />
-          {currentDevice && (
-            <List.Item
-              title="Connected Device"
-              description={currentDevice.name || "Unknown Device"}
-              left={(props) => <List.Icon {...props} icon="bluetooth" />}
-            />
-          )}
-        </List.Section>
+				<List.Section>
+					<List.Subheader>Connection Status</List.Subheader>
+					<List.Item
+						title="Connection Status"
+						description={isConnected ? 'Connected' : 'Disconnected'}
+						left={(props) => (
+							<List.Icon
+								{...props}
+								icon={isConnected ? 'check-circle' : 'close-circle'}
+								color={isConnected ? '#4CAF50' : '#f44336'}
+							/>
+						)}
+					/>
+					{currentDevice && (
+						<List.Item
+							title="Connected Device"
+							description={currentDevice.name || 'Unknown Device'}
+							left={(props) => <List.Icon {...props} icon="bluetooth" />}
+						/>
+					)}
+				</List.Section>
 
         <View style={styles.connectContainer}>
           <ScaleConnectButton />
@@ -314,36 +317,36 @@ const SettingsScreen = ({ navigation }) => {
           </Menu>
         </List.Section>
 
-        <Divider />
+				<Divider />
 
-        <List.Section>
-          <List.Subheader>Data Management</List.Subheader>
-          <View style={styles.buttonContainer}>
-            <Button
-              mode="contained"
-              onPress={handleResetRecipes}
-              buttonColor={'#FF9800'}
-              style={styles.button}
-            >
-              Reload Recipes with Sample Data
-            </Button>
-          </View>
-        </List.Section>
+				<List.Section>
+					<List.Subheader>Data Management</List.Subheader>
+					<View style={styles.buttonContainer}>
+						<Button
+							mode="contained"
+							onPress={handleResetRecipes}
+							buttonColor={'#FF9800'}
+							style={styles.button}
+						>
+							Reload Recipes with Sample Data
+						</Button>
+					</View>
+				</List.Section>
 
-        <Divider />
+				<Divider />
 
-        <List.Section>
-          <List.Subheader>Appearance</List.Subheader>
-          <List.Item
-            title="Dark Mode"
-            description="Use dark theme (Just for illustration, not working)"
-            left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
-            right={() => (
-              <Switch value={isDarkMode} onValueChange={handleThemeChange} />
-            )}
-          />
-        </List.Section>
-  {/*   // Uncomment if you want to add Lefu scale configuration (example )
+				<List.Section>
+					<List.Subheader>Appearance</List.Subheader>
+					<List.Item
+						title="Dark Mode"
+						description="Use dark theme (Just for illustration, not working)"
+						left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
+						right={() => (
+							<Switch value={isDarkMode} onValueChange={handleThemeChange} />
+						)}
+					/>
+				</List.Section>
+				{/*   // Uncomment if you want to add Lefu scale configuration (example )
         <View style={styles.scaleContainer}>
           <Text style={styles.sectionTitle}>Scale Configuration</Text>
           <LefuScaleView 
@@ -352,22 +355,23 @@ const SettingsScreen = ({ navigation }) => {
             onLoad={handleScaleLoad}
           />
         </View> */}
-      </ScrollView>
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={onDismissSnackBar}
-        duration={Snackbar.DURATION_SHORT}
-        action={{
-          label: 'Dismiss',
-          onPress: () => {
-            // Do something
-          },
-        }}>
-        {snackbarMessage}
-      </Snackbar>
-    </Fragment>
-  );
-};
+			</ScrollView>
+			<Snackbar
+				visible={snackbarVisible}
+				onDismiss={onDismissSnackBar}
+				duration={Snackbar.DURATION_SHORT}
+				action={{
+					label: 'Dismiss',
+					onPress: () => {
+						// Do something
+					},
+				}}
+			>
+				{snackbarMessage}
+			</Snackbar>
+		</Fragment>
+	)
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -411,4 +415,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SettingsScreen;
+export default SettingsScreen

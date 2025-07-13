@@ -1,19 +1,16 @@
 {
-  "platforms": [
-    "apple",
-    "android",
-    "web"
-  ],
-  "apple": {
-    "modules": [
-    
-    ]
-  },
+  "platforms": ["android", "web"],
   "android": {
-   
-
-    "modules": [
-     
+    "modules": ["expo.modules.lefuscale.LefuScaleModule"],
+    "gradleAarProjects": [
+      {
+        "name": "ppbasekit",
+        "aarFilePath": "android/libs/ppbasekit-4.2.1.aar"
+      },
+      {
+        "name": "ppbluetoothkit",
+        "aarFilePath": "android/libs/ppbluetoothkit-4.2.1.aar"
+      }
     ]
   }
 }

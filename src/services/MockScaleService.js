@@ -118,6 +118,10 @@ class MockScaleService extends ScaleInterface {
     // Return the current mock weight
     return this.currentWeight;
   }
+
+  checkConnection() {
+    // Not implemented
+  }
 }
 
 export default new MockScaleService();

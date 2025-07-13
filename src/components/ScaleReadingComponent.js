@@ -1,37 +1,63 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { View, Text, StyleSheet, Dimensions, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  ActivityIndicator,
+} from "react-native";
 import { ProgressBar, Button } from "react-native-paper"; // Import Button from react-native-paper
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import EventEmitterService from "../services/EventEmitterService"; // Import EventEmitterService
-
+import { SCALE_MESSAGES } from "../constants/speechText";
 
 // Add at the top of the file, after imports
-const screenWidth = Dimensions.get('window').width;
+const screenWidth = Dimensions.get("window").width;
 
-const ScaleReadingComponent = ({ 
-  targetIngredient, 
-  onProgressUpdate, 
-  onWeightData, 
-  requireTare 
+const ScaleReadingComponent = ({
+  targetIngredient,
+  onProgressUpdate,
+  onWeightData,
+  requireTare,
 }) => {
   const [currentWeight, setCurrentWeight] = useState(0);
   const [error, setError] = useState(null);
   // Use a more descriptive connection status
-  const [connectionStatus, setConnectionStatus] = useState('idle'); // 'idle', 'connecting', 'connected', 'reconnectionFailed', 'connectionFailed'
-  const [tareStatus, setTareStatus] = useState(requireTare ? 'pending' : 'not_required');
-  
-  const targetWeight = targetIngredient?.amount || 0;
+  const [connectionStatus, setConnectionStatus] = useState("idle"); // 'idle', 'connecting', 'connected', 'reconnectionFailed', 'connectionFailed'
+  const [tareStatus, setTareStatus] = useState(
+    requireTare ? "pending" : "not_required"
+  );
+  const hasSpokenRef = useRef(false);
+  const [, forceUpdate] = useState({});
+  const targetWeight = parseFloat(targetIngredient?.amount) || 0;
+  const tolerance = parseFloat(targetIngredient?.tolerance) || 0;
+
+  // Helper function to check if weight is within tolerance
+  const isWithinTolerance = (weight) => {
+    const minWeight = targetWeight - tolerance;
+    const maxWeight = targetWeight + tolerance;
+    return weight >= minWeight && weight <= maxWeight;
+  };
+
+  // Helper function to check if weight is over tolerance
+  const isOverTolerance = (weight) => {
+    const maxWeight = targetWeight + tolerance;
+    return weight > maxWeight;
+  };
 
   const handleConnectPress = useCallback(async () => {
     setError(null);
-    setConnectionStatus('connecting');
+    setConnectionStatus("connecting");
     try {
       await ScaleServiceFactory.connectToScale();
       // Status will be updated by the EventEmitterService subscription
     } catch (err) {
       // Error handling is now primarily done via EventEmitterService subscription
       // but this catch block can be used for immediate feedback if needed
-      console.error('[ScaleReadingComponent] Error during connectToScale:', err);
+      console.error(
+        "[ScaleReadingComponent] Error during connectToScale:",
+        err
+      );
     }
   }, []);
 
@@ -40,20 +66,24 @@ const ScaleReadingComponent = ({
       await ScaleServiceFactory.disconnectFromScale();
       // Status will be updated by the EventEmitterService subscription
     } catch (err) {
-      console.error('[ScaleReadingComponent] Error during disconnectFromScale:', err);
-      setError('Failed to disconnect from scale.');
+      console.error(
+        "[ScaleReadingComponent] Error during disconnectFromScale:",
+        err
+      );
+      setError("Failed to disconnect from scale.");
     }
   }, []);
 
   // Derived state for convenience
-  const isConnected = connectionStatus === 'connected';
-  const isConnecting = connectionStatus === 'connecting';
-  const isReconnectionFailed = connectionStatus === 'reconnectionFailed';
-  const isConnectionFailed = connectionStatus === 'connectionFailed';
+  const isConnected = connectionStatus === "connected";
+  const isConnecting = connectionStatus === "connecting";
+  const isReconnectionFailed = connectionStatus === "reconnectionFailed";
+  const isConnectionFailed = connectionStatus === "connectionFailed";
 
   // Reset states when ingredient changes
   useEffect(() => {
-    setTareStatus(requireTare ? 'pending' : 'not_required');
+    hasSpokenRef.current = false;
+    setTareStatus(requireTare ? "pending" : "not_required");
     setCurrentWeight(0);
   }, [targetIngredient, requireTare]);
 
@@ -61,44 +91,77 @@ const ScaleReadingComponent = ({
   useEffect(() => {
     const handleConnectionStatusChange = (status) => {
       setConnectionStatus(status);
-      if (status === 'connected') {
+      if (status === "connected") {
         setError(null); // Clear any previous errors on successful connection
-      } else if (status === 'reconnectionFailed' || status === 'connectionFailed') {
-        setError('Failed to connect to scale. Please ensure it is on and within range, or try resetting it.');
+      } else if (
+        status === "reconnectionFailed" ||
+        status === "connectionFailed"
+      ) {
+        setError(
+          "Failed to connect to scale. Please ensure it is on and within range, or try resetting it."
+        );
       }
     };
 
     const handleWeightUpdate = (weightData) => {
-      if(!targetIngredient){
+      if (!targetIngredient) {
         return;
       }
       // Handle tare event
       if (weightData.isTare) {
-        setTareStatus('tared');
+        setTareStatus("tared");
+      }
+
+      // Announce tare needed if there's weight and tareStatus is pending
+      if (
+        tareStatus === "pending" &&
+        weightData.value > 0 &&
+        (!hasSpokenRef.current || hasSpokenRef.current !== "tare")
+      ) {
+        console.log("[ScaleReadingComponent] Attempting to speak TARE_NEEDED."); // Added log
+        SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
+        hasSpokenRef.current = "tare";
         return;
       }
-      
-      if (tareStatus === 'tared' || tareStatus === 'not_required') {
-        console.log('[ScaleReadingComponent] Setting currentWeight to:', weightData.value); // Added log
+
+      if (tareStatus === "tared" || tareStatus === "not_required") {
+        console.log(
+          "[ScaleReadingComponent] Setting currentWeight to:",
+          weightData.value
+        ); // Added log
         setCurrentWeight(weightData.value);
+
         
-        const newProgress = weightData.value / targetIngredient?.amount || 0;
-        const isStable = weightData.isStable;
-        onProgressUpdate(newProgress, isStable);
+        // For non-weight weighable items (like eggs), we just need to detect weight change
+        if (targetIngredient.stepType === 'weighable') {
+          // If we detect any significant weight change (more than 1g), consider it progress
+          if (weightData.value > 1) {
+            onProgressUpdate(1, true); // Send progress of 1 to indicate item is present
+          }
+        } else {
+          // For regular weight-based ingredients, calculate progress as before
+          const progress = weightData.value / targetWeight;
+          onProgressUpdate(progress, weightData.isStable);
+        }
       }
-  
+
       onWeightData?.(weightData);
+      forceUpdate({});
     };
 
     // Subscribe to connection status updates
-    const unsubscribeConnection = EventEmitterService.on('connectionStatus', handleConnectionStatusChange);
+    const unsubscribeConnection = EventEmitterService.on(
+      "connectionStatus",
+      handleConnectionStatusChange
+    );
     // Subscribe to weight updates
-    const unsubscribeWeight = ScaleServiceFactory.subscribeToWeightUpdates(handleWeightUpdate);
+    const unsubscribeWeight =
+      ScaleServiceFactory.subscribeToWeightUpdates(handleWeightUpdate);
 
     // Initial check for connection status
     const initialStatus = ScaleServiceFactory.getConnectionStatus();
     if (initialStatus.isConnected) {
-      setConnectionStatus('connected');
+      setConnectionStatus("connected");
     } else {
       // Attempt to connect when component mounts if not already connected
       handleConnectPress();
@@ -109,12 +172,21 @@ const ScaleReadingComponent = ({
       unsubscribeConnection();
       unsubscribeWeight();
       ScaleServiceFactory.unsubscribeAll(); // Ensure all listeners are removed from ScaleServiceFactory
+      hasSpokenRef.current = false;
+      SpeechService.stop();
     };
-  }, [targetIngredient, requireTare, onProgressUpdate, onWeightData, handleConnectPress, tareStatus]);
+  }, [
+    targetIngredient,
+    requireTare,
+    onProgressUpdate,
+    onWeightData,
+    handleConnectPress,
+    tareStatus,
+  ]);
 
   const progress = (tareStatus === 'tared' || tareStatus === 'not_required') ? (currentWeight / targetWeight) : 0;
   
-  console.log('[ScaleReadingComponent] Render. currentWeight:', currentWeight, 'tareStatus:', tareStatus); // Added log
+  console.log('[ScaleReadingComponent] Render. currentWeight:', currentWeight, 'tareStatus:', tareStatus, 'tolerance:', tolerance);
 
   return (
     <View style={styles.container}>
@@ -125,16 +197,20 @@ const ScaleReadingComponent = ({
           {isConnecting && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator color="#fff" style={styles.spinner} />
-              <Text style={styles.connectText}>Attempting to connect to scale...</Text>
+              <Text style={styles.connectText}>
+                Attempting to connect to scale...
+              </Text>
             </View>
           )}
-          {(isReconnectionFailed || isConnectionFailed || connectionStatus === 'idle') && (
+          {(isReconnectionFailed ||
+            isConnectionFailed ||
+            connectionStatus === "idle") && (
             <>
               <Text style={styles.connectText}>Scale not connected</Text>
               <Button
                 mode="contained"
                 onPress={handleConnectPress}
-                buttonColor={'#2196F3'}
+                buttonColor={"#2196F3"}
                 style={styles.button}
                 disabled={isConnecting}
               >
@@ -147,7 +223,9 @@ const ScaleReadingComponent = ({
         <>
           <View style={styles.weightContainer}>
             <Text style={styles.weightText}>
-              {targetIngredient && tareStatus === 'pending' ? 'Press TARE Button' : `${currentWeight}${targetIngredient.unit}`}
+              {targetIngredient && tareStatus === "pending"
+                ? "Press TARE Button"
+                : `${currentWeight}${targetIngredient.unit}`}
             </Text>
           </View>
           {targetIngredient && (tareStatus === 'tared' || tareStatus === 'not_required') && (
@@ -155,13 +233,15 @@ const ScaleReadingComponent = ({
             <ProgressBar
               progress={progress}
               color={
-                progress > 1.05 ? '#FF1111' :  // Red for overweight (blue background)
-                progress >= 0.95 ? '#4CAF50' : // Green for perfect
-                '#2196F3'                      // Default blue for underweight
+                isOverTolerance(currentWeight) ? '#FF1111' :  // Red for over tolerance
+                isWithinTolerance(currentWeight) ? '#4CAF50' : // Green for within tolerance
+                '#2196F3'                                      // Blue for under
               }
               style={styles.progressBar}
             />
-            
+            <Text style={styles.targetText}>
+              Target: {targetWeight}{targetIngredient.unit} ± {tolerance}{targetIngredient.unit}
+            </Text>
           </View>
           )}
         </>
@@ -179,7 +259,7 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: "bold",
     marginBottom: 16,
-    color: 'white',
+    color: "white",
   },
   connectContainer: {
     alignItems: "center",
@@ -189,7 +269,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "white",
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   weightContainer: {
     flexDirection: "row",
@@ -210,31 +290,32 @@ const styles = StyleSheet.create({
   progressContainer: {
     marginBottom: 16,
     width: screenWidth * 0.25, // 1/4 of screen width
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   progressBar: {
     height: 10,
     borderRadius: 5,
   },
   targetText: {
-    textAlign: "right",
+    textAlign: "center",
     marginTop: 8,
     color: "white",
+    fontSize: 16,
   },
   error: {
     color: "#f44336",
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   button: {
-    width: '80%',
-    alignSelf: 'center',
+    width: "80%",
+    alignSelf: "center",
     marginTop: 10,
   },
   loadingContainer: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
   },
   spinner: {

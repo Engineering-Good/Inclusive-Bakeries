@@ -98,6 +98,7 @@ const IngredientScreen = ({ route, navigation }) => {
   const [nextButtonEnabled, setnextButtonEnabled] = useState(false);
   const [isMockScaleActive, setIsMockScaleActive] = useState(false);
   const hasSpokenRef = useRef('');
+  const addMoreIntervalRef = useRef(null);
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const animationRef = useRef(null);

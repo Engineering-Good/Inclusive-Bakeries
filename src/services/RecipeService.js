@@ -42,21 +42,43 @@ class RecipeService {
     const rehydrated = recipes.map(recipeFromStorage => {
       const originalSampleRecipe = sampleRecipes.find(sample => sample.id === recipeFromStorage.id);
 
+      // Process recipe image
+      let finalImageUri = recipeFromStorage.imageUri;
       if (originalSampleRecipe) {
         // This recipe was originally a sample recipe.
         // Restore its imageUri from the canonical sampleRecipes list
-        // to ensure require() paths for local assets are correctly rehydrated.
         console.log(`[RecipeService] Rehydrating image for sample recipe: ${recipeFromStorage.title} (ID: ${recipeFromStorage.id}) using image from original sample.`);
-        return {
-          ...recipeFromStorage,
-          imageUri: originalSampleRecipe.imageUri 
-        };
-      } else {
-        // This is a user-created recipe or its ID doesn't match any sample.
-        // Assume its imageUri in storage is already a valid string URI (from ImagePicker or a placeholder string).
-        console.log(`[RecipeService] User-created or non-sample recipe: ${recipeFromStorage.title} (ID: ${recipeFromStorage.id}). Using stored imageUri:`, recipeFromStorage.imageUri);
-        return recipeFromStorage; // Use the imageUri as it was stored
+        finalImageUri = originalSampleRecipe.imageUri;
+      } else if (typeof finalImageUri === 'object') {
+        // Handle case where imageUri is an object with uri property
+        finalImageUri = finalImageUri.uri;
       }
+
+      // Process ingredient images
+      const rehydratedIngredients = recipeFromStorage.ingredients.map(ingredient => {
+        let ingredientImageUri = ingredient.imageUri;
+        if (originalSampleRecipe) {
+          // Try to find matching ingredient in sample recipe
+          const originalIngredient = originalSampleRecipe.ingredients.find(i => i.id === ingredient.id);
+          if (originalIngredient) {
+            ingredientImageUri = originalIngredient.imageUri;
+          }
+        } else if (typeof ingredientImageUri === 'object') {
+          // Handle case where imageUri is an object with uri property
+          ingredientImageUri = ingredientImageUri.uri;
+        }
+
+        return {
+          ...ingredient,
+          imageUri: ingredientImageUri
+        };
+      });
+
+      return {
+        ...recipeFromStorage,
+        imageUri: finalImageUri,
+        ingredients: rehydratedIngredients
+      };
     });
     console.log('[RecipeService] Rehydration complete. Result:', rehydrated);
     return rehydrated;
@@ -65,12 +87,65 @@ class RecipeService {
   static async saveRecipes(recipes) {
     try {
       console.log('[RecipeService] Saving recipes:', recipes.length);
-      await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(recipes));
+      
+      // Process recipes before saving
+      const processedRecipes = recipes.map(recipe => ({
+        ...recipe,
+        imageUri: typeof recipe.imageUri === 'object' && recipe.imageUri.uri ? recipe.imageUri.uri : recipe.imageUri,
+        ingredients: recipe.ingredients.map(ing => ({
+          ...ing,
+          imageUri: typeof ing.imageUri === 'object' && ing.imageUri.uri ? ing.imageUri.uri : ing.imageUri
+        }))
+      }));
+      
+      await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(processedRecipes));
       console.log('[RecipeService] Recipes saved successfully');
-      return this.rehydrateRecipeImages(recipes); // Return the rehydrated recipes
+      return this.rehydrateRecipeImages(processedRecipes);
     } catch (error) {
       console.error('[RecipeService] Error saving recipes:', error);
-      throw error; // Re-throw the error to be handled by the caller
+      throw error;
+    }
+  }
+
+  static async saveRecipe(recipe) {
+    try {
+      console.log('[RecipeService] Saving recipe:', recipe.title);
+      
+      // Get current recipes
+      const storedRecipesStr = await AsyncStorage.getItem(RECIPES_STORAGE_KEY);
+      let recipes = storedRecipesStr ? JSON.parse(storedRecipesStr) : [];
+      
+      // Process the recipe before saving
+      const processedRecipe = {
+        ...recipe,
+        imageUri: recipe.imageUri && typeof recipe.imageUri === 'object' && recipe.imageUri.uri 
+          ? recipe.imageUri.uri 
+          : recipe.imageUri,
+        ingredients: recipe.ingredients.map(ing => ({
+          ...ing,
+          imageUri: ing.imageUri && typeof ing.imageUri === 'object' && ing.imageUri.uri 
+            ? ing.imageUri.uri 
+            : ing.imageUri
+        }))
+      };
+      
+      // Update or add the recipe
+      const existingIndex = recipes.findIndex(r => r.id === recipe.id);
+      if (existingIndex !== -1) {
+        recipes[existingIndex] = processedRecipe;
+      } else {
+        recipes.push(processedRecipe);
+      }
+      
+      // Save all recipes
+      await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(recipes));
+      console.log('[RecipeService] Recipe saved successfully');
+      
+      // Return the processed recipe
+      return processedRecipe;
+    } catch (error) {
+      console.error('[RecipeService] Error saving recipe:', error);
+      throw error;
     }
   }
 

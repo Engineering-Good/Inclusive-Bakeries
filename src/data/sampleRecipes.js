@@ -21,7 +21,8 @@ export const sampleRecipes = [
         unit: 'g', 
         requireTare: true, 
         imageUri: recipeImages.butter,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       },
       { 
         id: '1002', 
@@ -29,7 +30,8 @@ export const sampleRecipes = [
         amount: 125, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       },
       {
         id: '1003',
@@ -53,7 +55,8 @@ export const sampleRecipes = [
         amount: 200, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       },
     ],
     imageUri: recipeImages.chocolatechipcookie,
@@ -68,7 +71,8 @@ export const sampleRecipes = [
         amount: 150, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       },
       {
         id: '2002',
@@ -83,7 +87,8 @@ export const sampleRecipes = [
         amount: 100, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       },
       { 
         id: '2004', 
@@ -91,7 +96,8 @@ export const sampleRecipes = [
         amount: 120, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       }
     ],
     imageUri: recipeImages.cranberry,
@@ -106,7 +112,8 @@ export const sampleRecipes = [
         amount: 125, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 10
       },
       { 
         id: '3002', 
@@ -114,7 +121,8 @@ export const sampleRecipes = [
         amount: 125, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 10
       },
       {
         id: '3003',
@@ -138,7 +146,8 @@ export const sampleRecipes = [
         amount: 200, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 10
       }
     ],
     imageUri: recipeImages.portugueseeggtarts,
@@ -169,7 +178,8 @@ export const sampleRecipes = [
         amount: 160, 
         unit: 'g', 
         requireTare: false,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       },
       {
         id: '4004',

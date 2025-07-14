@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 const recipeImages = {
   chocolatechipcookie: require('../assets/recipes/chocolatechipcookie.jpeg'),
   bananacake: require('../assets/recipes/bananacake.jpeg'),
+  cranberry: require('../assets/recipes/cranberry.jpg'),
   brownies: require('../assets/recipes/brownies.webp'),
   portugueseeggtarts: require('../assets/recipes/portugueseeggtarts.png'),
   butter: require('../assets/ingredients/butter.png'),
@@ -11,7 +12,7 @@ const recipeImages = {
 export const sampleRecipes = [
   {
     id: '1',
-    title: 'Chocolate Chip Cookies',
+    title: 'Dark Chocolate',
     ingredients: [
       { 
         id: '1001', 
@@ -20,7 +21,8 @@ export const sampleRecipes = [
         unit: 'g', 
         requireTare: true, 
         imageUri: recipeImages.butter,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       },
       { 
         id: '1002', 
@@ -28,7 +30,8 @@ export const sampleRecipes = [
         amount: 125, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       },
       {
         id: '1003',
@@ -52,14 +55,15 @@ export const sampleRecipes = [
         amount: 200, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       },
     ],
     imageUri: recipeImages.chocolatechipcookie,
   },
   {
     id: '2',
-    title: 'Banana Cake',
+    title: 'Cranberry',
     ingredients: [
       { 
         id: '2001', 
@@ -67,7 +71,8 @@ export const sampleRecipes = [
         amount: 150, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       },
       {
         id: '2002',
@@ -82,7 +87,8 @@ export const sampleRecipes = [
         amount: 100, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       },
       { 
         id: '2004', 
@@ -90,10 +96,11 @@ export const sampleRecipes = [
         amount: 120, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       }
     ],
-    imageUri: recipeImages.bananacake,
+    imageUri: recipeImages.cranberry,
   },
   {
     id: '3',
@@ -105,7 +112,8 @@ export const sampleRecipes = [
         amount: 125, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 10
       },
       { 
         id: '3002', 
@@ -113,7 +121,8 @@ export const sampleRecipes = [
         amount: 125, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 10
       },
       {
         id: '3003',
@@ -137,7 +146,8 @@ export const sampleRecipes = [
         amount: 200, 
         unit: 'g', 
         requireTare: true,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 10
       }
     ],
     imageUri: recipeImages.portugueseeggtarts,
@@ -168,7 +178,8 @@ export const sampleRecipes = [
         amount: 160, 
         unit: 'g', 
         requireTare: false,
-        stepType: 'weight'
+        stepType: 'weight',
+        tolerance: 2
       },
       {
         id: '4004',

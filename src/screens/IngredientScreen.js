@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  Dimensions
 } from "react-native";
 import {
   Divider,
@@ -23,6 +24,7 @@ import {
 } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import ScaleReadingComponent from "../components/ScaleReadingComponent";
+import MockScaleComponent from '../components/MockScaleComponent'; 
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import SpeechService from "../services/SpeechService";
 import { INGREDIENT_MESSAGES, RECIPE_MESSAGES } from "../constants/speechText";
@@ -31,13 +33,13 @@ import ingredientDatabase from "../data/ingredientDatabase";
 import { Animated, Easing } from 'react-native';
 import { useFocusEffect } from "@react-navigation/native";
 
-const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles }) => {
+const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles, isMockScaleActive }) => {
   const isWeighable = ingredient.stepType === 'weighable';
   const isInstruction = ingredient.stepType === 'instruction';
   const isWeightBased = ingredient.stepType === 'weight';
 
   return (
-    <>
+    <View style={styles.columnsContainer}>
       {/* Middle Column */}
       <View style={styles.column}>
         {isWeightBased && (
@@ -74,13 +76,18 @@ const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, require
           </>
         )}
       </View>
+       {/* Right Column */}
+    {requireScale && isMockScaleActive && (
+    <View style={styles.column}>
+       <MockScaleComponent />
+    </View>
+    )}
+  </View>
+);
+}
 
-      {/* Right Column (blank for now) */}
-      <View style={styles.column}>
-      </View>
-    </>
-  );
-};
+
+   
 
 const IngredientScreen = ({ route, navigation }) => {
   const { ingredientIndex, recipe } = route.params;
@@ -88,7 +95,10 @@ const IngredientScreen = ({ route, navigation }) => {
   const [progress, setProgress] = useState(0);
   const [weightReached, setWeightReached] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
-  const hasSpokenRef = useRef(false);
+  const [nextButtonEnabled, setnextButtonEnabled] = useState(false);
+  const [isMockScaleActive, setIsMockScaleActive] = useState(false);
+  const hasSpokenRef = useRef('');
+  const addMoreIntervalRef = useRef(null);
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const animationRef = useRef(null);
@@ -130,6 +140,19 @@ const IngredientScreen = ({ route, navigation }) => {
   );
 
   useEffect(() => {
+    const checkMockScaleStatus = async () => {
+      const mockActive = await ScaleServiceFactory.isMockScaleSelected();
+      setIsMockScaleActive(mockActive);
+    };
+
+    checkMockScaleStatus();
+
+    // Clear any existing interval when the effect re-runs (e.g., for a new ingredient)
+    if (addMoreIntervalRef.current) {
+      clearInterval(addMoreIntervalRef.current);
+      addMoreIntervalRef.current = null;
+    }
+
     // Reset states when component mounts or ingredient changes
     setProgress(0);
     setWeightReached(false);
@@ -139,15 +162,11 @@ const IngredientScreen = ({ route, navigation }) => {
       // First ingredient needs the "Let's start baking!" announcement
       if (ingredientIndex === 0) {
         await SpeechService.speak(RECIPE_MESSAGES.START_BAKING);
-        await SpeechService.waitUntilDone();
-        await SpeechService.delay(SpeechService.SPEECH_DELAY);
       }
 
       // Announce tare if needed for weight-based ingredients
       if (ingredient.stepType === 'weight' && ingredient.requireTare) {
         await SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
-        await SpeechService.waitUntilDone();
-        await SpeechService.delay(SpeechService.SPEECH_DELAY);
       }
 
       // Announce which ingredient number we're on
@@ -163,8 +182,6 @@ const IngredientScreen = ({ route, navigation }) => {
       }
 
       await SpeechService.speak(orderMessage);
-      await SpeechService.waitUntilDone();
-      await SpeechService.delay(SpeechService.SPEECH_DELAY);
 
       // For weight-based and weighable ingredients, announce the quantity
       if (ingredient.stepType !== 'instruction') {
@@ -204,7 +221,7 @@ const IngredientScreen = ({ route, navigation }) => {
       setWeightReached(true);
     }
 
-    // Only cleanup on unmount
+    // Cleanup function for unmount
     return () => {
       setProgress(0);
       setWeightReached(false);
@@ -398,10 +415,10 @@ const IngredientScreen = ({ route, navigation }) => {
           {/* <TouchableOpacity
             style={[
               styles.nextButton,
-              !weightReached && styles.nextButtonDisabled
+              (!weightReached && !nextButtonEnabled) && styles.nextButtonDisabled
             ]}
             onPress={handleNext}
-            disabled={!weightReached}
+            disabled={!weightReached && !nextButtonEnabled}
           >
             <Text style={styles.nextButtonText}>
               {isLastIngredient ? 'FINISH' : 'NEXT'}
@@ -437,6 +454,7 @@ const IngredientScreen = ({ route, navigation }) => {
           handleProgressUpdate={handleProgressUpdate}
           requireScale={requireScale}
           styles={styles}
+          isMockScaleActive={isMockScaleActive}
         />
       </View>
 
@@ -495,6 +513,9 @@ const IngredientScreen = ({ route, navigation }) => {
     </View>
   );
 };
+
+const screenHeight = Dimensions.get('window').height;
+const ingredientImageMaxHeight = screenHeight * 0.20; // 20% of screen height
 
 const styles = StyleSheet.create({
   container: {
@@ -576,6 +597,8 @@ const styles = StyleSheet.create({
     height: 300,
     margin: 12,
     marginTop: 20,
+    maxHeight: ingredientImageMaxHeight,
+    resizeMode: 'contain', // Ensure the image scales down to fit within the maxHeight
   },
   targetWeightText: {
     color: "white",
@@ -618,6 +641,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
+  columnsContainer: {
+    flexDirection: 'row',
+    flex: 1,
+    justifyContent: 'space-around',
+    alignItems: 'flex-start',
+  }
 });
 
 export default IngredientScreen;

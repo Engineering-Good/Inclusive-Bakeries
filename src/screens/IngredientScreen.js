@@ -45,7 +45,7 @@ const IngredientScreen = ({ route, navigation }) => {
   const animationRef = useRef(null);
 
   // Determine if the ingredient requires scale interaction
-  const requireScale = ingredient.unit === "g";
+  const requireScale = ingredient.stepType === 'weight' || ingredient.stepType === 'weighable';
   const { isMockScaleActive } = useScale(requireScale);
   const { replayInstruction } = useSpeech(ingredient, ingredientIndex, isLastIngredient);
   const { weightReached, getBackgroundColor } = useIngredientStep(ingredient, currentWeight, isStable);

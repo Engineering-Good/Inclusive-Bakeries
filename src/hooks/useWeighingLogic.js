@@ -36,7 +36,7 @@ const useWeighingLogic = (ingredient, currentWeight) => {
 
     const within = currentWeight >= min && currentWeight <= max;
     const over = currentWeight > max;
-    const prog = target > 0 ? currentWeight / target : 0;
+    const prog = target > 0 ? currentWeight / target : 1.0;
 
     return {
       targetWeight: target,

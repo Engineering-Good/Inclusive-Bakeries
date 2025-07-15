@@ -19,7 +19,7 @@ import useWeighingLogic from "../hooks/useWeighingLogic";
 // Add at the top of the file, after imports
 const screenWidth = Dimensions.get("window").width;
 
-const ScaleReadingComponent = ({
+const ScaleDisplayComponent = ({
   targetIngredient,
   currentWeight,
   onWeightChange,
@@ -53,7 +53,7 @@ const ScaleReadingComponent = ({
       // Error handling is now primarily done via EventEmitterService subscription
       // but this catch block can be used for immediate feedback if needed
       console.error(
-        "[ScaleReadingComponent] Error during connectToScale:",
+        "[ScaleDisplayComponent] Error during connectToScale:",
         err
       );
     }
@@ -65,7 +65,7 @@ const ScaleReadingComponent = ({
       // Status will be updated by the EventEmitterService subscription
     } catch (err) {
       console.error(
-        "[ScaleReadingComponent] Error during disconnectFromScale:",
+        "[ScaleDisplayComponent] Error during disconnectFromScale:",
         err
       );
       setError("Failed to disconnect from scale.");
@@ -117,7 +117,7 @@ const ScaleReadingComponent = ({
         weightData.value > 0 &&
         (!hasSpokenRef.current || hasSpokenRef.current !== "tare")
       ) {
-        console.log("[ScaleReadingComponent] Attempting to speak TARE_NEEDED."); // Added log
+        console.log("[ScaleDisplayComponent] Attempting to speak TARE_NEEDED."); // Added log
         SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
         hasSpokenRef.current = "tare";
         return;
@@ -192,7 +192,7 @@ const ScaleReadingComponent = ({
 
   const displayProgress = (tareStatus === 'tared' || tareStatus === 'not_required') ? progress : 0;
   
-  console.log('[ScaleReadingComponent] Render. currentWeight:', currentWeight, 'tareStatus:', tareStatus, 'tolerance:', tolerance);
+  console.log('[ScaleDisplayComponent] Render. currentWeight:', currentWeight, 'tareStatus:', tareStatus, 'tolerance:', tolerance);
 
   return (
     <View style={styles.container}>
@@ -329,4 +329,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ScaleReadingComponent;
+export default ScaleDisplayComponent;

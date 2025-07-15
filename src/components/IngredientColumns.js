@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Divider } from 'react-native-paper';
-import ScaleReadingComponent from './ScaleReadingComponent';
+import ScaleDisplayComponent from './ScaleDisplayComponent';
 import MockScaleComponent from './MockScaleComponent';
 
 const IngredientColumns = ({
@@ -23,7 +23,7 @@ const IngredientColumns = ({
       <View style={styles.column}>
         {isWeightBased && (
           <>
-            <ScaleReadingComponent
+            <ScaleDisplayComponent
               targetIngredient={ingredient}
               currentWeight={currentWeight}
               onWeightChange={onWeightChange}
@@ -38,7 +38,7 @@ const IngredientColumns = ({
         {(isWeighable || isInstruction) && (
           <>
             {isWeighable && (
-              <ScaleReadingComponent
+              <ScaleDisplayComponent
                 targetIngredient={ingredient}
                 currentWeight={currentWeight}
                 onWeightChange={onWeightChange}

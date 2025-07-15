@@ -4,7 +4,15 @@ import { Divider } from 'react-native-paper';
 import ScaleReadingComponent from './ScaleReadingComponent';
 import MockScaleComponent from './MockScaleComponent';
 
-const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles, isMockScaleActive }) => {
+const IngredientColumns = ({
+  ingredient,
+  currentWeight,
+  onWeightChange,
+  onTare,
+  requireScale,
+  styles,
+  isMockScaleActive,
+}) => {
   const isWeighable = ingredient.stepType === 'weighable';
   const isInstruction = ingredient.stepType === 'instruction';
   const isWeightBased = ingredient.stepType === 'weight';
@@ -17,17 +25,13 @@ const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, require
           <>
             <ScaleReadingComponent
               targetIngredient={ingredient}
-              onProgressUpdate={handleProgressUpdate}
+              currentWeight={currentWeight}
+              onWeightChange={onWeightChange}
+              onTare={onTare}
               requireTare={ingredient.requireTare}
             />
             <Divider style={{ height: 1, backgroundColor: 'black' }} />
-            <Text style={styles.addMoreText}>
-              {
-                progress >= 1.05 ? 'Take some out' :
-                  progress >= 0.95 ? 'Perfect!' :
-                    progress >= 0.05 ? 'Add more' : ''
-              }
-            </Text>
+            <Text style={styles.addMoreText}></Text>
             <Divider style={{ height: 1, backgroundColor: 'black' }} />
           </>
         )}
@@ -36,7 +40,9 @@ const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, require
             {isWeighable && (
               <ScaleReadingComponent
                 targetIngredient={ingredient}
-                onProgressUpdate={handleProgressUpdate}
+                currentWeight={currentWeight}
+                onWeightChange={onWeightChange}
+                onTare={onTare}
                 requireTare={false}
                 isWeighableOnly={true}
               />

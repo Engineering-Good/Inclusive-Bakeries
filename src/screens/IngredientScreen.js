@@ -3,39 +3,31 @@ import React, {
   useLayoutEffect,
   useState,
   useRef,
-  useCallback,
 } from "react";
 import {
   StyleSheet,
   View,
   Text,
   TouchableOpacity,
-  Alert,
   Image,
   Dimensions
 } from "react-native";
 import {
-  Divider,
-  TouchableRipple,
   Dialog,
   Portal,
   Button,
   Paragraph,
 } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import ScaleReadingComponent from "../components/ScaleReadingComponent";
-import MockScaleComponent from '../components/MockScaleComponent';
 import IngredientColumns from '../components/IngredientColumns';
 import useScale from '../hooks/useScale';
 import useSpeech from '../hooks/useSpeech';
 import useIngredientStep from '../hooks/useIngredientStep';
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import SpeechService from "../services/SpeechService";
-import { INGREDIENT_MESSAGES, RECIPE_MESSAGES } from "../constants/speechText";
-import { SCALE_MESSAGES } from "../constants/speechText";
+import { INGREDIENT_MESSAGES } from "../constants/speechText";
 import ingredientDatabase from "../data/ingredientDatabase";
 import { Animated, Easing } from 'react-native';
-import { useFocusEffect } from "@react-navigation/native";
 
 
    
@@ -43,10 +35,9 @@ import { useFocusEffect } from "@react-navigation/native";
 const IngredientScreen = ({ route, navigation }) => {
   const { ingredientIndex, recipe } = route.params;
   const ingredient = recipe.ingredients[ingredientIndex];
-  const [progress, setProgress] = useState(0);
+  const [currentWeight, setCurrentWeight] = useState(0);
   const [isStable, setIsStable] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
-  const [nextButtonEnabled, setnextButtonEnabled] = useState(false);
   const hasSpokenRef = useRef('');
   const addMoreIntervalRef = useRef(null);
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
@@ -57,7 +48,7 @@ const IngredientScreen = ({ route, navigation }) => {
   const requireScale = ingredient.unit === "g";
   const { isMockScaleActive } = useScale(requireScale);
   const { replayInstruction } = useSpeech(ingredient, ingredientIndex, isLastIngredient);
-  const { weightReached, getBackgroundColor } = useIngredientStep(ingredient, progress, isStable);
+  const { weightReached, getBackgroundColor } = useIngredientStep(ingredient, currentWeight, isStable);
 
   console.log("[IngredientScreen] Ingredient:", ingredient);
 
@@ -70,12 +61,13 @@ const IngredientScreen = ({ route, navigation }) => {
     }
 
     // Reset states when component mounts or ingredient changes
-    setProgress(0);
+    setCurrentWeight(0);
+    setIsStable(false);
     hasSpokenRef.current = null; // Reset the spoken ref
 
     // Cleanup function for unmount
+    // Cleanup function for unmount
     return () => {
-      setProgress(0);
       SpeechService.stop();
       ScaleServiceFactory.unsubscribeAll();
     };
@@ -117,9 +109,15 @@ const IngredientScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleProgressUpdate = (currentProgress, stable) => {
-    setProgress(currentProgress);
+  const handleWeightChange = (weight, stable) => {
+    setCurrentWeight(weight);
     setIsStable(stable);
+  };
+
+  const handleTare = () => {
+    // The tare event is handled within ScaleReadingComponent for speech,
+    // but we could add logic here if the screen needs to react to a tare.
+    console.log("Tare event received in IngredientScreen");
   };
 
   useLayoutEffect(() => {
@@ -223,7 +221,7 @@ const IngredientScreen = ({ route, navigation }) => {
           styles.middleSection,
           {
             backgroundColor: requireScale
-              ? getBackgroundColor(progress)
+              ? getBackgroundColor()
               : "#4CAF50",
           },
         ]}
@@ -236,8 +234,9 @@ const IngredientScreen = ({ route, navigation }) => {
         )}
         <IngredientColumns
           ingredient={ingredient}
-          progress={progress}
-          handleProgressUpdate={handleProgressUpdate}
+          currentWeight={currentWeight}
+          onWeightChange={handleWeightChange}
+          onTare={handleTare}
           requireScale={requireScale}
           styles={styles}
           isMockScaleActive={isMockScaleActive}

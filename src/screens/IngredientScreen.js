@@ -24,7 +24,11 @@ import {
 } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import ScaleReadingComponent from "../components/ScaleReadingComponent";
-import MockScaleComponent from '../components/MockScaleComponent'; 
+import MockScaleComponent from '../components/MockScaleComponent';
+import IngredientColumns from '../components/IngredientColumns';
+import useScale from '../hooks/useScale';
+import useSpeech from '../hooks/useSpeech';
+import useIngredientStep from '../hooks/useIngredientStep';
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import SpeechService from "../services/SpeechService";
 import { INGREDIENT_MESSAGES, RECIPE_MESSAGES } from "../constants/speechText";
@@ -33,59 +37,6 @@ import ingredientDatabase from "../data/ingredientDatabase";
 import { Animated, Easing } from 'react-native';
 import { useFocusEffect } from "@react-navigation/native";
 
-const IngredientColumns = ({ ingredient, progress, handleProgressUpdate, requireScale, styles, isMockScaleActive }) => {
-  const isWeighable = ingredient.stepType === 'weighable';
-  const isInstruction = ingredient.stepType === 'instruction';
-  const isWeightBased = ingredient.stepType === 'weight';
-
-  return (
-    <View style={styles.columnsContainer}>
-      {/* Middle Column */}
-      <View style={styles.column}>
-        {isWeightBased && (
-          <>
-            <ScaleReadingComponent
-              targetIngredient={ingredient}
-              onProgressUpdate={handleProgressUpdate}
-              requireTare={ingredient.requireTare}
-            />
-            <Divider style={{ height: 1, backgroundColor: 'black' }} />
-            <Text style={styles.addMoreText}>
-              {
-                progress >= 1.05 ? 'Take some out' :
-                  progress >= 0.95 ? 'Perfect!' :
-                    progress >= 0.05 ? 'Add more' : ''
-              }
-            </Text>
-            <Divider style={{ height: 1, backgroundColor: 'black' }} />
-          </>
-        )}
-        {(isWeighable || isInstruction) && (
-          <>
-            {isWeighable && (
-              <ScaleReadingComponent
-                targetIngredient={ingredient}
-                onProgressUpdate={handleProgressUpdate}
-                requireTare={false}
-                isWeighableOnly={true}
-              />
-            )}
-            <Text style={styles.addMoreText}>
-              Ready for next step!
-            </Text>
-          </>
-        )}
-      </View>
-       {/* Right Column */}
-    {requireScale && isMockScaleActive && (
-    <View style={styles.column}>
-       <MockScaleComponent />
-    </View>
-    )}
-  </View>
-);
-}
-
 
    
 
@@ -93,10 +44,9 @@ const IngredientScreen = ({ route, navigation }) => {
   const { ingredientIndex, recipe } = route.params;
   const ingredient = recipe.ingredients[ingredientIndex];
   const [progress, setProgress] = useState(0);
-  const [weightReached, setWeightReached] = useState(false);
+  const [isStable, setIsStable] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [nextButtonEnabled, setnextButtonEnabled] = useState(false);
-  const [isMockScaleActive, setIsMockScaleActive] = useState(false);
   const hasSpokenRef = useRef('');
   const addMoreIntervalRef = useRef(null);
   const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
@@ -105,47 +55,13 @@ const IngredientScreen = ({ route, navigation }) => {
 
   // Determine if the ingredient requires scale interaction
   const requireScale = ingredient.unit === "g";
+  const { isMockScaleActive } = useScale(requireScale);
+  const { replayInstruction } = useSpeech(ingredient, ingredientIndex, isLastIngredient);
+  const { weightReached, getBackgroundColor } = useIngredientStep(ingredient, progress, isStable);
 
   console.log("[IngredientScreen] Ingredient:", ingredient);
-  const instructionRef = useRef("");
-
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-
-      async function activateService() {
-        const scaleService = await ScaleServiceFactory.getScaleService();
-        if (active && scaleService.setActive) {
-          scaleService.setActive(requireScale);
-        }
-      }
-
-      activateService();
-
-      const interval = setInterval(() => {
-        ScaleServiceFactory.checkConnection();
-      }, 31000);
-
-      return () => {
-        active = false;
-        console.log("Cleaning up scale connection check...");
-        ScaleServiceFactory.getScaleService().then((service) => {
-          if (service.setActive) {
-            service.setActive(false);
-          }
-        });
-        clearInterval(interval);
-      };
-    }, [requireScale])
-  );
 
   useEffect(() => {
-    const checkMockScaleStatus = async () => {
-      const mockActive = await ScaleServiceFactory.isMockScaleSelected();
-      setIsMockScaleActive(mockActive);
-    };
-
-    checkMockScaleStatus();
 
     // Clear any existing interval when the effect re-runs (e.g., for a new ingredient)
     if (addMoreIntervalRef.current) {
@@ -155,76 +71,11 @@ const IngredientScreen = ({ route, navigation }) => {
 
     // Reset states when component mounts or ingredient changes
     setProgress(0);
-    setWeightReached(false);
     hasSpokenRef.current = null; // Reset the spoken ref
-
-    const announceIngredientOrder = async () => {
-      // First ingredient needs the "Let's start baking!" announcement
-      if (ingredientIndex === 0) {
-        await SpeechService.speak(RECIPE_MESSAGES.START_BAKING);
-      }
-
-      // Announce tare if needed for weight-based ingredients
-      if (ingredient.stepType === 'weight' && ingredient.requireTare) {
-        await SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
-      }
-
-      // Announce which ingredient number we're on
-      let orderMessage;
-      if (ingredientIndex === 0) {
-        orderMessage = RECIPE_MESSAGES.FIRST_INGREDIENT;
-      } else if (ingredientIndex === 1) {
-        orderMessage = RECIPE_MESSAGES.SECOND_INGREDIENT;
-      } else if (ingredientIndex === 2) {
-        orderMessage = RECIPE_MESSAGES.THIRD_INGREDIENT;
-      } else {
-        orderMessage = RECIPE_MESSAGES.NEXT_INGREDIENT;
-      }
-
-      await SpeechService.speak(orderMessage);
-
-      // For weight-based and weighable ingredients, announce the quantity
-      if (ingredient.stepType !== 'instruction') {
-        const goalAnnouncement = `${ingredient.amount} ${ingredient.unit} of ${ingredient.name}`;
-        await SpeechService.speak(goalAnnouncement);
-        await SpeechService.waitUntilDone();
-        await SpeechService.delay(SpeechService.SPEECH_DELAY);
-      }
-
-      // Announce the instruction text
-      let instructionLine = ingredient.instructionText?.trim();
-      if (!instructionLine || instructionLine === '') {
-        if (ingredient.stepType === 'weight') {
-          instructionLine = `${INGREDIENT_MESSAGES.INGREDIENT_INSTRUCTION} ${ingredient.name}`;
-        } else if (ingredient.stepType === 'weighable') {
-          instructionLine = `Place ${ingredient.name} on the scale`;
-        }
-      }
-
-      // Append appropriate final instruction
-      instructionLine += isLastIngredient
-        ? '. Press finish to complete.'
-        : '. Press next when ready.';
-
-      // Save it so we can replay later
-      instructionRef.current = instructionLine;
-
-      // Speak it
-      await SpeechService.speak(instructionLine);
-      await SpeechService.waitUntilDone();
-    };
-
-    announceIngredientOrder();
-
-    // If it's an instruction step, set weightReached to true immediately
-    if (ingredient.stepType === 'instruction') {
-      setWeightReached(true);
-    }
 
     // Cleanup function for unmount
     return () => {
       setProgress(0);
-      setWeightReached(false);
       SpeechService.stop();
       ScaleServiceFactory.unsubscribeAll();
     };
@@ -266,74 +117,9 @@ const IngredientScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleProgressUpdate = (currentProgress, isStable) => {
-    const isWeighable = ingredient.stepType === 'weighable';
-    const isInstruction = ingredient.stepType === 'instruction';
-    const isWeightBased = ingredient.stepType === 'weight';
-
-    if (isInstruction) {
-      // For instructions, enable Next button immediately
-      setWeightReached(true);
-      return;
-    }
-
-    if (isWeighable) {
-      // For non-weight weighable items, enable Next as soon as any change in mass is detected
-      if (currentProgress > 0.01) {
-        setWeightReached(true);
-      }
-      return;
-    }
-
-    if (!isStable) {
-      // If scale is not stable, do nothing for weight items
-      return;
-    }
-
-    console.log(
-      "[IngredientScreen] Ingredient Progress update:",
-      ingredient,
-      currentProgress
-    );
-    // Only update progress if scale has been tared
+  const handleProgressUpdate = (currentProgress, stable) => {
     setProgress(currentProgress);
-
-    // Get target weight and tolerance in grams
-    const targetWeight = parseFloat(ingredient.amount);
-    const toleranceGrams = parseFloat(ingredient.tolerance || '0');
-    const currentWeight = currentProgress * targetWeight;
-    
-    // Calculate acceptable range
-    const minWeight = targetWeight - toleranceGrams;
-    const maxWeight = targetWeight + toleranceGrams;
-
-    console.log('[IngredientScreen] Weight validation:', {
-      currentWeight,
-      targetWeight,
-      toleranceGrams,
-      minWeight,
-      maxWeight
-    });
-
-    // Update weightReached based on whether we're within tolerance
-    setWeightReached(currentWeight >= minWeight && currentWeight <= maxWeight);
-  };
-
-  const getBackgroundColor = (progress) => {
-    if (!requireScale) return '#4CAF50'; // Green for non-weight items
-    
-    const targetWeight = parseFloat(ingredient.amount);
-    const toleranceGrams = parseFloat(ingredient.tolerance || '0');
-    const currentWeight = progress * targetWeight;
-    
-    // Calculate acceptable range
-    const minWeight = targetWeight - toleranceGrams;
-    const maxWeight = targetWeight + toleranceGrams;
-
-    if (currentWeight > maxWeight) return '#0900FF'; // Blue for over
-    if (currentWeight >= minWeight) return '#4CAF50'; // Green for perfect
-    if (currentWeight >= 0.01 * targetWeight) return '#F44336'; // Red for under
-    return '#F44336'; // Red for empty scale
+    setIsStable(stable);
   };
 
   useLayoutEffect(() => {
@@ -463,7 +249,7 @@ const IngredientScreen = ({ route, navigation }) => {
         <Text style={styles.addMoreText}>'.'</Text>
 
         <TouchableOpacity
-          onPress={() => SpeechService.speak(instructionRef.current)}
+          onPress={replayInstruction}
           style={{
             backgroundColor: "#FFFFFFAA",
             borderRadius: 50,

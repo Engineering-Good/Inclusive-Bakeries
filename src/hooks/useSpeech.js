@@ -2,6 +2,14 @@ import { useEffect, useRef } from 'react';
 import SpeechService from '../services/SpeechService';
 import { INGREDIENT_MESSAGES, RECIPE_MESSAGES, SCALE_MESSAGES } from '../constants/speechText';
 
+/**
+ * Custom hook to manage speech synthesis for ingredient instructions.
+ * It announces the ingredient, its quantity, and the instructions for the current step.
+ * @param {object} ingredient - The ingredient for the current step.
+ * @param {number} ingredientIndex - The index of the current ingredient in the recipe.
+ * @param {boolean} isLastIngredient - A boolean indicating if this is the last ingredient.
+ * @returns {object} An object containing a `replayInstruction` function.
+ */
 const useSpeech = (ingredient, ingredientIndex, isLastIngredient) => {
   const instructionRef = useRef("");
 

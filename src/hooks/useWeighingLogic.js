@@ -1,5 +1,12 @@
 import { useMemo } from 'react';
 
+/**
+ * Custom hook to perform weighing logic calculations.
+ * It calculates the target weight, tolerance, and progress for a given ingredient.
+ * @param {object} ingredient - The ingredient to be weighed.
+ * @param {number} currentWeight - The current weight measured by the scale.
+ * @returns {object} An object containing weighing logic calculations.
+ */
 const useWeighingLogic = (ingredient, currentWeight) => {
   const {
     targetWeight,

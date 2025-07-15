@@ -2,6 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import ScaleServiceFactory from '../services/ScaleServiceFactory';
 
+/**
+ * Custom hook to manage the scale service.
+ * It activates or deactivates the scale service based on whether the current screen requires it.
+ * It also checks if the mock scale is currently active.
+ * @param {boolean} requireScale - A boolean indicating if the scale is required for the current screen.
+ * @returns {object} An object containing `isMockScaleActive`.
+ */
 const useScale = (requireScale) => {
   const [isMockScaleActive, setIsMockScaleActive] = useState(false);
 

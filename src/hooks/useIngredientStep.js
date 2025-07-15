@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import useWeighingLogic from './useWeighingLogic';
 
+/**
+ * Custom hook to manage the state of a single ingredient step in a recipe.
+ * It determines if the required weight has been reached and provides feedback on the current weight.
+ * @param {object} ingredient - The ingredient for the current step.
+ * @param {number} currentWeight - The current weight measured by the scale.
+ * @param {boolean} isStable - A boolean indicating if the scale reading is stable.
+ * @returns {object} An object containing `weightReached` and `getBackgroundColor`.
+ */
 const useIngredientStep = (ingredient, currentWeight, isStable) => {
   const [weightReached, setWeightReached] = useState(false);
 

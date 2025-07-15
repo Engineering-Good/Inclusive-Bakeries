@@ -46,13 +46,11 @@ const useIngredientStep = (ingredient, currentWeight, isStable) => {
   }, [ingredient, currentWeight, isStable, isWithinTolerance, isOverTolerance]);
 
   const getBackgroundColor = () => {
-    const requireScale = ingredient.unit === "g";
-    if (!requireScale) return '#4CAF50'; // Green for non-weight items
-
+    //Following order of if and return statements is important for correct color assignment
     if (isOverTolerance) return '#0900FF'; // Blue for over
-    if (isWithinTolerance) return '#4CAF50'; // Green for perfect
+    if (weightReached) return '#4CAF50'; // Green for perfect
     // Use progress to determine if the scale is empty or has some weight
-    if (progress > 0.01) return '#F44336'; // Red for under
+    if (currentWeight > 1) return '#F44336'; // Red for under
     return '#F44336'; // Red for empty scale
   };
 

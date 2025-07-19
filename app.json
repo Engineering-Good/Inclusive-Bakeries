@@ -48,6 +48,13 @@
       "runtimeVersion": {
         "policy": "appVersion"
       }
+    },
+    "extra": {
+      "LEFU_API_KEY": "default_api_key",
+      "LEFU_API_SECRET": "default_api_secret",
+      "eas": {
+        "projectId": "46d48457-3d50-40e2-8a3f-011aa2939a79"
+      }
     }
   }
 }

@@ -2,9 +2,10 @@ import Constants from "expo-constants";
 import LefuScaleModule, {
   LefuScaleEvents,
 } from "../modules/bluetooth/LefuScaleModule";
-import { ScaleInterface } from "./ScaleInterface";
-import React, { useRef } from "react";
-import { Alert } from "react-native";
+import { requestPermissions } from '@utils/permissions/bluetooth'
+import { ScaleInterface } from './ScaleInterface'
+import React, { useRef } from 'react'
+import { Alert } from 'react-native'
 
 const isAlertVisible = { current: false };
 
@@ -109,9 +110,23 @@ class LefuScaleService extends ScaleInterface {
     return 0;
   }
 
-  setActive(isActive) {
-    this.isActive = isActive;
-  }
+	async setActive(isActive) {
+		this.isActive = isActive
+		if (isActive) {
+			try {
+				await requestPermissions()
+				// After permissions are granted, you might want to initiate a scan or connection
+			} catch (error) {
+				console.error('Permission error in LefuScaleService:', error)
+				// Handle permission denial
+			}
+		} else {
+			// Optional: handle deactivation, e.g., by disconnecting
+			if (this.device) {
+				await this.disconnect()
+			}
+		}
+	}
 
   handleNotFound() {
     if (!this.isActive) {

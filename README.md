@@ -72,6 +72,9 @@ npm start
 ```
 
 Development Build (Full Native Functionality)
+
+To run the app with native code, you'll need to create a development build.
+
 ```bash
 # Login to your Expo account
 eas login
@@ -97,7 +100,20 @@ For subsequent development builds:
 eas update --branch development --message "update description"
 ```
 
-Note: Development builds require a physical Android device for testing Bluetooth functionality. The Expo Go client does not support native Bluetooth features.
+Alternatively, you can prebuild the app to generate the native `android` and `ios` directories for local development.
+
+### Prebuilding the App
+
+If you prefer to work with the native projects directly, you can prebuild the app:
+
+```bash
+# Generate the native project files
+npx expo prebuild
+```
+
+This command will create the `android` and `ios` directories in your project, allowing you to build and run the app using Android Studio or Xcode.
+
+Note: Development builds require a physical Android device for testing. The Expo Go client does not support native Bluetooth features.
 
 
 ## Project Structure
@@ -121,6 +137,16 @@ InclusiveBakerApp/
 - React Native Paper - Material Design components
 - React Navigation - Navigation library
 
+## Configuration
+
+To connect with Lefu scales, you need to provide API credentials. Copy `.env.template` into `.env` file in the root of the project and add the following variables:
+
+```
+LEFU_API_KEY=your_lefu_api_key
+LEFU_API_SECRET=your_lefu_api_secret
+```
+
+These variables are loaded into the application via `app.config.js`.
 
 ## Bluetooth Service Configuration
 The BluetoothService includes:

@@ -17,14 +17,17 @@ class HamburgerDeviceImpl : AbstractDevice() {
     private val timeout = 4_000L
     private var lastWeightReceivedTime = AtomicLong(0L)
     private var disconnectMonitorJob: Job? = null
+    private var isActive = false
+    private var isDisconnected = true
 
-    private val hamburgerController: PPBlutoothPeripheralHamburgerController?
-        get() = controller as? PPBlutoothPeripheralHamburgerController
+    private val hamburgerController: PPBlutoothPeripheralHamburgerController
+        get() = controller as PPBlutoothPeripheralHamburgerController
 
     private val dataChangeListener = object : FoodScaleDataChangeListener() {
         override fun processData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
             foodScaleGeneral?.let {
                 lastWeightReceivedTime.set(System.currentTimeMillis())
+                isDisconnected = false
                 FoodScaleUtils.handleScaleData(it, isStable = false) { payload ->
                     onDataChange!!.invoke(payload)
                 }
@@ -34,6 +37,7 @@ class HamburgerDeviceImpl : AbstractDevice() {
         override fun lockedData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
             foodScaleGeneral?.let {
                 lastWeightReceivedTime.set(System.currentTimeMillis())
+                isDisconnected = false
                 FoodScaleUtils.handleScaleData(it, isStable = true) { payload ->
                     onDataChange!!.invoke(payload)
                 }
@@ -51,10 +55,11 @@ class HamburgerDeviceImpl : AbstractDevice() {
      * @return `true` if the scan was started successfully, `false` otherwise.
      */
     override fun connect(): Boolean {
-        lefuDevice?.let {
-            hamburgerController?.startSearch(it.deviceMac, this.bleStateInterface)
-            lastWeightReceivedTime.set(System.currentTimeMillis())
+        Log.d(TAG, "Connecting to lefuscale ${lefuDevice!!.deviceMac}")
+        lefuDevice!!.let {
+            hamburgerController.startSearch(it.deviceMac, this.bleStateInterface)
         }
+        this.isActive = true
         return true
     }
 
@@ -70,14 +75,14 @@ class HamburgerDeviceImpl : AbstractDevice() {
      * Registers a listener for data received from the food scale.
      */
     override fun startDataListener() {
-        hamburgerController?.registDataChangeListener(dataChangeListener)
+        hamburgerController.registDataChangeListener(dataChangeListener)
     }
 
     /**
      * Unregister listener to receive data from the device.
      */
     override fun removeDataListener() {
-        hamburgerController?.registDataChangeListener(null)
+        hamburgerController.registDataChangeListener(null)
     }
 
     /**
@@ -89,24 +94,34 @@ class HamburgerDeviceImpl : AbstractDevice() {
         return true
     }
 
+    /** 
+     * Function will execute on a background thread checking the 
+     * last update from lefuScale after the defined timeout and if scale is connected
+     */ 
     override fun autoReconnect() {
-        lastWeightReceivedTime.set(System.currentTimeMillis())
         this.disconnectMonitorJob?.cancel()
         this.disconnectMonitorJob = CoroutineScope(Dispatchers.Default).launch {
-            while (isActive) {
+            while (this@HamburgerDeviceImpl.isActive) {
                 val elapsed = System.currentTimeMillis() - lastWeightReceivedTime.get()
                 if (elapsed > timeout) {
-                    Log.d(TAG, "Device broadcast not recieved for $elapsed ms.")
-                    onDisconnect!!.invoke("hasDisconnected")
-                    cancel()
+                    Log.d(TAG, "Doing routine check after $elapsed ms.")
+                    connect()
+                    if (isDisconnected){
+                        onNotFound!!.invoke("CustomPPBWorkSearchNotFound")
+                    }
+                    isDisconnected = true
                 }
                 delay(1000)
             }
         }
     }
+    
 
     override fun disconnect() {
-        hamburgerController?.registDataChangeListener(null)
-        hamburgerController?.disConnect()
+        this.isActive = false
+        this.lefuDevice = null
+        lastWeightReceivedTime = AtomicLong(0L)
+        hamburgerController.registDataChangeListener(null)
+        hamburgerController.disConnect()
     }
 }

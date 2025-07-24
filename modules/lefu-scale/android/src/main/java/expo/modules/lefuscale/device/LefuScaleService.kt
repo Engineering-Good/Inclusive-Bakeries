@@ -21,12 +21,11 @@ class LefuScaleService {
     }
 
     private var searchManager: PPSearchManager? = null
-    private var deviceImpl: AbstractDevice? = null
-
+    var deviceImpl: AbstractDevice? = null
     val discoveredDevices = mutableListOf<PPDeviceModel>()
-    var connectedDevice: PPDeviceModel? = null
 
     // region CallbacksconnectedDevice
+
     /** Callback for when a new device is discovered during a scan. */
     var onDeviceDiscovered: ((PPDeviceModel) -> Unit)? = null
 
@@ -68,6 +67,7 @@ class LefuScaleService {
      * @param stateCallback The callback to handle BLE state changes during the scan.
      */
     fun startScan() {
+        stopScan() // Cleans up any previous search loops
         Log.d(TAG, "Start device scan")
         if (searchManager == null) {
             val errorMsg = "SDK not initialized. Call initializeSdk first."
@@ -79,6 +79,8 @@ class LefuScaleService {
             onConnectError?.invoke(eventData)
             return
         }
+
+        discoveredDevices.clear() // Clears the list of discovered devices
         searchManager?.startSearchDeviceList(
             30000,
             PPSearchDeviceInfoInterface { device, _ ->
@@ -146,21 +148,11 @@ class LefuScaleService {
         try {
             this.deviceImpl = DeviceControllerFactory.getInstance(device.getDevicePeripheralType())
 
-            this.deviceImpl?.setDevice(device)
-            this.deviceImpl?.addBleStatusListener(object : PPBleStateInterface() {
-                override fun monitorBluetoothWorkState(
-                    state: PPBleWorkState,
-                    deviceModel: PPDeviceModel?
-                ) {
-                    onConnectionStateChange?.invoke(state.name)
-                }
-            })
-            this.deviceImpl?.startDataListener()
+            Log.d(TAG, "Gotten device impl: $deviceImpl ; Device type: ${device.getDevicePeripheralType()}")
 
-            this.connectedDevice = device
-            this.deviceImpl?.connect()
-
-            // initialize event listeners to transmit device state to react native app
+            this.deviceImpl!!.setDevice(device)
+            this.deviceImpl!!.startDataListener()
+            this.deviceImpl!!.connect()
             this.setupEventListeners()
 
             // device reconnection
@@ -181,74 +173,25 @@ class LefuScaleService {
      * Disconnects from the currently connected device.
      */
     fun disconnect() {
+        stopScan()
         deviceImpl?.let { deviceToDisconnect ->
-            Log.d(TAG, "Disconnecting from ${connectedDevice?.deviceMac ?: "unknown device"}")
+            Log.d(TAG, "Disconnecting from ${deviceToDisconnect.lefuDevice ?: "unknown device"}")
             deviceToDisconnect.disconnect()
-            connectedDevice = null
             deviceImpl = null
         }
-    }
-
-    /**
-     * Check for the connection status of the device
-     */
-    fun checkConnection() {
-        discoveredDevices.clear()
-
-        var foundMatchingDevice = false
-
-        val handler = android.os.Handler(android.os.Looper.getMainLooper())
-        val notFoundRunnable = Runnable {
-            if (!foundMatchingDevice) {
-                Log.d(TAG, "Device not found after timeout.")
-                onConnectionStateChange?.invoke("NotFound")
-            }
-        }
-
-        searchManager?.startSearchDeviceList(
-            10000, // Scan for 10 seconds
-            PPSearchDeviceInfoInterface { device, _ ->
-                device?.let {
-                    discoveredDevices.add(it)
-                    if (it.deviceMac == connectedDevice?.deviceMac) {
-                        foundMatchingDevice = true
-                        Log.d(TAG, "Device is found: true")
-                        handler.removeCallbacks(notFoundRunnable)
-                    }
-                }
-            },
-            object : PPBleStateInterface() {
-                override fun monitorBluetoothWorkState(
-                    state: PPBleWorkState,
-                    deviceModel: PPDeviceModel?
-                ) {
-                    val status = state.name
-                    onConnectionStateChange?.invoke(status)
-
-                    Log.d(TAG, "monitorBluetoothWorkState: $status")
-                    if (status == "PPBleWorkSearchTimeOut" && !foundMatchingDevice) {
-                        onConnectionStateChange?.invoke("NotFound")
-                    }
-                }
-            }
-        )
-
-        handler.postDelayed(notFoundRunnable, 5000) // Check after 5 seconds
     }
 
     /**
      * Initialize the event listeners of the service
      */
     private fun setupEventListeners() {
-        Log.d(TAG, "Event listeners initiated.")
-
-        this.deviceImpl?.onDataChange = { payload ->
+        this.deviceImpl!!.onDataChange = { payload ->
             Log.d(TAG, "Weight data change detected: ${payload}")
             this.onWeightDataChange?.invoke(payload)
         }
 
-        this.deviceImpl?.onDisconnect = { payload ->
-            Log.d(TAG, "Device disconnection detected with state: ${payload}")
+        this.deviceImpl!!.onNotFound = { payload ->
+            Log.d(TAG, "Not found detected: ${payload}")
             this.onConnectionStateChange?.invoke(payload)
         }
     }

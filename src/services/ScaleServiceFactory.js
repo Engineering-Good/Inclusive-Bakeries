@@ -74,9 +74,9 @@ class ScaleServiceFactory {
 
 	static async connectToScale() {
 		return new Promise(async (resolve, reject) => {
-			try {
-				const scaleService = await this.getScaleService()
+			const scaleService = await this.getScaleService()
 
+			try {
 				if (this.isConnected) {
 					EventEmitterService.emit('connectionStatus', 'connected')
 					resolve(this.currentDevice)
@@ -87,32 +87,36 @@ class ScaleServiceFactory {
 				// Checks for permissions
 				await requestPermissions()
 				// The startScan method in EtekcityBluetoothService now handles reconnection logic
-				await scaleService.startScan(async (device) => {
-					console.log('Found scale for reconnected:', device.name, device.id)
-					scaleService.stopScan() // Stop scan once device is found/reconnected
+				await scaleService
+					.startScan(async (device) => {
+						console.log('Found scale for reconnected:', device.name, device.id)
 
-					try {
-						const connectedDevice = await scaleService.connect(
-							device.id,
-							(weightData) => {
-								this.emitWeightUpdate(weightData)
-							}
-						)
-						this.currentDevice = connectedDevice
-						this.isConnected = true
-						EventEmitterService.emit('connectionStatus', 'connected')
-						resolve(connectedDevice)
-					} catch (connectError) {
-						console.error(
-							'Failed to connect to device after scan/reconnect attempt:',
-							connectError
-						)
-						this.isConnected = false
-						this.currentDevice = null
-						EventEmitterService.emit('connectionStatus', 'reconnectionFailed') // Or 'connectionFailed'
-						reject(connectError)
-					}
-				})
+						try {
+							const connectedDevice = await scaleService.connect(
+								device.id,
+								(weightData) => {
+									this.emitWeightUpdate(weightData)
+								}
+							)
+							this.isConnected = true
+							this.currentDevice = connectedDevice
+							EventEmitterService.emit('connectionStatus', 'connected')
+							resolve(connectedDevice)
+						} catch (connectError) {
+							console.error(
+								'Failed to connect to device after scan/reconnect attempt:',
+								connectError
+							)
+							this.isConnected = false
+							this.currentDevice = null
+							EventEmitterService.emit('connectionStatus', 'reconnectionFailed') // Or 'connectionFailed'
+							reject(connectError)
+						}
+					})
+					.catch((e) => {
+						console.log('Connection failed, reason:', e)
+						throw new Error('Connection failed. Please try again.')
+					})
 			} catch (error) {
 				console.error('Failed to initiate scale connection:', error)
 				this.isConnected = false
@@ -171,25 +175,15 @@ class ScaleServiceFactory {
 		EventEmitterService.removeAllListeners('connectionStatus')
 	}
 
-	static async checkConnection() {
-		const scaleService = await this.getScaleService();
-
+	static async isMockScaleSelected() {
 		try {
-			scaleService.checkConnection();
+			const selectedScale = await AsyncStorage.getItem('selectedScale')
+			return selectedScale === SCALE_SERVICES.MOCK || selectedScale === null // Default to MOCK if not set
 		} catch (error) {
-			console.error("Error starting reconnection:", error);
+			console.error('Error checking if mock scale is selected:', error)
+			return true // Assume mock if error
 		}
 	}
-
-  static async isMockScaleSelected() {
-    try {
-      const selectedScale = await AsyncStorage.getItem('selectedScale');
-      return selectedScale === SCALE_SERVICES.MOCK || selectedScale === null; // Default to MOCK if not set
-    } catch (error) {
-      console.error('Error checking if mock scale is selected:', error);
-      return true; // Assume mock if error
-    }
-  }
 }
 
 export default ScaleServiceFactory

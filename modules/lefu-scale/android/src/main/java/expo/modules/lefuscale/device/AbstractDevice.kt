@@ -14,7 +14,8 @@ abstract class AbstractDevice {
     var bleStateInterface: PPBleStateInterface? = null
 
     var onDataChange: ((Map<String, Any>) -> Unit)? = null
-    var onDisconnect: ((String) -> Unit)? = null
+    
+    var onNotFound: ((String) -> Unit)? = null
 
     open fun setDevice(device: PPDeviceModel) {
         this.lefuDevice = device

@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
-import ScaleServiceFactory from '../services/ScaleServiceFactory';
+import { useFocusEffect } from '@react-navigation/native'
+import { useCallback, useEffect, useState } from 'react'
+import ScaleServiceFactory from '../services/ScaleServiceFactory'
 
 /**
  * Custom hook to manage the scale service.
@@ -10,48 +10,44 @@ import ScaleServiceFactory from '../services/ScaleServiceFactory';
  * @returns {object} An object containing `isMockScaleActive`.
  */
 const useScale = (requireScale) => {
-  const [isMockScaleActive, setIsMockScaleActive] = useState(false);
+	const [isMockScaleActive, setIsMockScaleActive] = useState(false)
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
+	useFocusEffect(
+		useCallback(() => {
+			let active = true
 
-      async function activateService() {
-        const scaleService = await ScaleServiceFactory.getScaleService();
-        if (active && scaleService.setActive) {
-          scaleService.setActive(requireScale);
-        }
-      }
+			async function activateService() {
+				const scaleService = await ScaleServiceFactory.getScaleService()
+				if (active && scaleService.setActive) {
+					scaleService.setActive(requireScale)
+				}
+			}
 
-      activateService();
+			activateService()
 
-      const interval = setInterval(() => {
-        ScaleServiceFactory.checkConnection();
-      }, 31000);
+			return () => {
+				active = false
+				console.log('Cleaning up scale connection check...')
+				ScaleServiceFactory.getScaleService().then((service) => {
+					if (service.setActive) {
+						service.setActive(false)
+					}
+				})
+				clearInterval(interval)
+			}
+		}, [requireScale])
+	)
 
-      return () => {
-        active = false;
-        console.log("Cleaning up scale connection check...");
-        ScaleServiceFactory.getScaleService().then((service) => {
-          if (service.setActive) {
-            service.setActive(false);
-          }
-        });
-        clearInterval(interval);
-      };
-    }, [requireScale])
-  );
+	useEffect(() => {
+		const checkMockScaleStatus = async () => {
+			const mockActive = await ScaleServiceFactory.isMockScaleSelected()
+			setIsMockScaleActive(mockActive)
+		}
 
-  useEffect(() => {
-    const checkMockScaleStatus = async () => {
-      const mockActive = await ScaleServiceFactory.isMockScaleSelected();
-      setIsMockScaleActive(mockActive);
-    };
+		checkMockScaleStatus()
+	}, [])
 
-    checkMockScaleStatus();
-  }, []);
+	return { isMockScaleActive }
+}
 
-  return { isMockScaleActive };
-};
-
-export default useScale;
+export default useScale

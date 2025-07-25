@@ -190,7 +190,7 @@ class LefuScaleService {
             this.onWeightDataChange?.invoke(payload)
         }
 
-        this.deviceImpl!!.onNotFound = { payload ->
+        this.deviceImpl!!.onBroadcastReceived = { payload ->
             Log.d(TAG, "Not found detected: ${payload}")
             this.onConnectionStateChange?.invoke(payload)
         }

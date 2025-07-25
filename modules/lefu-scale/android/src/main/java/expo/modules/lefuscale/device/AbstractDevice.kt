@@ -15,7 +15,7 @@ abstract class AbstractDevice {
 
     var onDataChange: ((Map<String, Any>) -> Unit)? = null
     
-    var onNotFound: ((String) -> Unit)? = null
+    var onBroadcastReceived: ((String) -> Unit)? = null
 
     open fun setDevice(device: PPDeviceModel) {
         this.lefuDevice = device

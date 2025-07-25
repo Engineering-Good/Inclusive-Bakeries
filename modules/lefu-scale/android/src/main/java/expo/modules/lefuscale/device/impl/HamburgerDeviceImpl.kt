@@ -27,6 +27,7 @@ class HamburgerDeviceImpl : AbstractDevice() {
         override fun processData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
             foodScaleGeneral?.let {
                 lastWeightReceivedTime.set(System.currentTimeMillis())
+                onBroadcastReceived!!.invoke("CustomPPBWorkSearchDeviceFound")
                 isDisconnected = false
                 FoodScaleUtils.handleScaleData(it, isStable = false) { payload ->
                     onDataChange!!.invoke(payload)
@@ -37,6 +38,7 @@ class HamburgerDeviceImpl : AbstractDevice() {
         override fun lockedData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
             foodScaleGeneral?.let {
                 lastWeightReceivedTime.set(System.currentTimeMillis())
+                onBroadcastReceived!!.invoke("CustomPPBWorkSearchDeviceFound")
                 isDisconnected = false
                 FoodScaleUtils.handleScaleData(it, isStable = true) { payload ->
                     onDataChange!!.invoke(payload)
@@ -107,7 +109,7 @@ class HamburgerDeviceImpl : AbstractDevice() {
                     Log.d(TAG, "Doing routine check after $elapsed ms.")
                     connect()
                     if (isDisconnected){
-                        onNotFound!!.invoke("CustomPPBWorkSearchNotFound")
+                        onBroadcastReceived!!.invoke("CustomPPBWorkSearchNotFound")
                     }
                     isDisconnected = true
                 }

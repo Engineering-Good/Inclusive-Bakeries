@@ -191,7 +191,7 @@ class LefuScaleService {
         }
 
         this.deviceImpl!!.onBroadcastReceived = { payload ->
-            Log.d(TAG, "Not found detected: ${payload}")
+            Log.d(TAG, "Broadcast received: ${payload}")
             this.onConnectionStateChange?.invoke(payload)
         }
     }

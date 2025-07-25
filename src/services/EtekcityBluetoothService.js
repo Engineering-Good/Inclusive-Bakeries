@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { requestPermissions } from '@utils/permissions/bluetooth'
 import { Buffer } from 'buffer'
 import { Platform } from 'react-native'
 import { BleManager } from 'react-native-ble-plx'
-import { requestPermissions } from '@utils/permissions/bluetooth'
 import { ScaleInterface } from './ScaleInterface'
 
 const ETEKCITY_SERVICE_UUID = 'FFF0'
@@ -395,10 +395,6 @@ class EtekcityScaleService extends ScaleInterface {
 		// as it's provided through notifications
 		return 0
 	}
-
-  checkConnection() {
-    // Not implemented
-  }
 }
 
 export default new EtekcityScaleService()

@@ -4,7 +4,6 @@ export const LefuScaleEvents = Object.freeze({
 	ON_DEVICE_DISCOVERED: 'onDeviceDiscovered',
 	ON_BLE_STATE_CHANGE: 'onBleStateChange',
 	ON_WEIGHT_CHANGE: 'onWeightChange',
-	HAS_DISCONNECTED: 'hasDisconnected',
 })
 
 class LefuScaleModule {
@@ -35,10 +34,6 @@ class LefuScaleModule {
 		return this.lefuScale.disconnect()
 	}
 
-	checkConnection() {
-		this.lefuScale.checkConnection()
-	}
-
 	#addListener(eventName, callback) {
 		if (this.events[eventName]) {
 			return this.events[eventName]
@@ -60,10 +55,6 @@ class LefuScaleModule {
 
 	addWeightListener(callback) {
 		return this.#addListener(LefuScaleEvents.ON_WEIGHT_CHANGE, callback)
-	}
-
-	addDisconnectListener(callback) {
-		return this.#addListener(LefuScaleEvents.HAS_DISCONNECTED, callback)
 	}
 
 	/**

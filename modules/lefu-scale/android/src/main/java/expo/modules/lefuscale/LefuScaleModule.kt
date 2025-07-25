@@ -5,6 +5,7 @@ import com.lefu.ppbase.PPDeviceModel
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.lefuscale.device.LefuScaleService
 import kotlinx.coroutines.*
+import android.util.Log
 
 class LefuScaleModule : Module() {
   private val moduleScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -15,7 +16,7 @@ class LefuScaleModule : Module() {
     Name("LefuScale")
 
     // Declare all events that can be sent to JavaScript.
-    Events("onDeviceDiscovered", "onBleStateChange", "onWeightChange", "hasDisconnected", "onConnectError")
+    Events("onDeviceDiscovered", "onBleStateChange", "onWeightChange", "onConnectError")
 
     AsyncFunction("initializeSdk") { apiKey: String, apiSecret: String ->
       val context = requireNotNull(appContext.reactContext?.applicationContext) {
@@ -41,15 +42,11 @@ class LefuScaleModule : Module() {
 
     AsyncFunction("disconnect") {
       lefuService?.disconnect()
-      sendEvent("onBleStateChange", mapOf("state" to "Disconnected"))
+      sendEvent("onBleStateChange", mapOf("state" to "CustomPPBWorkSearchDeviceDisconnected"))
     }
 
     AsyncFunction("stopScan") {
       lefuService?.stopScan()
-    }
-
-    AsyncFunction("checkConnection") {
-      lefuService?.checkConnection()
     }
 
     OnDestroy {
@@ -62,11 +59,17 @@ class LefuScaleModule : Module() {
     lefuService?.onDeviceDiscovered = { device ->
       val deviceInfo = mapOf(
         "name" to device.deviceName,
-        "mac" to device.deviceMac,
+        "id" to device.deviceMac,
         "rssi" to device.rssi,
         "deviceType" to device.getDevicePeripheralType().name
       )
       sendEvent("onDeviceDiscovered", deviceInfo)
+    }
+
+    lefuService?.onBleStateChange = { state, _ ->
+      if (lefuService?.deviceImpl?.lefuDevice === null){
+        sendEvent("onBleStateChange", mapOf("state" to state.name))
+      }
     }
 
     lefuService?.onConnectError = { errorMessage ->
@@ -74,11 +77,7 @@ class LefuScaleModule : Module() {
     }
 
     lefuService?.onConnectionStateChange = { state ->
-      if (state == "hasDisconnected") {
-        sendEvent("hasDisconnected", mapOf("reason" to "No weight data received"))
-      } else {
-        sendEvent("onBleStateChange", mapOf("state" to state))
-      }
+      sendEvent("onBleStateChange", mapOf("state" to state))
     }
 
     lefuService?.onWeightDataChange = { payload ->

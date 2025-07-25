@@ -7,21 +7,25 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { ProgressBar, Button } from "react-native-paper"; // Import Button from react-native-paper
-import SpeechService from "../services/SpeechService";
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import EventEmitterService from "../services/EventEmitterService"; // Import EventEmitterService
-import { SCALE_MESSAGES } from "../constants/speechText";
+import SpeechService from "../services/SpeechService";
+import {
+  SCALE_MESSAGES,
+  INGREDIENT_MESSAGES,
+} from "../constants/speechText";
+import useWeighingLogic from "../hooks/useWeighingLogic";
 
 // Add at the top of the file, after imports
 const screenWidth = Dimensions.get("window").width;
 
-const ScaleReadingComponent = ({
+const ScaleDisplayComponent = ({
   targetIngredient,
-  onProgressUpdate,
-  onWeightData,
+  currentWeight,
+  onWeightChange,
+  onTare,
   requireTare,
 }) => {
-  const [currentWeight, setCurrentWeight] = useState(0);
   const [error, setError] = useState(null);
   // Use a more descriptive connection status
   const [connectionStatus, setConnectionStatus] = useState("idle"); // 'idle', 'connecting', 'connected', 'reconnectionFailed', 'connectionFailed'
@@ -29,22 +33,15 @@ const ScaleReadingComponent = ({
     requireTare ? "pending" : "not_required"
   );
   const hasSpokenRef = useRef(false);
+  const lastSpokenMessageRef = useRef(null);
   const [, forceUpdate] = useState({});
-  const targetWeight = parseFloat(targetIngredient?.amount) || 0;
-  const tolerance = parseFloat(targetIngredient?.tolerance) || 0;
-
-  // Helper function to check if weight is within tolerance
-  const isWithinTolerance = (weight) => {
-    const minWeight = targetWeight - tolerance;
-    const maxWeight = targetWeight + tolerance;
-    return weight >= minWeight && weight <= maxWeight;
-  };
-
-  // Helper function to check if weight is over tolerance
-  const isOverTolerance = (weight) => {
-    const maxWeight = targetWeight + tolerance;
-    return weight > maxWeight;
-  };
+  const {
+    targetWeight,
+    tolerance,
+    isWithinTolerance,
+    isOverTolerance,
+    progress,
+  } = useWeighingLogic(targetIngredient, currentWeight);
 
   const handleConnectPress = useCallback(async () => {
     setError(null);
@@ -56,7 +53,7 @@ const ScaleReadingComponent = ({
       // Error handling is now primarily done via EventEmitterService subscription
       // but this catch block can be used for immediate feedback if needed
       console.error(
-        "[ScaleReadingComponent] Error during connectToScale:",
+        "[ScaleDisplayComponent] Error during connectToScale:",
         err
       );
     }
@@ -68,7 +65,7 @@ const ScaleReadingComponent = ({
       // Status will be updated by the EventEmitterService subscription
     } catch (err) {
       console.error(
-        "[ScaleReadingComponent] Error during disconnectFromScale:",
+        "[ScaleDisplayComponent] Error during disconnectFromScale:",
         err
       );
       setError("Failed to disconnect from scale.");
@@ -85,7 +82,7 @@ const ScaleReadingComponent = ({
   useEffect(() => {
     hasSpokenRef.current = false;
     setTareStatus(requireTare ? "pending" : "not_required");
-    setCurrentWeight(0);
+    onWeightChange(0, false); // Reset weight in parent
   }, [targetIngredient, requireTare]);
 
   // Combined useEffect for subscriptions and cleanup
@@ -111,6 +108,7 @@ const ScaleReadingComponent = ({
       // Handle tare event
       if (weightData.isTare) {
         setTareStatus("tared");
+        onTare(); // Notify parent that tare occurred
       }
 
       // Announce tare needed if there's weight and tareStatus is pending
@@ -119,34 +117,40 @@ const ScaleReadingComponent = ({
         weightData.value > 0 &&
         (!hasSpokenRef.current || hasSpokenRef.current !== "tare")
       ) {
-        console.log("[ScaleReadingComponent] Attempting to speak TARE_NEEDED."); // Added log
+        console.log("[ScaleDisplayComponent] Attempting to speak TARE_NEEDED."); // Added log
         SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
         hasSpokenRef.current = "tare";
         return;
       }
 
       if (tareStatus === "tared" || tareStatus === "not_required") {
-        console.log(
-          "[ScaleReadingComponent] Setting currentWeight to:",
-          weightData.value
-        ); // Added log
-        setCurrentWeight(weightData.value);
+        onWeightChange(weightData.value, weightData.isStable);
 
-        
-        // For non-weight weighable items (like eggs), we just need to detect weight change
-        if (targetIngredient.stepType === 'weighable') {
-          // If we detect any significant weight change (more than 1g), consider it progress
-          if (weightData.value > 1) {
-            onProgressUpdate(1, true); // Send progress of 1 to indicate item is present
+        // Voice feedback logic
+        let message = "";
+        if (isWithinTolerance) {
+          if (weightData.isStable) {
+            message = INGREDIENT_MESSAGES.PERFECT_WEIGHT;
           }
+        } else if (isOverTolerance) {
+          message = INGREDIENT_MESSAGES.TOO_MUCH;
         } else {
-          // For regular weight-based ingredients, calculate progress as before
-          const progress = weightData.value / targetWeight;
-          onProgressUpdate(progress, weightData.isStable);
+          message = INGREDIENT_MESSAGES.ADD_MORE;
+        }
+
+        if (message && message !== lastSpokenMessageRef.current) {
+          if (message === INGREDIENT_MESSAGES.ADD_MORE) {
+            if (!lastSpokenMessageRef.current || Date.now() - lastSpokenMessageRef.current.timestamp > 5000) {
+              SpeechService.speak(message);
+              lastSpokenMessageRef.current = { message, timestamp: Date.now() };
+            }
+          } else {
+            SpeechService.speak(message);
+            lastSpokenMessageRef.current = { message, timestamp: Date.now() };
+          }
         }
       }
 
-      onWeightData?.(weightData);
       forceUpdate({});
     };
 
@@ -179,15 +183,16 @@ const ScaleReadingComponent = ({
   }, [
     targetIngredient,
     requireTare,
-    onProgressUpdate,
-    onWeightData,
+    onWeightChange,
     handleConnectPress,
     tareStatus,
+    isWithinTolerance,
+    isOverTolerance,
   ]);
 
-  const progress = (tareStatus === 'tared' || tareStatus === 'not_required') ? (currentWeight / targetWeight) : 0;
+  const displayProgress = (tareStatus === 'tared' || tareStatus === 'not_required') ? progress : 0;
   
-  console.log('[ScaleReadingComponent] Render. currentWeight:', currentWeight, 'tareStatus:', tareStatus, 'tolerance:', tolerance);
+  console.log('[ScaleDisplayComponent] Render. currentWeight:', currentWeight, 'tareStatus:', tareStatus, 'tolerance:', tolerance);
 
   return (
     <View style={styles.container}>
@@ -232,10 +237,10 @@ const ScaleReadingComponent = ({
           {targetIngredient && (tareStatus === 'tared' || tareStatus === 'not_required') && (
           <View style={styles.progressContainer}>
             <ProgressBar
-              progress={progress}
+              progress={displayProgress}
               color={
-                isOverTolerance(currentWeight) ? '#FF1111' :  // Red for over tolerance
-                isWithinTolerance(currentWeight) ? '#4CAF50' : // Green for within tolerance
+                isOverTolerance ? '#FF1111' :  // Red for over tolerance
+                isWithinTolerance ? '#4CAF50' : // Green for within tolerance
                 '#2196F3'                                      // Blue for under
               }
               style={styles.progressBar}
@@ -324,4 +329,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ScaleReadingComponent;
+export default ScaleDisplayComponent;

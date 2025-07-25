@@ -1,110 +1,123 @@
-import { ScaleInterface } from './ScaleInterface';
+import { ScaleInterface } from './ScaleInterface'
 
 class MockScaleService extends ScaleInterface {
-  constructor() {
-    super();
-    this.isScanning = false;
-    this.connectedDevice = null;
-    this.weightUpdateInterval = null;
-    this.currentWeight = 0;
-    this.deviceId = '';
-    this.needsTare = false;
-  }
+	constructor() {
+		super()
+		this.isScanning = false
+		this.connectedDevice = null
+		this.weightUpdateInterval = null
+		this.currentWeight = 0
+		this.deviceId = ''
+		this.needsTare = false
+	}
 
-  startScan(onDeviceFound) {
-    if (this.isScanning) return;
-    
-    this.isScanning = true;
-    console.log('Mock scale: Starting scan...');
-    
-    // Simulate finding a device after 1 second
-    setTimeout(() => {
-      const mockDevice = {
-        id: 'mock-device-1',
-        name: 'Mock Scale',
-        rssi: -50
-      };
-      onDeviceFound(mockDevice);
-      this.stopScan();
-    }, 1000);
-  }
+	startScan(onDeviceFound) {
+		if (this.isScanning) return
 
-  stopScan() {
-    this.isScanning = false;
-    console.log('Mock scale: Stopping scan...');
-  }
+		this.isScanning = true
+		console.log('Mock scale: Starting scan...')
 
-  async connect(deviceId, onWeightUpdate) {
-    if (this.connectedDevice) {
-      throw new Error('Already connected to a device');
-    }
+		// Simulate finding a device after 1 second
+		setTimeout(() => {
+			const mockDevice = {
+				id: 'mock-device-1',
+				name: 'Mock Scale',
+				rssi: -50,
+			}
+			onDeviceFound(mockDevice)
+			this.stopScan()
+		}, 1000)
+	}
 
-    console.log('Mock scale: Connecting to device:', deviceId);
-    
-    // Simulate connection delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    this.connectedDevice = {
-      id: deviceId,
-      name: 'Mock Scale',
-    };
-    this.deviceId = deviceId;
-    // Start sending random weight updates
-    this.startWeightUpdates(onWeightUpdate);
+	stopScan() {
+		this.isScanning = false
+		console.log('Mock scale: Stopping scan...')
+	}
 
-    return this.connectedDevice;
-  }
+	async connect(deviceId, onWeightUpdate) {
+		if (this.connectedDevice) {
+			throw new Error('Already connected to a device')
+		}
 
-  startWeightUpdates(onWeightUpdate) {
-    // Send weight updates every second
-    this.weightUpdateInterval = setInterval(() => {
-      // If weight reaches max, reset to 0 and set needsTare flag
-      if (this.currentWeight >= 200) {
-        this.currentWeight = 0;
-        this.needsTare = true;
-      } else {
-        // Increase weight by 10-50g each update
-        this.currentWeight += 25;
-        // Cap at 200
-        this.currentWeight = Math.min(this.currentWeight, 200);
-      }
-      
-      onWeightUpdate({
-        value: this.currentWeight,
-        unit: 'g',
-        isStable: true,
-        isTare: this.needsTare
-      });
+		console.log('Mock scale: Connecting to device:', deviceId)
 
-      // Reset tare flag after sending it once
-      if (this.needsTare) {
-        this.needsTare = false;
-      }
-    }, 1500);
-  }
+		// Simulate connection delay
+		await new Promise((resolve) => setTimeout(resolve, 1000))
 
-  async disconnect() {
-    if (this.weightUpdateInterval) {
-      clearInterval(this.weightUpdateInterval);
-      this.weightUpdateInterval = null;
-    }
+		this.connectedDevice = {
+			id: deviceId,
+			name: 'Mock Scale',
+		}
+		this.deviceId = deviceId
+		// Start sending random weight updates
+		this.startWeightUpdates(onWeightUpdate)
 
-    this.connectedDevice = null;
-    this.currentWeight = 0;
-  }
+		return this.connectedDevice
+	}
 
-  async readWeight(device) {
-    if (!this.connectedDevice || this.connectedDevice.id !== device.id) {
-      throw new Error('Not connected to this device');
-    }
+	startWeightUpdates(onWeightUpdate) {
+		// Store the onWeightUpdate callback
+		this.onWeightUpdateCallback = onWeightUpdate
+		// Immediately send an initial weight update
+		this.onWeightUpdateCallback({
+			value: this.currentWeight,
+			unit: 'g',
+			isStable: true,
+			isTare: this.needsTare,
+		})
+	}
 
-    // Return a random weight between 0-1000g
-    return Math.floor(Math.random() * 1000);
-  }
+	mockWeightChange(delta) {
+		this.currentWeight += delta
+		// Ensure weight doesn't go below zero
+		this.currentWeight = Math.max(0, this.currentWeight)
+		if (this.onWeightUpdateCallback) {
+			this.onWeightUpdateCallback({
+				value: this.currentWeight,
+				unit: 'g',
+				isStable: false, // Not stable during change
+				isTare: false,
+			})
+		}
+	}
 
-  checkConnection() {
-    // Not implemented
-  }
+	mockStableWeight() {
+		if (this.onWeightUpdateCallback) {
+			this.onWeightUpdateCallback({
+				value: this.currentWeight,
+				unit: 'g',
+				isStable: true,
+				isTare: false,
+			})
+		}
+	}
+
+	mockTare() {
+		this.currentWeight = 0
+		if (this.onWeightUpdateCallback) {
+			this.onWeightUpdateCallback({
+				value: this.currentWeight,
+				unit: 'g',
+				isStable: true,
+				isTare: true,
+			})
+		}
+	}
+
+	async disconnect() {
+		this.connectedDevice = null
+		this.currentWeight = 0
+		this.onWeightUpdateCallback = null // Clear the callback
+	}
+
+	async readWeight(device) {
+		if (!this.connectedDevice || this.connectedDevice.id !== device.id) {
+			throw new Error('Not connected to this device')
+		}
+
+		// Return the current mock weight
+		return this.currentWeight
+	}
 }
 
-export default new MockScaleService();
+export default new MockScaleService()

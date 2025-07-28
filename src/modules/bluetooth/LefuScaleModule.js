@@ -4,6 +4,7 @@ export const LefuScaleEvents = Object.freeze({
 	ON_DEVICE_DISCOVERED: 'onDeviceDiscovered',
 	ON_BLE_STATE_CHANGE: 'onBleStateChange',
 	ON_WEIGHT_CHANGE: 'onWeightChange',
+	ON_ERROR: 'onConnectError',
 })
 
 class LefuScaleModule {
@@ -47,6 +48,10 @@ class LefuScaleModule {
 
 	addDeviceDiscoveredListener(callback) {
 		return this.#addListener(LefuScaleEvents.ON_DEVICE_DISCOVERED, callback)
+	}
+
+	addErrorListener(callback) {
+		return this.#addListener(LefuScaleEvents.ON_ERROR, callback)
 	}
 
 	addBleStateChangeListener(callback) {

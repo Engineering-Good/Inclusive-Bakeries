@@ -2,6 +2,7 @@ package expo.modules.lefuscale.device
 
 import android.content.Context
 import expo.modules.lefuscale.device.impl.HamburgerDeviceImpl
+// import expo.modules.lefuscale.device.impl.FishDeviceImpl
 import com.lefu.ppbase.PPScaleDefine.PPDevicePeripheralType
 
 /**

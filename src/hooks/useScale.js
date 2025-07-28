@@ -33,7 +33,6 @@ const useScale = (requireScale) => {
 						service.setActive(false)
 					}
 				})
-				clearInterval(interval)
 			}
 		}, [requireScale])
 	)

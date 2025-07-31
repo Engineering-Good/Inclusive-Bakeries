@@ -8,6 +8,7 @@ import com.peng.ppscale.business.ble.listener.PPSearchDeviceInfoInterface
 import com.peng.ppscale.business.state.PPBleWorkState
 import com.peng.ppscale.search.PPSearchManager
 import com.lefu.ppbase.PPDeviceModel
+import expo.modules.lefuscale.device.impl.FishDeviceImpl
 
 /**
  * A service class to manage interactions with the Lefu Scale SDK.
@@ -82,7 +83,7 @@ class LefuScaleService {
 
         discoveredDevices.clear() // Clears the list of discovered devices
         searchManager?.startSearchDeviceList(
-            30000,
+            6000,
             PPSearchDeviceInfoInterface { device, _ ->
                 Log.d(TAG, "Device Found: ${device.deviceName} - ${device.deviceMac} (${device.getDevicePeripheralType().name})")
                 device?.let {
@@ -150,13 +151,9 @@ class LefuScaleService {
 
             Log.d(TAG, "Gotten device impl: $deviceImpl ; Device type: ${device.getDevicePeripheralType()}")
 
-            this.deviceImpl!!.setDevice(device)
-            this.deviceImpl!!.startDataListener()
-            this.deviceImpl!!.connect()
+            this.deviceImpl!!.setup(device)
             this.setupEventListeners()
-
-            // device reconnection
-            this.deviceImpl?.autoReconnect()
+            this.deviceImpl!!.connect(device)
 
             Log.d(TAG, "Connection process started for ${device.deviceMac}")
 
@@ -175,12 +172,15 @@ class LefuScaleService {
     /**
      * Disconnects from the currently connected device.
      */
-    fun disconnect() {
-        stopScan()
-        deviceImpl?.let { deviceToDisconnect ->
-            Log.d(TAG, "Disconnecting from ${deviceToDisconnect.lefuDevice ?: "unknown device"}")
-            deviceToDisconnect.disconnect()
+    suspend fun disconnect(): Boolean {
+        try {
+            Log.d(TAG, "Disconnecting from ${deviceImpl!!.lefuDevice?.deviceName ?: "unknown device"}")
+            deviceImpl!!.disconnect()
             deviceImpl = null
+            return true
+        } catch (e: Exception) {
+            Log.d(TAG, "Unable to disconnect from device", e)
+            return false
         }
     }
 
@@ -197,5 +197,25 @@ class LefuScaleService {
             Log.d(TAG, "Broadcast received: ${payload}")
             this.onConnectionStateChange?.invoke(payload)
         }
+    }
+
+    suspend fun toZeroKitchenScale(): Boolean {
+        val fishDevice = deviceImpl as? FishDeviceImpl
+        return fishDevice?.toZeroKitchenScale() ?: false
+    }
+
+    suspend fun changeKitchenScaleUnit(unit: String): Boolean {
+        val fishDevice = deviceImpl as? FishDeviceImpl
+        return fishDevice?.changeKitchenScaleUnit(unit) ?: false
+    }
+
+    suspend fun sendSyncTime(): Boolean {
+        val fishDevice = deviceImpl as? FishDeviceImpl
+        return fishDevice?.sendSyncTime() ?: false
+    }
+
+    suspend fun switchBuzzer(isOn: Boolean): Boolean {
+        val fishDevice = deviceImpl as? FishDeviceImpl
+        return fishDevice?.switchBuzzer(isOn) ?: false
     }
 }

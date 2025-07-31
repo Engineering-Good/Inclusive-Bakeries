@@ -14,47 +14,22 @@ abstract class AbstractDevice {
     var bleStateInterface: PPBleStateInterface? = null
 
     var onDataChange: ((Map<String, Any>) -> Unit)? = null
-    
     var onBroadcastReceived: ((String) -> Unit)? = null
 
-    open fun setDevice(device: PPDeviceModel) {
-        this.lefuDevice = device
-    }
+    /**
+     * Initialize the device with the provided device model.
+     * Sets up the device controller and other necessary state before connecting.
+     */
+    abstract fun setup(device: PPDeviceModel)
 
     /**
      * Attempts to connect to the device.
      * @return `true` if the connection was successful, `false` otherwise.
      */
-    abstract fun connect(): Boolean
+    abstract fun connect(device: PPDeviceModel): Boolean
 
     /**
-     * Adds a listener to receive bluetooth status of the device.
+     * Disconnect and clean up the device.
      */
-    abstract fun addBleStatusListener(listener: PPBleStateInterface)
-
-    /**
-     * Register listener to receive data from the device.
-     */
-    abstract fun startDataListener()
-
-    /**
-     * Unregister listener to receive data from the device.
-     */
-    abstract fun removeDataListener()
-
-    /**
-     * Gets the current status of the device.
-     * @return `true` if the device is discoverable, `false` otherwise.
-     */
-    abstract fun getDeviceStatus(): Boolean
-
-    /**
-     * Initialize the auto reconnect mechanism of the device
-     */
-    abstract fun autoReconnect()
-
-    /**
-     * Disconnect from the device.
-     */
-    abstract fun disconnect()
+    abstract suspend fun disconnect()
 }

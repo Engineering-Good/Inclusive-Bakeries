@@ -117,7 +117,7 @@ class LefuScaleService {
      * Connection status is reported via the [onConnectionStateChange] callback.
      * @param device The [PPDeviceModel] of the device to connect to.
      */
-    fun connectToDevice(deviceMac: String) {
+    fun connectToDevice(deviceMac: String): Boolean {
         stopScan()
         Log.d(TAG, "Attempting to connect to $deviceMac")
 
@@ -129,7 +129,7 @@ class LefuScaleService {
             )
             Log.e(TAG, errorMsg)
             onConnectError?.invoke(eventData)
-            return
+            return false
         }
 
         val device = discoveredDevices.find { it.deviceMac == deviceMac }
@@ -142,7 +142,7 @@ class LefuScaleService {
             )
             Log.e(TAG, errorMsg)
             onConnectError?.invoke(eventData)
-            return
+            return false
         }
 
         try {
@@ -159,13 +159,16 @@ class LefuScaleService {
             this.deviceImpl?.autoReconnect()
 
             Log.d(TAG, "Connection process started for ${device.deviceMac}")
+
+            return true
         } catch (e: IllegalArgumentException) {
             Log.e(TAG, "Unsupported device type: ${device.getDevicePeripheralType()}", e)
             val eventData = mapOf(
                 "state" to "connectToDevice",
-                "errorMessage" to "Unsupported Device"
+                "errorMessage" to "Unsupported device type: ${device.getDevicePeripheralType()}"
             )
             onConnectError?.invoke(eventData)
+            return false
         }
     }
 

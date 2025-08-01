@@ -56,7 +56,9 @@ class HamburgerDeviceImpl : AbstractDevice() {
                 val elapsed = System.currentTimeMillis() - lastWeightReceivedTime.get()
                 if (elapsed > timeout) {
                     Log.d(TAG, "Doing routine check after $elapsed ms.")
-                    connect(this@HamburgerDeviceImpl.lefuDevice!!)
+                    if (this@HamburgerDeviceImpl.lefuDevice != null) {
+                        connect(this@HamburgerDeviceImpl.lefuDevice!!)
+                    } 
                     if (isDisconnected){
                         onBroadcastReceived!!.invoke("CustomPPBWorkSearchNotFound")
                     }

@@ -28,7 +28,6 @@ class FishDeviceImpl : AbstractDevice() {
     private val dataChangeListener = object : FoodScaleDataChangeListener() {
         override fun processData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
             foodScaleGeneral?.let {
-                onBroadcastReceived!!.invoke("CustomPPBWorkSearchDeviceFound")
                 FoodScaleUtils.handleScaleData(it, isStable = false) { payload ->
                     onDataChange!!.invoke(payload)
                 }
@@ -38,7 +37,6 @@ class FishDeviceImpl : AbstractDevice() {
 
         override fun lockedData(foodScaleGeneral: LFFoodScaleGeneral?, deviceModel: PPDeviceModel) {
             foodScaleGeneral?.let {
-                onBroadcastReceived!!.invoke("CustomPPBWorkSearchDeviceFound")
                 FoodScaleUtils.handleScaleData(it, isStable = true) { payload ->
                     onDataChange!!.invoke(payload)
                 }
@@ -78,7 +76,7 @@ class FishDeviceImpl : AbstractDevice() {
                             disconnectMonitorJob?.cancel()
                             disconnectMonitorJob = null
                         }
-    
+
                         PPBleWorkState.PPBleWorkStateDisconnected,
                         PPBleWorkState.PPBleWorkStateConnectFailed -> {
                             onBroadcastReceived?.invoke("CustomPPBWorkSearchNotFound")
@@ -110,7 +108,7 @@ class FishDeviceImpl : AbstractDevice() {
         this.disconnectMonitorJob = CoroutineScope(Dispatchers.Default).launch {
             while (this@FishDeviceImpl.isActive) {
                 val elapsed = System.currentTimeMillis() - FishController.lastConnectTime
-                if (elapsed > timeout) {
+                if (elapsed > timeout && this@FishDeviceImpl.lefuDevice != null) {
                     connect(this@FishDeviceImpl.lefuDevice!!)
                 }
                 delay(1000)

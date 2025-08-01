@@ -73,7 +73,11 @@ class LefuScaleService extends ScaleInterface {
 		const res = await LefuScaleModule.connectToDevice(device.id)
 
 		if (!res) {
-			throw new Error(`Unable to connect to ${device.id}!`)
+			throw new Error(
+				`Unable to connect to ${
+					device.name || 'unknown device (' + device.id + ')'
+				}!`
+			)
 		}
 
 		// Store the device info
@@ -97,14 +101,6 @@ class LefuScaleService extends ScaleInterface {
 					// TODO: Handle an overlay component to reconnect that will go away after x seconds.
 					// this.handleNotFound()
 					break
-				case 'CustomPPBWorkSearchDeviceDisconnected':
-					console.log(
-						'Successfully device disconnected, removing all listeners'
-					)
-					this.disconnect()
-					LefuScaleModule.removeAllListener()
-					this.isActive = false
-					this.device = null
 			}
 		})
 
@@ -131,7 +127,16 @@ class LefuScaleService extends ScaleInterface {
 	}
 
 	async disconnect() {
-		await LefuScaleModule.disconnect()
+		const res = await LefuScaleModule.disconnect()
+		if (res) {
+			LefuScaleModule.removeAllListener()
+			this.isActive = false
+			this.device = null
+			console.log('Successfully disconnected from scale')
+		} else {
+			console.error('Failed to disconnect from scale')
+		}
+		return res
 	}
 
 	async readWeight(device) {

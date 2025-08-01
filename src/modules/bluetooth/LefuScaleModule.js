@@ -31,6 +31,22 @@ class LefuScaleModule {
 		return this.lefuScale.connectToDevice(deviceId)
 	}
 
+	async toZeroKitchenScale() {
+		return this.lefuScale.toZeroKitchenScale()
+	}
+
+	async changeKitchenScaleUnit(unit) {
+		return this.lefuScale.changeKitchenScaleUnit(unit)
+	}
+
+	async sendSyncTime() {
+		return this.lefuScale.sendSyncTime()
+	}
+
+	async switchBuzzer(isOn) {
+		return this.lefuScale.switchBuzzer(isOn)
+	}
+
 	async disconnect() {
 		return this.lefuScale.disconnect()
 	}

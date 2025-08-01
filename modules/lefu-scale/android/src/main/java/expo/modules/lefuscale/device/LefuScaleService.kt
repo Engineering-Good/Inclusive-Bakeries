@@ -150,13 +150,9 @@ class LefuScaleService {
 
             Log.d(TAG, "Gotten device impl: $deviceImpl ; Device type: ${device.getDevicePeripheralType()}")
 
-            this.deviceImpl!!.setDevice(device)
-            this.deviceImpl!!.startDataListener()
-            this.deviceImpl!!.connect()
+            this.deviceImpl!!.setup(device)
             this.setupEventListeners()
-
-            // device reconnection
-            this.deviceImpl?.autoReconnect()
+            this.deviceImpl!!.connect(device)
 
             Log.d(TAG, "Connection process started for ${device.deviceMac}")
 
@@ -175,12 +171,15 @@ class LefuScaleService {
     /**
      * Disconnects from the currently connected device.
      */
-    fun disconnect() {
-        stopScan()
-        deviceImpl?.let { deviceToDisconnect ->
-            Log.d(TAG, "Disconnecting from ${deviceToDisconnect.lefuDevice ?: "unknown device"}")
-            deviceToDisconnect.disconnect()
+    suspend fun disconnect(): Boolean {
+        try {
+            Log.d(TAG, "Disconnecting from ${deviceImpl!!.lefuDevice?.deviceName ?: "unknown device"}")
+            deviceImpl!!.disconnect()
             deviceImpl = null
+            return true
+        } catch (e: Exception) {
+            Log.d(TAG, "Unable to disconnect from device", e)
+            return false
         }
     }
 
@@ -197,5 +196,21 @@ class LefuScaleService {
             Log.d(TAG, "Broadcast received: ${payload}")
             this.onConnectionStateChange?.invoke(payload)
         }
+    }
+
+    suspend fun toZeroKitchenScale(): Boolean {
+        return deviceImpl?.toZeroKitchenScale() ?: false
+    }
+
+    suspend fun changeKitchenScaleUnit(unit: String): Boolean {
+        return deviceImpl?.changeKitchenScaleUnit(unit) ?: false
+    }
+
+    suspend fun sendSyncTime(): Boolean {
+        return deviceImpl?.sendSyncTime() ?: false
+    }
+
+    suspend fun switchBuzzer(isOn: Boolean): Boolean {
+        return deviceImpl?.switchBuzzer(isOn) ?: false
     }
 }

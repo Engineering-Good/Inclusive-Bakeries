@@ -8,7 +8,6 @@ import com.peng.ppscale.business.ble.listener.PPSearchDeviceInfoInterface
 import com.peng.ppscale.business.state.PPBleWorkState
 import com.peng.ppscale.search.PPSearchManager
 import com.lefu.ppbase.PPDeviceModel
-import expo.modules.lefuscale.device.impl.FishDeviceImpl
 
 /**
  * A service class to manage interactions with the Lefu Scale SDK.
@@ -83,7 +82,7 @@ class LefuScaleService {
 
         discoveredDevices.clear() // Clears the list of discovered devices
         searchManager?.startSearchDeviceList(
-            6000,
+            30000,
             PPSearchDeviceInfoInterface { device, _ ->
                 Log.d(TAG, "Device Found: ${device.deviceName} - ${device.deviceMac} (${device.getDevicePeripheralType().name})")
                 device?.let {
@@ -200,22 +199,18 @@ class LefuScaleService {
     }
 
     suspend fun toZeroKitchenScale(): Boolean {
-        val fishDevice = deviceImpl as? FishDeviceImpl
-        return fishDevice?.toZeroKitchenScale() ?: false
+        return deviceImpl?.toZeroKitchenScale() ?: false
     }
 
     suspend fun changeKitchenScaleUnit(unit: String): Boolean {
-        val fishDevice = deviceImpl as? FishDeviceImpl
-        return fishDevice?.changeKitchenScaleUnit(unit) ?: false
+        return deviceImpl?.changeKitchenScaleUnit(unit) ?: false
     }
 
     suspend fun sendSyncTime(): Boolean {
-        val fishDevice = deviceImpl as? FishDeviceImpl
-        return fishDevice?.sendSyncTime() ?: false
+        return deviceImpl?.sendSyncTime() ?: false
     }
 
     suspend fun switchBuzzer(isOn: Boolean): Boolean {
-        val fishDevice = deviceImpl as? FishDeviceImpl
-        return fishDevice?.switchBuzzer(isOn) ?: false
+        return deviceImpl?.switchBuzzer(isOn) ?: false
     }
 }

@@ -32,4 +32,12 @@ abstract class AbstractDevice {
      * Disconnect and clean up the device.
      */
     abstract suspend fun disconnect()
+
+    abstract suspend fun toZeroKitchenScale(): Boolean
+
+    abstract suspend fun changeKitchenScaleUnit(unit: String): Boolean
+
+    abstract suspend fun sendSyncTime(): Boolean
+
+    abstract suspend fun switchBuzzer(isOn: Boolean): Boolean
 }

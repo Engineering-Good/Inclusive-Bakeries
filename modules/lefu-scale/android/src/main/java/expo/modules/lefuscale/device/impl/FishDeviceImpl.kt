@@ -119,12 +119,12 @@ class FishDeviceImpl : AbstractDevice() {
     }
     
 
-    public suspend fun toZeroKitchenScale(): Boolean {
+    override suspend fun toZeroKitchenScale(): Boolean {
         return awaitScaleResultCallback("Zeroing scale") { callback ->
             FishController.toZeroKitchenScale(callback) }
         }
 
-    public suspend fun changeKitchenScaleUnit(unit: String): Boolean {
+    override suspend fun changeKitchenScaleUnit(unit: String): Boolean {
         val ppUnit = FoodScaleUnit.fromUserInput(unit).toPPUnitType()
 
         if (ppUnit == null) {
@@ -137,15 +137,15 @@ class FishDeviceImpl : AbstractDevice() {
             FishController.changeKitchenScaleUnit(ppUnit, callback) }
     }
 
-    public suspend fun sendSyncTime(): Boolean {
+    override suspend fun sendSyncTime(): Boolean {
         return awaitScaleResultCallback("Sync time") { callback ->
             FishController.sendSyncTime(callback) }
-        }
+    }
 
-    public suspend fun switchBuzzer(isOn: Boolean): Boolean {
+    override suspend fun switchBuzzer(isOn: Boolean): Boolean {
         return awaitScaleResultCallback("Switching buzzer") { callback ->
             FishController.switchBuzzer(isOn, callback) }
-        }
+    }
 
     override suspend fun disconnect() {
         FishController.stopSeach()

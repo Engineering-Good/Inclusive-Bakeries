@@ -89,6 +89,22 @@ class HamburgerDeviceImpl : AbstractDevice() {
         return true
     }
 
+    override suspend fun toZeroKitchenScale(): Boolean {
+        throw IllegalArgumentException("Unsupported device type: ${this.lefuDevice?.deviceName}")
+    }
+
+    override suspend fun changeKitchenScaleUnit(unit: String): Boolean {
+        throw IllegalArgumentException("Unsupported device type: ${this.lefuDevice?.deviceName}")
+    }
+
+    override suspend fun sendSyncTime(): Boolean {
+        throw IllegalArgumentException("Unsupported device type: ${this.lefuDevice?.deviceName}")
+    }
+
+    override suspend fun switchBuzzer(isOn: Boolean): Boolean {
+        throw IllegalArgumentException("Unsupported device type: ${this.lefuDevice?.deviceName}")
+    }
+
     override suspend fun disconnect() {
         hamburgerController.stopSeach()
         hamburgerController.registDataChangeListener(null)

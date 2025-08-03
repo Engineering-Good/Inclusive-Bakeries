@@ -45,6 +45,7 @@ export default function RecipeListScreen({ navigation }) {
     // Set up the header right button
     navigation.setOptions({
       headerTitle: () => <View><Text>My Recipes</Text></View>, // Empty view as header title
+      headerBackVisible: false,
       headerRight: () => (
         <View>
           <IconButton

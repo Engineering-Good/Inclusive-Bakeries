@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { IconButton, Divider, Button } from 'react-native-paper';
+import Icon from "react-native-vector-icons/MaterialIcons";
 import SpeechService from '../services/SpeechService';
 import RecipeService from '../services/RecipeService';
 import { RECIPE_MESSAGES } from '../constants/speechText';
@@ -110,6 +111,11 @@ export default function RecipeDetailScreen({ route, navigation }) {
         }}
       >
         <Text style={styles.startButtonText}>Start Baking</Text>
+        <Icon
+            name={"arrow-forward"}
+            size={24}
+            color="white"
+        />
       </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>Ingredients</Text>
@@ -264,24 +270,28 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   startButton: {
-    backgroundColor: '#4CAF50',
-    padding: 16,
-    margin: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignSelf: "center",
+    backgroundColor: "#007AFF",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    zIndex: 999, // Ensure button is above other content
+    elevation: 5, // Add elevation for Android
+    shadowColor: "#000", // Add shadow for iOS
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
   },
   startButtonText: {
-    color: 'white',
-    fontSize: 32,
-    fontWeight: 'bold',
+    color: "white",
+    fontSize: 50,
+    fontWeight: "bold",
+    marginRight: 8, // Space between text and icon
   },
     imageContainer: {
     width: 300,

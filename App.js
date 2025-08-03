@@ -1,6 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Provider as PaperProvider } from 'react-native-paper';
+import { lightTheme } from './src/constants/theme';
 
 import RecipeListScreen from './src/screens/RecipeListScreen';
 import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
@@ -14,7 +15,7 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <PaperProvider>
+    <PaperProvider theme={lightTheme}>
       <NavigationContainer>
         <Stack.Navigator
          screenOptions={{

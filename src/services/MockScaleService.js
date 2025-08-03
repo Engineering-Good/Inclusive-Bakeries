@@ -12,21 +12,27 @@ class MockScaleService extends ScaleInterface {
 	}
 
 	startScan(onDeviceFound) {
-		if (this.isScanning) return
-
-		this.isScanning = true
-		console.log('Mock scale: Starting scan...')
-
-		// Simulate finding a device after 1 second
-		setTimeout(() => {
-			const mockDevice = {
-				id: 'mock-device-1',
-				name: 'Mock Scale',
-				rssi: -50,
+		return new Promise((resolve, reject) => {
+			if (this.isScanning) {
+				reject(new Error('Scan already in progress'))
+				return
 			}
-			onDeviceFound(mockDevice)
-			this.stopScan()
-		}, 1000)
+
+			this.isScanning = true
+			console.log('Mock scale: Starting scan...')
+
+			// Simulate finding a device after 1 second
+			setTimeout(() => {
+				const mockDevice = {
+					id: 'mock-device-1',
+					name: 'Mock Scale',
+					rssi: -50,
+				}
+				onDeviceFound(mockDevice)
+				this.stopScan()
+				resolve()
+			}, 1000)
+		})
 	}
 
 	stopScan() {

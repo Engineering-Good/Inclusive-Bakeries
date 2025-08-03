@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
 		padding: 16,
 	},
 	button: {
-		width: '100%',
+		alignSelf: 'center',
 	},
 	error: {
 		color: '#f44336',

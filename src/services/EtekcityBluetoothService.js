@@ -153,25 +153,7 @@ class EtekcityScaleService extends ScaleInterface {
 		try {
 			console.log('[EtekcityScale] Permissions granted, starting scan')
 
-			// First, try to reconnect to the last known device
-			const reconnected = await this.reconnectToLastDevice(callback) // Pass callback for weight updates
-			if (reconnected) {
-				console.log(
-					'[EtekcityScale] Reconnected to previous device, skipping scan.'
-				)
-				// If reconnected, we should notify the app that a device is connected.
-				// The `reconnectToLastDevice` already sets up notifications, so we just need to pass the device.
-				// However, the `callback` in `startScan` expects a `device` object.
-				// We can pass the currently connected device.
-				if (this.device) {
-					callback(this.device)
-				}
-				return
-			}
-
-			console.log(
-				'[EtekcityScale] No previous device found or reconnection failed. Starting new scan.'
-			)
+			console.log('[EtekcityScale] Starting new scan.')
 			this.manager.startDeviceScan(
 				null, // null means scan for all services
 				{ allowDuplicates: false },
@@ -309,6 +291,9 @@ class EtekcityScaleService extends ScaleInterface {
 		}
 
 		if (buffer.length === 16) {
+			// Determine the sign from byte 10
+			const isNegative = buffer[10] === 0x01
+
 			// Read weight from bytes 11-12 (indices 11 and 12)
 			const rawValue = buffer.readUInt16LE(11)
 
@@ -342,7 +327,10 @@ class EtekcityScaleService extends ScaleInterface {
 					break
 			}
 
-			const scaleValue = rawValue / scaleFactor
+			let scaleValue = rawValue / scaleFactor
+			if (isNegative) {
+				scaleValue *= -1
+			}
 			console.log(`[EtekcityScale] Parsed weight: ${scaleValue}${scaleUnit}`)
 
 			return {

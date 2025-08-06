@@ -37,31 +37,35 @@ const useIngredientStep = (ingredient, currentWeight, isStable) => {
     }
   }, [ingredient, currentWeight, isStable, isWithinTolerance, isOverTolerance]);
 
-  useEffect(() => {
-    const message = getSpeechMessage();
+  const message = getSpeechMessage();
 
-    // Clear any existing timer
+  useEffect(() => {
+    // Clear any existing timer when the message changes.
     if (timerRef.current) {
       clearInterval(timerRef.current);
-      timerRef.current = null;
     }
 
     if (message) {
-      SpeechService.speak(message);
+      // Speak the new message immediately.
+      SpeechService.speak(message, { immediate: true });
 
-      // Set a new timer to repeat the message
+      // Set a new timer to repeat the message.
       timerRef.current = setInterval(() => {
         SpeechService.speak(message);
       }, PROMPT_DELAY);
+    } else {
+      // If there's no message, stop all speech.
+      SpeechService.stop();
     }
 
-    // Cleanup function to clear the timer when the component unmounts or the message changes
+    // Cleanup function to clear the timer when the component unmounts or the message changes.
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+      SpeechService.stop();
     };
-  }, [getSpeechMessage]);
+  }, [message]); // Depend on the message string itself.
 
   const getBackgroundColor = () => {
     if (isOverTolerance) return '#0900FF'; // Blue for over

@@ -1,21 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useWeighingLogic from './useWeighingLogic';
+import SpeechService from '../services/SpeechService';
+import { PROMPT_DELAY } from '../constants/speechText';
+import { useSpeechLogic } from './useSpeechLogic';
 
-/**
- * Custom hook to manage the state of a single ingredient step in a recipe.
- * It determines if the required weight has been reached and provides feedback on the current weight.
- * @param {object} ingredient - The ingredient for the current step.
- * @param {number} currentWeight - The current weight measured by the scale.
- * @param {boolean} isStable - A boolean indicating if the scale reading is stable.
- * @returns {object} An object containing `weightReached` and `getBackgroundColor`.
- */
 const useIngredientStep = (ingredient, currentWeight, isStable) => {
   const [weightReached, setWeightReached] = useState(false);
-
-  const { isWithinTolerance, isOverTolerance, progress } = useWeighingLogic(
-    ingredient,
-    currentWeight
-  );
+  const {
+    isWithinTolerance,
+    isOverTolerance,
+    progress
+  } = useWeighingLogic(ingredient, currentWeight);
+  const { getSpeechMessage } = useSpeechLogic(isOverTolerance, isWithinTolerance, progress, isStable);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     const isWeighable = ingredient.stepType === 'weighable';
@@ -27,29 +24,48 @@ const useIngredientStep = (ingredient, currentWeight, isStable) => {
     }
 
     if (isWeighable) {
-      // For weighable items, any significant weight indicates presence
       if (currentWeight > 1) {
         setWeightReached(true);
       }
       return;
     }
 
-    // For weight-based items, it depends on being within tolerance and stable
     if (isWithinTolerance && isStable) {
       setWeightReached(true);
     } else {
-      // Also consider it "reached" if it's over tolerance, to allow user to proceed
-      // The UI color will indicate it's over, but the next button should be enabled
       setWeightReached(isOverTolerance);
     }
-
   }, [ingredient, currentWeight, isStable, isWithinTolerance, isOverTolerance]);
 
+  useEffect(() => {
+    const message = getSpeechMessage();
+
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (message) {
+      SpeechService.speak(message);
+
+      // Set a new timer to repeat the message
+      timerRef.current = setInterval(() => {
+        SpeechService.speak(message);
+      }, PROMPT_DELAY);
+    }
+
+    // Cleanup function to clear the timer when the component unmounts or the message changes
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [getSpeechMessage]);
+
   const getBackgroundColor = () => {
-    //Following order of if and return statements is important for correct color assignment
     if (isOverTolerance) return '#0900FF'; // Blue for over
     if (weightReached) return '#4CAF50'; // Green for perfect
-    // Use progress to determine if the scale is empty or has some weight
     if (currentWeight > 1) return '#F44336'; // Red for under
     return '#F44336'; // Red for empty scale
   };

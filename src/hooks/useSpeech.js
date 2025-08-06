@@ -57,10 +57,10 @@ const useSpeech = (ingredient, ingredientIndex, isLastIngredient) => {
         }
       }
 
-      // Append appropriate final instruction
-      instructionLine += isLastIngredient
-        ? '. Press finish to complete.'
-        : '. Press next when ready.';
+      // // Append appropriate final instruction
+      // instructionLine += isLastIngredient
+      //   ? '. Press finish to complete.'
+      //   : '. Press next when ready.';
 
       // Save it so we can replay later
       instructionRef.current = instructionLine;

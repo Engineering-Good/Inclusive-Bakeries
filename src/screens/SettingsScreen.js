@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import Constants from 'expo-constants'
 import React, { Fragment, useEffect, useState } from 'react' // Import Fragment
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import {
@@ -35,6 +36,9 @@ const SettingsScreen = ({ navigation }) => {
 	)
 	const [availableVoices, setAvailableVoices] = useState([])
 	const [voiceMenuVisible, setVoiceMenuVisible] = useState(false)
+
+	const version = Constants.expoConfig.version
+	const name = Constants.expoConfig.name
 
 	useEffect(() => {
 		loadSettings()
@@ -342,6 +346,14 @@ const SettingsScreen = ({ navigation }) => {
 
 				<Divider />
 
+				<List.Section>
+					<List.Subheader>About</List.Subheader>
+					<List.Item
+						title={name}
+						description={version}
+						left={(props) => <List.Icon {...props} icon="information" />}
+					/>
+				</List.Section>
 			</ScrollView>
 			<Snackbar
 				visible={snackbarVisible}

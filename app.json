@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "InclusiveBakerApp",
+    "name": "Help Me Weigh",
     "slug": "InclusiveBakerApp",
-    "version": "1.0.0",
+    "version": "0.0.2",
     "platforms": [
       "android",
       "web"
@@ -34,7 +34,7 @@
         "android.permission.ACCESS_FINE_LOCATION"
       ],
       "package": "com.inclusivebakerapp",
-      "runtimeVersion": "1.0.0"
+      "runtimeVersion": "0.0.2"
     },
     "web": {
       "favicon": "./assets/favicon.png"

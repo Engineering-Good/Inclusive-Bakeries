@@ -73,12 +73,15 @@ class ScaleServiceFactory {
 	}
 
 	static async connectToScale() {
-		const scaleService = await this.getScaleService()
+		return new Promise(async (resolve, reject) => {
+			const scaleService = await this.getScaleService()
 
-		if (this.isConnected) {
-			EventEmitterService.emit('connectionStatus', 'connected')
-			return this.currentDevice
-		}
+			try {
+				if (this.isConnected) {
+					EventEmitterService.emit('connectionStatus', 'connected')
+					resolve(this.currentDevice)
+					return
+				}
 
 				EventEmitterService.emit('connectionStatus', 'connecting')
 				// Checks for permissions

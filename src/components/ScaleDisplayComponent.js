@@ -9,11 +9,7 @@ import {
 import { ProgressBar, Button } from "react-native-paper"; // Import Button from react-native-paper
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import EventEmitterService from "../services/EventEmitterService"; // Import EventEmitterService
-import SpeechService from "../services/SpeechService";
-import {
-  SCALE_MESSAGES,
-  INGREDIENT_MESSAGES,
-} from "../constants/speechText";
+import { SCALE_MESSAGES } from "../constants/speechText";
 import useWeighingLogic from "../hooks/useWeighingLogic";
 
 // Add at the top of the file, after imports
@@ -33,7 +29,6 @@ const ScaleDisplayComponent = ({
     requireTare ? "pending" : "not_required"
   );
   const hasSpokenRef = useRef(false);
-  const lastSpokenMessageRef = useRef(null);
   const [, forceUpdate] = useState({});
   const {
     targetWeight,
@@ -125,30 +120,6 @@ const ScaleDisplayComponent = ({
 
       if (tareStatus === "tared" || tareStatus === "not_required") {
         onWeightChange(weightData.value, weightData.isStable);
-
-        // Voice feedback logic
-        let message = "";
-        if (isWithinTolerance) {
-          if (weightData.isStable) {
-            message = INGREDIENT_MESSAGES.PERFECT_WEIGHT;
-          }
-        } else if (isOverTolerance) {
-          message = INGREDIENT_MESSAGES.TOO_MUCH;
-        } else {
-          message = INGREDIENT_MESSAGES.ADD_MORE;
-        }
-
-        if (message && message !== lastSpokenMessageRef.current) {
-          if (message === INGREDIENT_MESSAGES.ADD_MORE) {
-            if (!lastSpokenMessageRef.current || Date.now() - lastSpokenMessageRef.current.timestamp > 5000) {
-              SpeechService.speak(message);
-              lastSpokenMessageRef.current = { message, timestamp: Date.now() };
-            }
-          } else {
-            SpeechService.speak(message);
-            lastSpokenMessageRef.current = { message, timestamp: Date.now() };
-          }
-        }
       }
 
       forceUpdate({});
@@ -173,12 +144,11 @@ const ScaleDisplayComponent = ({
     }
 
     return () => {
-      // Cleanup all subscriptions on component unmount
-      unsubscribeConnection();
-      unsubscribeWeight();
-      ScaleServiceFactory.unsubscribeAll(); // Ensure all listeners are removed from ScaleServiceFactory
-      hasSpokenRef.current = false;
-      SpeechService.stop();
+    // Cleanup all subscriptions on component unmount
+    unsubscribeConnection();
+    unsubscribeWeight();
+    ScaleServiceFactory.unsubscribeAll(); // Ensure all listeners are removed from ScaleServiceFactory
+    hasSpokenRef.current = false;
     };
   }, [
     targetIngredient,

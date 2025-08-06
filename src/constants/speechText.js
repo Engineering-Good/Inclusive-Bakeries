@@ -8,7 +8,10 @@ export const INGREDIENT_MESSAGES = {
   ADD_SLOWLY: 'Add slowly',
   PRESS_FINISH: 'Press finish to complete.',
   PRESS_NEXT: 'Press Next',
+  WELL_DONE: 'Well done. Press Next',
 };
+
+export const PROMPT_DELAY = 5000;
 
 export const SCALE_MESSAGES = {
   TARE_NEEDED: 'Please tare the scale',

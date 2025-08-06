@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import React, { Fragment, useEffect, useState } from 'react' // Import Fragment
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import {
 	Button,
 	Divider,
@@ -9,6 +9,7 @@ import {
 	Snackbar,
 	Switch,
 } from 'react-native-paper'
+import Slider from '@react-native-community/slider'
 import ScaleConnectButton from '../components/ScaleConnectButton'
 import { SCALE_SERVICES } from '../constants/ScaleServices'
 import RecipeService from '../services/RecipeService' // Import RecipeService
@@ -17,11 +18,11 @@ import speechService from '../services/SpeechService'
 
 const SettingsScreen = ({ navigation }) => {
 	const [selectedScale, setSelectedScale] = useState(SCALE_SERVICES.MOCK)
-	const [isDarkMode, setIsDarkMode] = useState(false)
 	const [isConnected, setIsConnected] = useState(false)
 	const [currentDevice, setCurrentDevice] = useState(null)
 	const [snackbarVisible, setSnackbarVisible] = useState(false)
 	const [snackbarMessage, setSnackbarMessage] = useState('')
+	const [scaleMenuVisible, setScaleMenuVisible] = useState(false)
 
 	// Speech settings states
 	const [speechDelay, setSpeechDelay] = useState(speechService.getSpeechDelay())
@@ -59,10 +60,8 @@ const SettingsScreen = ({ navigation }) => {
 	const loadSettings = async () => {
 		try {
 			const scale = await AsyncStorage.getItem('selectedScale')
-			const darkMode = await AsyncStorage.getItem('isDarkMode')
 
 			if (scale) setSelectedScale(scale)
-			if (darkMode) setIsDarkMode(darkMode === 'true')
 
 			// Get initial connection status
 			const status = ScaleServiceFactory.getConnectionStatus()
@@ -99,15 +98,6 @@ const SettingsScreen = ({ navigation }) => {
 		}
 	}
 
-	const handleThemeChange = async (value) => {
-		try {
-			await AsyncStorage.setItem('isDarkMode', value.toString())
-			setIsDarkMode(value)
-		} catch (error) {
-			console.error('Error saving theme setting:', error)
-		}
-	}
-
 	const handleScaleLoad = ({ nativeEvent }) => {
 		console.log('Scale view loaded:', nativeEvent.url)
 	}
@@ -140,19 +130,14 @@ const SettingsScreen = ({ navigation }) => {
 
 	const handleSpeechDelayChange = (value) => {
 		const delay = parseInt(value, 10)
-		if (!isNaN(delay) && delay >= 0) {
-			setSpeechDelay(delay)
-			speechService.setSpeechDelay(delay)
-		}
+		setSpeechDelay(delay)
+		speechService.setSpeechDelay(delay)
 	}
 
 	const handleSpeechRateChange = (value) => {
-		const rate = parseFloat(value)
-		if (!isNaN(rate) && rate >= 0.1 && rate <= 2.0) {
-			// Common range for speech rate
-			setSpeechRate(rate)
-			speechService.setSpeechRate(rate)
-		}
+		const rate = parseFloat(value.toFixed(1))
+		setSpeechRate(rate)
+		speechService.setSpeechRate(rate)
 	}
 
 	const handlePreferredVoiceChange = (voiceIdentifier) => {
@@ -174,57 +159,58 @@ const SettingsScreen = ({ navigation }) => {
 		return voice ? `${voice.name} (${voice.language})` : 'Default Voice'
 	}
 
+	const openScaleMenu = () => setScaleMenuVisible(true)
+	const closeScaleMenu = () => setScaleMenuVisible(false)
+
+	const getScaleDisplayName = (scale) => {
+		switch (scale) {
+			case SCALE_SERVICES.MOCK:
+				return 'Mock Scale'
+			case SCALE_SERVICES.ETEKCITY:
+				return 'Etekcity Scale'
+			case SCALE_SERVICES.BLUETOOTH:
+				return 'Generic Bluetooth Scale'
+			case SCALE_SERVICES.LEFU:
+				return 'Lefu Kitchen Scale'
+			default:
+				return 'Select Scale'
+		}
+	}
+
 	return (
 		<Fragment>
 			<ScrollView style={styles.container}>
 				<List.Section>
 					<List.Subheader>Scale Settings</List.Subheader>
-					<List.Item
-						title="Mock Scale"
-						description="Use simulated scale readings"
-						left={(props) => <List.Icon {...props} icon="scale" />}
-						right={() => (
-							<Switch
-								value={selectedScale === SCALE_SERVICES.MOCK}
-								onValueChange={() => handleScaleChange(SCALE_SERVICES.MOCK)}
+					<Menu
+						visible={scaleMenuVisible}
+						onDismiss={closeScaleMenu}
+						anchor={
+							<List.Item
+								title="Selected Scale"
+								description={getScaleDisplayName(selectedScale)}
+								left={(props) => <List.Icon {...props} icon="scale" />}
+								right={(props) => <List.Icon {...props} icon="chevron-down" />}
+								onPress={openScaleMenu}
 							/>
-						)}
-					/>
-					<List.Item
-						title="Etekcity Scale"
-						description="Use Etekcity Bluetooth scale"
-						left={(props) => <List.Icon {...props} icon="scale" />}
-						right={() => (
-							<Switch
-								value={selectedScale === SCALE_SERVICES.ETEKCITY}
-								onValueChange={() => handleScaleChange(SCALE_SERVICES.ETEKCITY)}
-							/>
-						)}
-					/>
-					<List.Item
-						title="Generic Bluetooth Scale"
-						description="Use generic Bluetooth scale"
-						left={(props) => <List.Icon {...props} icon="scale" />}
-						right={() => (
-							<Switch
-								value={selectedScale === SCALE_SERVICES.BLUETOOTH}
-								onValueChange={() =>
-									handleScaleChange(SCALE_SERVICES.BLUETOOTH)
+						}
+					>
+						{Object.values(SCALE_SERVICES).map((scale) => (
+							<Menu.Item
+								key={scale}
+								onPress={() => {
+									handleScaleChange(scale)
+									closeScaleMenu()
+								}}
+								title={getScaleDisplayName(scale)}
+								style={
+									selectedScale === scale
+										? { backgroundColor: '#e0e0e0' }
+										: {}
 								}
 							/>
-						)}
-					/>
-					<List.Item
-						title="Lefu Kitchen Scale"
-						description="Use Lefu Kitchen Scale"
-						left={(props) => <List.Icon {...props} icon="scale" />}
-						right={() => (
-							<Switch
-								value={selectedScale === SCALE_SERVICES.LEFU}
-								onValueChange={() => handleScaleChange(SCALE_SERVICES.LEFU)}
-							/>
-						)}
-					/>
+						))}
+					</Menu>
 				</List.Section>
 
 				<Divider />
@@ -264,13 +250,17 @@ const SettingsScreen = ({ navigation }) => {
 						description="Delay between speech segments in milliseconds"
 						left={(props) => <List.Icon {...props} icon="timer-sand" />}
 						right={() => (
-							<TextInput
-								style={styles.textInput}
-								onChangeText={handleSpeechDelayChange}
-								value={String(speechDelay)}
-								keyboardType="numeric"
-								placeholder="e.g., 2500"
-							/>
+							<View style={styles.sliderContainer}>
+								<Slider
+									style={styles.slider}
+									minimumValue={1000}
+									maximumValue={5000}
+									step={100}
+									value={speechDelay}
+									onValueChange={handleSpeechDelayChange}
+								/>
+								<Text style={styles.sliderValue}>{speechDelay}ms</Text>
+							</View>
 						)}
 					/>
 					<List.Item
@@ -278,13 +268,19 @@ const SettingsScreen = ({ navigation }) => {
 						description="Speed of speech (0.1 - 2.0)"
 						left={(props) => <List.Icon {...props} icon="speedometer" />}
 						right={() => (
-							<TextInput
-								style={styles.textInput}
-								onChangeText={handleSpeechRateChange}
-								value={String(speechRate)}
-								keyboardType="numeric"
-								placeholder="e.g., 0.7"
-							/>
+							<View style={styles.sliderContainer}>
+								<Slider
+									style={styles.slider}
+									minimumValue={0.1}
+									maximumValue={2.0}
+									step={0.1}
+									value={speechRate}
+									onValueChange={handleSpeechRateChange}
+								/>
+								<Text style={styles.sliderValue}>
+									{speechRate.toFixed(1)}x
+								</Text>
+							</View>
 						)}
 					/>
 					<List.Item
@@ -346,26 +342,6 @@ const SettingsScreen = ({ navigation }) => {
 
 				<Divider />
 
-				<List.Section>
-					<List.Subheader>Appearance</List.Subheader>
-					<List.Item
-						title="Dark Mode"
-						description="Use dark theme (Just for illustration, not working)"
-						left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
-						right={() => (
-							<Switch value={isDarkMode} onValueChange={handleThemeChange} />
-						)}
-					/>
-				</List.Section>
-				{/*   // Uncomment if you want to add Lefu scale configuration (example )
-        <View style={styles.scaleContainer}>
-          <Text style={styles.sectionTitle}>Scale Configuration</Text>
-          <LefuScaleView 
-            style={styles.scaleView}
-            url="about:blank" // Replace with actual configuration URL if needed
-            onLoad={handleScaleLoad}
-          />
-        </View> */}
 			</ScrollView>
 			<Snackbar
 				visible={snackbarVisible}
@@ -409,20 +385,26 @@ const styles = StyleSheet.create({
 		overflow: 'hidden',
 	},
 	buttonContainer: {
+
 		paddingHorizontal: 16,
 		paddingBottom: 16,
 	},
 	button: {
+		alignSelf: 'center',
 		marginTop: 10,
 	},
-	textInput: {
-		borderWidth: 1,
-		borderColor: '#ccc',
-		borderRadius: 4,
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		minWidth: 80,
+	sliderContainer: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		width: 400,
+	},
+	slider: {
+		flex: 1,
+	},
+	sliderValue: {
+		width: 60,
 		textAlign: 'right',
+		paddingLeft: 10,
 	},
 })
 

@@ -14,7 +14,6 @@ const IngredientColumns = ({
   isMockScaleActive,
 }) => {
   const isWeighable = ingredient.stepType === 'weighable';
-  const isInstruction = ingredient.stepType === 'instruction';
   const isWeightBased = ingredient.stepType === 'weight';
 
   return (
@@ -35,22 +34,15 @@ const IngredientColumns = ({
             <Divider style={{ height: 1, backgroundColor: 'black' }} />
           </>
         )}
-        {(isWeighable || isInstruction) && (
-          <>
-            {isWeighable && (
-              <ScaleDisplayComponent
-                targetIngredient={ingredient}
-                currentWeight={currentWeight}
-                onWeightChange={onWeightChange}
-                onTare={onTare}
-                requireTare={false}
-                isWeighableOnly={true}
-              />
-            )}
-            <Text style={styles.addMoreText}>
-              Ready for next step!
-            </Text>
-          </>
+        {isWeighable && (
+          <ScaleDisplayComponent
+            targetIngredient={ingredient}
+            currentWeight={currentWeight}
+            onWeightChange={onWeightChange}
+            onTare={onTare}
+            requireTare={false}
+            isWeighableOnly={true}
+          />
         )}
       </View>
        {/* Right Column */}

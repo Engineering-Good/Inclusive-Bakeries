@@ -16,12 +16,6 @@ const useIngredientStep = (ingredient, currentWeight, isStable) => {
 
   useEffect(() => {
     const isWeighable = ingredient.stepType === 'weighable';
-    const isInstruction = ingredient.stepType === 'instruction';
-
-    if (isInstruction) {
-      setWeightReached(true);
-      return;
-    }
 
     if (isWeighable) {
       if (currentWeight > 1) {

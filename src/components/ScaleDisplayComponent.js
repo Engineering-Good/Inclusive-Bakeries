@@ -21,6 +21,7 @@ const ScaleDisplayComponent = ({
   onWeightChange,
   onTare,
   requireTare,
+  isWeighableOnly = false,
 }) => {
   const [error, setError] = useState(null);
   // Use a more descriptive connection status
@@ -197,28 +198,40 @@ const ScaleDisplayComponent = ({
         </View>
       ) : (
         <>
-          <View style={styles.weightContainer}>
-            <Text style={styles.weightText}>
-              {targetIngredient && tareStatus === "pending"
-                ? "Press TARE Button"
-                : `${currentWeight}${targetIngredient.unit}`}
-            </Text>
-          </View>
-          {targetIngredient && (tareStatus === 'tared' || tareStatus === 'not_required') && (
-          <View style={styles.progressContainer}>
-            <ProgressBar
-              progress={displayProgress}
-              color={
-                isOverTolerance ? '#FF1111' :  // Red for over tolerance
-                isWithinTolerance ? '#4CAF50' : // Green for within tolerance
-                '#2196F3'                                      // Blue for under
-              }
-              style={styles.progressBar}
-            />
-            <Text style={styles.targetText}>
-              Target: {targetWeight}{targetIngredient.unit} ± {tolerance}{targetIngredient.unit}
-            </Text>
-          </View>
+          {isWeighableOnly ? (
+            // For unit-based ingredients, show simple status instead of weight
+            <View style={styles.weightContainer}>
+              <Text style={styles.weightText}>
+                {currentWeight > 1 ? "Ready!" : "Place item on scale"}
+              </Text>
+            </View>
+          ) : (
+            // For weight-based ingredients, show normal weight display
+            <>
+              <View style={styles.weightContainer}>
+                <Text style={styles.weightText}>
+                  {targetIngredient && tareStatus === "pending"
+                    ? "Press TARE Button"
+                    : `${currentWeight}${targetIngredient.unit}`}
+                </Text>
+              </View>
+              {targetIngredient && (tareStatus === 'tared' || tareStatus === 'not_required') && (
+              <View style={styles.progressContainer}>
+                <ProgressBar
+                  progress={displayProgress}
+                  color={
+                    isOverTolerance ? '#FF1111' :  // Red for over tolerance
+                    isWithinTolerance ? '#4CAF50' : // Green for within tolerance
+                    '#2196F3'                                      // Blue for under
+                  }
+                  style={styles.progressBar}
+                />
+                <Text style={styles.targetText}>
+                  Target: {targetWeight}{targetIngredient.unit} ± {tolerance}{targetIngredient.unit}
+                </Text>
+              </View>
+              )}
+            </>
           )}
         </>
       )}

@@ -261,8 +261,6 @@ export default function EditRecipeScreen({ route, navigation }) {
           updated.unit = 'g';
         } else if (value === 'weighable') {
           updated.unit = 'eggs';
-        } else if (value === 'instruction') {
-          updated.unit = '';
         }
       }
 
@@ -479,8 +477,7 @@ export default function EditRecipeScreen({ route, navigation }) {
           return 'Weight-based';
         case 'weighable':
           return 'Eggs';
-        case 'instruction':
-          return 'Instruction';
+
         default:
           return 'Unknown Type';
       }
@@ -671,12 +668,7 @@ export default function EditRecipeScreen({ route, navigation }) {
                       onValueChange={(itemValue) => {
                         updateIngredient(ingredientWithDefaults.id, 'stepType', itemValue);
                         // Reset relevant fields based on step type
-                        if (itemValue === 'instruction') {
-                          updateIngredient(ingredientWithDefaults.id, 'amount', '');
-                          updateIngredient(ingredientWithDefaults.id, 'unit', '');
-                          updateIngredient(ingredientWithDefaults.id, 'tolerance', '');
-                          updateIngredient(ingredientWithDefaults.id, 'requireTare', false);
-                        } else if (itemValue === 'weight') {
+                        if (itemValue === 'weight') {
                           updateIngredient(ingredientWithDefaults.id, 'unit', 'g');
                         } else if (itemValue === 'weighable') {
                           updateIngredient(ingredientWithDefaults.id, 'unit', 'eggs');
@@ -685,61 +677,55 @@ export default function EditRecipeScreen({ route, navigation }) {
                       style={{ height: 44 }}
                     >
                       <Picker.Item label="Weight-based" value="weight" />
-                      <Picker.Item label="Non-weight Weighable" value="weighable" />
-                      <Picker.Item label="Instruction" value="instruction" />
+                      <Picker.Item label="Unit-based" value="weighable" />
                     </Picker>
                   </View>
 
-                  {ingredientWithDefaults.stepType !== 'instruction' && (
-                    <>
-                      <View style={{ backgroundColor: '#f5f5f5', borderRadius: 8, marginBottom: 16 }}>
-                        <Text style={styles.label}>Unit</Text>
-                        <Picker
-                          selectedValue={ingredientWithDefaults.unit}
-                          onValueChange={(itemValue) => {
-                            updateIngredient(ingredientWithDefaults.id, 'unit', itemValue);
-                            updateIngredient(ingredientWithDefaults.id, 'tolerance', '');
-                          }}
-                          style={{ height: 44 }}
-                          enabled={ingredientWithDefaults.stepType !== 'instruction'}
-                        >
-                          {ingredientWithDefaults.stepType === 'weight' ? (
-                            <Picker.Item label="Grams" value="g" />
-                          ) : (
-                            <>
-                              <Picker.Item label="Eggs" value="eggs" />
-                              <Picker.Item label="Teaspoons" value="tsp" />
-                              <Picker.Item label="Tablespoons" value="tbsp" />
-                            </>
-                          )}
-                        </Picker>
-                      </View>
-
-                      <Text style={styles.label}>
-                        {ingredientWithDefaults.unit === 'g'
-                          ? 'Mass (grams)'
-                          : `Quantity (${ingredientWithDefaults.unit})`}
-                      </Text>
-                      <TextInput
-                        style={styles.input}
-                        value={ingredientWithDefaults.amount}
-                        onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'amount', text)}
-                        placeholder={ingredientWithDefaults.unit === 'g' ? "Mass (grams)" : `Quantity (${ingredientWithDefaults.unit})`}
-                        keyboardType="numeric"
-                      />
-
-                      {ingredientWithDefaults.stepType === 'weight' && (
+                  <View style={{ backgroundColor: '#f5f5f5', borderRadius: 8, marginBottom: 16 }}>
+                    <Text style={styles.label}>Unit</Text>
+                    <Picker
+                      selectedValue={ingredientWithDefaults.unit}
+                      onValueChange={(itemValue) => {
+                        updateIngredient(ingredientWithDefaults.id, 'unit', itemValue);
+                        updateIngredient(ingredientWithDefaults.id, 'tolerance', '');
+                      }}
+                      style={{ height: 44 }}
+                    >
+                      {ingredientWithDefaults.stepType === 'weight' ? (
+                        <Picker.Item label="Grams" value="g" />
+                      ) : (
                         <>
-                          <Text style={styles.label}>Tolerance (grams)</Text>
-                          <TextInput
-                            style={styles.input}
-                            value={ingredientWithDefaults.tolerance}
-                            onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'tolerance', text)}
-                            placeholder="e.g. 2"
-                            keyboardType="numeric"
-                          />
+                          <Picker.Item label="Eggs" value="eggs" />
+                          <Picker.Item label="Teaspoons" value="tsp" />
+                          <Picker.Item label="Tablespoons" value="tbsp" />
                         </>
                       )}
+                    </Picker>
+                  </View>
+
+                  <Text style={styles.label}>
+                    {ingredientWithDefaults.unit === 'g'
+                      ? 'Mass (grams)'
+                      : `Quantity (${ingredientWithDefaults.unit})`}
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={ingredientWithDefaults.amount}
+                    onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'amount', text)}
+                    placeholder={ingredientWithDefaults.unit === 'g' ? "Mass (grams)" : `Quantity (${ingredientWithDefaults.unit})`}
+                    keyboardType="numeric"
+                  />
+
+                  {ingredientWithDefaults.stepType === 'weight' && (
+                    <>
+                      <Text style={styles.label}>Tolerance (grams)</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={ingredientWithDefaults.tolerance}
+                        onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'tolerance', text)}
+                        placeholder="e.g. 2"
+                        keyboardType="numeric"
+                      />
                     </>
                   )}
 
@@ -764,16 +750,7 @@ export default function EditRecipeScreen({ route, navigation }) {
                     </View>
                   )}
 
-                  {ingredientWithDefaults.stepType === 'instruction' && (
-                    <View style={styles.checkboxContainer}>
-                      <Checkbox
-                        status={ingredientWithDefaults.requiresCheck ? 'checked' : 'unchecked'}
-                        onPress={() => updateIngredient(ingredientWithDefaults.id, 'requiresCheck', !ingredientWithDefaults.requiresCheck)}
-                        color="#666"
-                      />
-                      <Text style={styles.checkboxLabel}>Requires Baker Check</Text>
-                    </View>
-                  )}
+
 
                   <Button 
                     mode="outlined"

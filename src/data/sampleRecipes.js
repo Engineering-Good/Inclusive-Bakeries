@@ -33,13 +33,7 @@ export const sampleRecipes = [
         stepType: 'weight',
         tolerance: 2
       },
-      {
-        id: '1003',
-        name: 'Mix butter and sugar',
-        stepType: 'instruction',
-        instructionText: 'Mix butter and sugar until light and fluffy. The mixture should be pale in color.',
-        requiresCheck: true
-      },
+
       { 
         id: '1004', 
         name: 'Eggs', 
@@ -74,13 +68,7 @@ export const sampleRecipes = [
         stepType: 'weight',
         tolerance: 2
       },
-      {
-        id: '2002',
-        name: 'Preheat oven',
-        stepType: 'instruction',
-        instructionText: 'Preheat the oven to 180 degrees Celsius',
-        requiresCheck: false
-      },
+
       { 
         id: '2003', 
         name: 'Sugar', 
@@ -124,13 +112,7 @@ export const sampleRecipes = [
         stepType: 'weight',
         tolerance: 10
       },
-      {
-        id: '3003',
-        name: 'Check mixture consistency',
-        stepType: 'instruction',
-        instructionText: 'Mix until the butter and sugar are well combined. The mixture should be smooth with no sugar granules visible.',
-        requiresCheck: true
-      },
+
       { 
         id: '3004', 
         name: 'Eggs', 
@@ -156,13 +138,7 @@ export const sampleRecipes = [
     id: '4',
     title: 'Brownies',
     ingredients: [
-      {
-        id: '4001',
-        name: 'Preheat oven',
-        stepType: 'instruction',
-        instructionText: 'Preheat the oven to 180 degrees Celsius and line a baking tin with parchment paper',
-        requiresCheck: false
-      },
+
       { 
         id: '4002', 
         name: 'Eggs', 
@@ -181,13 +157,7 @@ export const sampleRecipes = [
         stepType: 'weight',
         tolerance: 2
       },
-      {
-        id: '4004',
-        name: 'Check mixture',
-        stepType: 'instruction',
-        instructionText: 'The mixture should be glossy and smooth. Check that all ingredients are well combined.',
-        requiresCheck: true
-      }
+
     ],
     imageUri: recipeImages.brownies,
   }

@@ -9,6 +9,7 @@ import {
 import { ProgressBar, Button } from "react-native-paper"; // Import Button from react-native-paper
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import EventEmitterService from "../services/EventEmitterService"; // Import EventEmitterService
+import SpeechService from '../services/SpeechService';
 import { SCALE_MESSAGES } from "../constants/speechText";
 import useWeighingLogic from "../hooks/useWeighingLogic";
 
@@ -150,6 +151,7 @@ const ScaleDisplayComponent = ({
     unsubscribeWeight();
     ScaleServiceFactory.unsubscribeAll(); // Ensure all listeners are removed from ScaleServiceFactory
     hasSpokenRef.current = false;
+    SpeechService.stop();
     };
   }, [
     targetIngredient,

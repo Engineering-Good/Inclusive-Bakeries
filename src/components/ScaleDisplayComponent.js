@@ -9,6 +9,7 @@ import {
 import { ProgressBar, Button } from "react-native-paper"; // Import Button from react-native-paper
 import ScaleServiceFactory from "../services/ScaleServiceFactory";
 import EventEmitterService from "../services/EventEmitterService"; // Import EventEmitterService
+import SpeechService from "../services/SpeechService"; // Import SpeechService
 import { SCALE_MESSAGES } from "../constants/speechText";
 import useWeighingLogic from "../hooks/useWeighingLogic";
 

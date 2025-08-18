@@ -169,6 +169,11 @@ class SpeechService {
   }
 
   async speak(text, options = {}) {
+    const { immediate = false, ...speechOptions } = options;
+
+    if (immediate) {
+      await this.stop();
+    }
     if (!text) {
       console.log('Attempted to speak empty text, returning.');
       return; // Don't try to speak empty text
@@ -209,7 +214,7 @@ class SpeechService {
       language: 'en-GB', // Default language, can be overridden by preferred voice
       pitch: 1.0,
       rate: this.speechRate, // Use configurable speech rate
-      ...options, // Merge with any provided options
+      ...speechOptions, // Merge with any provided options
     };
 
     // const defaultOptions = 
@@ -255,6 +260,7 @@ class SpeechService {
     try {
       this.speechQueue = [];
       await Speech.stop();
+      this.isSpeaking = false; // Reset speaking flag
     } catch (error) {
       console.error('Error stopping speech:', error);
     }

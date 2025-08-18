@@ -92,7 +92,7 @@ class ScaleServiceFactory {
 				// it is not a promise and will always resolves even if reject() !
 				// Fix: Removal of try catch to allow error to bubble up to handlers.
 				await scaleService.startScan(async (device) => {
-					console.log('Found scale for reconnected:', device.name, device.id)
+					console.log('Found scale:', device.name, device.id)
 
 					const connectedDevice = await scaleService.connect(
 						device,

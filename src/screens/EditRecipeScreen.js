@@ -85,7 +85,7 @@ export default function EditRecipeScreen({ route, navigation }) {
           ...ing,
           imageUri: ing.imageUri && typeof ing.imageUri === 'object' && ing.imageUri.uri 
             ? ing.imageUri.uri 
-            : (ing.imageUri || require('../assets/recipes/placeholder.png'))
+            : (ing.imageUri || require('../assets/ingredients/ingredients_placeholder.png'))
         })),
         instructions
       };
@@ -117,7 +117,7 @@ export default function EditRecipeScreen({ route, navigation }) {
 
   const getImageSource = (imageUri) => {
     if (!imageUri) {
-      return require('../assets/recipes/placeholder.png');
+      return require('../assets/ingredients/ingredients_placeholder.png');
     }
     
     if (typeof imageUri === 'string') {

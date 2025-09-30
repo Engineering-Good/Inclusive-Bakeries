@@ -1,4 +1,4 @@
-package com.inclusivebakerapp
+package com.helpmeweigh
 
 import android.os.Build
 import android.os.Bundle

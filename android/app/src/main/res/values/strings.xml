@@ -1,6 +1,6 @@
 <resources>
-  <string name="app_name">InclusiveBakerApp</string>
+  <string name="app_name">Help Me Weigh</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
-  <string name="expo_runtime_version">0.0.3</string>
+  <string name="expo_runtime_version">0.0.4</string>
 </resources>

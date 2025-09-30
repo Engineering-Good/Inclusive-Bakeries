@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Help Me Weigh",
-    "slug": "InclusiveBakerApp",
-    "version": "0.0.3",
+    "slug": "help-me-weigh",
+    "version": "0.0.4",
     "platforms": [
       "android",
       "web"
@@ -33,8 +33,8 @@
         "android.permission.BLUETOOTH_SCAN",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
-      "package": "com.inclusivebakerapp",
-      "runtimeVersion": "0.0.3"
+      "package": "com.helpmeweigh",
+      "runtimeVersion": "0.0.4"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -44,17 +44,18 @@
       "expo-build-properties"
     ],
     "ios": {
-      "bundleIdentifier": "com.inclusivebakerapp",
+      "bundleIdentifier": "com.helpmeweigh",
       "runtimeVersion": {
         "policy": "appVersion"
       }
     },
     "extra": {
-      "LEFU_API_KEY": "default_api_key",
-      "LEFU_API_SECRET": "default_api_secret",
+      "LEFU_API_KEY": "lefue29a6b129bf74de5",
+      "LEFU_API_SECRET": "/ytb2nbVxvLRcCnnIlI7oOxfzWlsOl4c6qvT8ZAvOdA=",
       "eas": {
-        "projectId": "46d48457-3d50-40e2-8a3f-011aa2939a79"
+        "projectId": "2b2885a1-106c-4edc-ab00-74af333f62c0"
       }
-    }
+    },
+    "owner": "kenny-chow-my"
   }
 }

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Help Me Weigh",
     "slug": "help-me-weigh",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "platforms": [
       "android",
       "web"
@@ -34,7 +34,7 @@
         "android.permission.ACCESS_FINE_LOCATION"
       ],
       "package": "com.helpmeweigh",
-      "runtimeVersion": "0.0.4"
+      "runtimeVersion": "0.0.5"
     },
     "web": {
       "favicon": "./assets/favicon.png"

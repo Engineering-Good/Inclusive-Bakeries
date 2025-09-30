@@ -35,6 +35,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="exp+helpmeweigh"/>
+        <data android:scheme="exp+help-me-weigh"/>
       </intent-filter>
     </activity>
   </application>

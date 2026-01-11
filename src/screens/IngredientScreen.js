@@ -49,6 +49,7 @@ const IngredientScreen = ({ route, navigation }) => {
   const { isMockScaleActive } = useScale(requireScale);
   const { replayInstruction } = useSpeech(ingredient, ingredientIndex, isLastIngredient);
   const { weightReached, getBackgroundColor } = useIngredientStep(ingredient, currentWeight, isStable);
+  const [tareStatus, setTareStatus] = useState(false);
 
   console.log("[IngredientScreen] Ingredient:", ingredient);
 
@@ -226,11 +227,26 @@ const IngredientScreen = ({ route, navigation }) => {
           },
         ]}
       >
-        {fullIngredient && fullIngredient.imageUri && (
+        {/* {fullIngredient && fullIngredient.imageUri && (
           <Image
             source={{ uri: fullIngredient.imageUri }}
             style={styles.ingredientImage}
           />
+        )} */}
+
+        {/* Conditionally show tare.png or ingredient image */}
+        {tareStatus === 'pending' ? (
+          <Image
+            source={require('../assets/Tare.png')}
+            style={styles.ingredientImage}
+          />
+        ) : (
+          fullIngredient && fullIngredient.imageUri && (
+            <Image
+              source={{ uri: fullIngredient.imageUri }}
+              style={styles.ingredientImage}
+            />
+          )
         )}
         <IngredientColumns
           ingredient={ingredient}
@@ -240,6 +256,7 @@ const IngredientScreen = ({ route, navigation }) => {
           requireScale={requireScale}
           styles={styles}
           isMockScaleActive={isMockScaleActive}
+          onTareStatusChange={setTareStatus}
         />
       </View>
 

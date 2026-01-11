@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "@react-native-community/cli": "latest",
+    "@react-native-community/cli": "^20.0.2",
     "@react-native/gradle-plugin": "^0.80.0",
     "@types/react": "~19.0.10",
     "@types/react-native": "^0.73.0",

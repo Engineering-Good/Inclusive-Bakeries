@@ -23,6 +23,7 @@ const ScaleDisplayComponent = ({
   onTare,
   requireTare,
   isWeighableOnly = false,
+  onTareStatusChange,
 }) => {
   const [error, setError] = useState(null);
   // Use a more descriptive connection status
@@ -81,6 +82,13 @@ const ScaleDisplayComponent = ({
     setTareStatus(requireTare ? "pending" : "not_required");
     onWeightChange(0, false); // Reset weight in parent
   }, [targetIngredient, requireTare]);
+
+  // Notify parent of tare status change
+  useEffect(() => {
+    if (onTareStatusChange) {
+      onTareStatusChange(tareStatus);
+    }
+  }, [tareStatus, onTareStatusChange]);
 
   // Combined useEffect for subscriptions and cleanup
   useEffect(() => {
@@ -214,7 +222,7 @@ const ScaleDisplayComponent = ({
                 <Text style={styles.weightText}>
                   {targetIngredient && tareStatus === "pending"
                     ? "Press TARE Button"
-                    : `${currentWeight}${targetIngredient.unit}`}
+                    : `${Number(currentWeight).toFixed(1)}${targetIngredient.unit}`}
                 </Text>
               </View>
               {targetIngredient && (tareStatus === 'tared' || tareStatus === 'not_required') && (

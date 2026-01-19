@@ -64,6 +64,7 @@ const useIngredientStep = (ingredient, currentWeight, isStable) => {
 
   const getBackgroundColor = () => {
     if (isOverTolerance) return '#F44336'; // Red for over
+    if (isOverTolerance) return '#F44336'; // Red for over
     if (weightReached) return '#4CAF50'; // Green for perfect
     if (currentWeight > 1) return '#F57C00'; // Yellow for under
     return '#9E9E9E'; // Grey for empty scale

@@ -198,7 +198,11 @@ export default function EditRecipeScreen({ route, navigation }) {
         requireTare: false,
         instructionText: '',
         stepType: 'weight', // Default to weight-based step
-        requiresCheck: false
+        requiresCheck: false,
+        ingredientGathering: false,
+        gatheringStepType: 'weight',
+        gatheringUnit: 'g',
+        gatheringQuantity: ''
       }]);
     }
   }, []);
@@ -280,7 +284,11 @@ export default function EditRecipeScreen({ route, navigation }) {
       instructionText: '',
       imageUri: null,
       stepType: 'weight', // Default to weight-based step
-      requiresCheck: false
+      requiresCheck: false,
+      ingredientGathering: false,
+      gatheringStepType: 'weight',
+      gatheringUnit: 'g',
+      gatheringQuantity: ''
     };
     
     // Update local state
@@ -388,12 +396,16 @@ export default function EditRecipeScreen({ route, navigation }) {
         name: selectedIngredient.name,
         amount: selectedIngredient.amount,
         unit: selectedIngredient.unit,
-        tolerance: selectedIngredient.tolerance || '', // Remove default value
+        tolerance: selectedIngredient.tolerance || '',
         requireTare: selectedIngredient.requireTare,
         instructionText: selectedIngredient.instructionText,
         imageUri: selectedIngredient.imageUri,
         stepType: selectedIngredient.stepType,
-        requiresCheck: selectedIngredient.requiresCheck
+        requiresCheck: selectedIngredient.requiresCheck,
+        ingredientGathering: selectedIngredient.ingredientGathering || false,
+        gatheringStepType: selectedIngredient.gatheringStepType || 'weight',
+        gatheringUnit: selectedIngredient.gatheringUnit || 'g',
+        gatheringQuantity: selectedIngredient.gatheringQuantity || ''
       };
       console.log('Setting original ingredient:', original);
       setOriginalIngredient(original);
@@ -415,7 +427,11 @@ export default function EditRecipeScreen({ route, navigation }) {
       instructionText: selectedIngredient.instructionText !== originalIngredient.instructionText,
       imageUri: selectedIngredient.imageUri !== originalIngredient.imageUri,
       stepType: selectedIngredient.stepType !== originalIngredient.stepType,
-      requiresCheck: selectedIngredient.requiresCheck !== originalIngredient.requiresCheck
+      requiresCheck: selectedIngredient.requiresCheck !== originalIngredient.requiresCheck,
+      ingredientGathering: selectedIngredient.ingredientGathering !== originalIngredient.ingredientGathering,
+      gatheringStepType: selectedIngredient.gatheringStepType !== originalIngredient.gatheringStepType,
+      gatheringUnit: selectedIngredient.gatheringUnit !== originalIngredient.gatheringUnit,
+      gatheringQuantity: selectedIngredient.gatheringQuantity !== originalIngredient.gatheringQuantity
     };
 
     const hasChanges = Object.values(changes).some(change => change);
@@ -580,7 +596,11 @@ export default function EditRecipeScreen({ route, navigation }) {
     console.log('Rendering ingredient editor with selected ingredient:', selectedIngredient);
     const ingredientWithDefaults = {
       ...selectedIngredient,
-      tolerance: selectedIngredient.tolerance || ''  // Remove default value
+      tolerance: selectedIngredient.tolerance || '',
+      ingredientGathering: selectedIngredient.ingredientGathering || false,
+      gatheringStepType: selectedIngredient.gatheringStepType || 'weight',
+      gatheringUnit: selectedIngredient.gatheringUnit || 'g',
+      gatheringQuantity: selectedIngredient.gatheringQuantity || ''
     };
 
     const getToleranceLabel = (unit) => {
@@ -660,6 +680,70 @@ export default function EditRecipeScreen({ route, navigation }) {
                     onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'name', text)}
                     placeholder="Ingredient Name"
                   />
+
+                  <View style={styles.checkboxContainer}>
+                    <Checkbox
+                      status={ingredientWithDefaults.ingredientGathering ? 'checked' : 'unchecked'}
+                      onPress={() => updateIngredient(ingredientWithDefaults.id, 'ingredientGathering', !ingredientWithDefaults.ingredientGathering)}
+                      color="#666"
+                    />
+                    <Text style={styles.checkboxLabel}>Ingredient Gathering</Text>
+                  </View>
+
+                  {ingredientWithDefaults.ingredientGathering && (
+                    <View style={styles.gatheringContainer}>
+                      <View style={{ marginBottom: 16 }}>
+                        <Text style={styles.label}>Gathering Step Type</Text>
+                        <Picker
+                          selectedValue={ingredientWithDefaults.gatheringStepType}
+                          onValueChange={(itemValue) => {
+                            updateIngredient(ingredientWithDefaults.id, 'gatheringStepType', itemValue);
+                            if (itemValue === 'weight') {
+                              updateIngredient(ingredientWithDefaults.id, 'gatheringUnit', 'g');
+                            } else if (itemValue === 'weighable') {
+                              updateIngredient(ingredientWithDefaults.id, 'gatheringUnit', 'eggs');
+                            }
+                          }}
+                          style={{ height: 44 }}
+                        >
+                          <Picker.Item label="Weight-based" value="weight" />
+                          <Picker.Item label="Unit-based" value="weighable" />
+                        </Picker>
+                      </View>
+
+                      <View style={{ marginBottom: 16 }}>
+                        <Text style={styles.label}>Gathering Unit</Text>
+                        <Picker
+                          selectedValue={ingredientWithDefaults.gatheringUnit}
+                          onValueChange={(itemValue) => updateIngredient(ingredientWithDefaults.id, 'gatheringUnit', itemValue)}
+                          style={{ height: 44 }}
+                        >
+                          {ingredientWithDefaults.gatheringStepType === 'weight' ? (
+                            <Picker.Item label="Grams" value="g" />
+                          ) : (
+                            <>
+                              <Picker.Item label="Eggs" value="eggs" />
+                              <Picker.Item label="Teaspoons" value="tsp" />
+                              <Picker.Item label="Tablespoons" value="tbsp" />
+                            </>
+                          )}
+                        </Picker>
+                      </View>
+
+                      <Text style={styles.label}>
+                        {ingredientWithDefaults.gatheringUnit === 'g'
+                          ? 'Gathering Quantity (grams)'
+                          : `Gathering Quantity (${ingredientWithDefaults.gatheringUnit})`}
+                      </Text>
+                      <TextInput
+                        style={[styles.input, { backgroundColor: '#fff' }]}
+                        value={ingredientWithDefaults.gatheringQuantity}
+                        onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'gatheringQuantity', text)}
+                        placeholder="Enter quantity"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                  )}
 
                   <View style={{ backgroundColor: '#f5f5f5', borderRadius: 8, marginBottom: 16 }}>
                     <Text style={styles.label}>Step Type</Text>
@@ -990,6 +1074,14 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderRadius: 8,
     overflow: 'hidden',
+  },
+  gatheringContainer: {
+    backgroundColor: '#e8e8e8',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
   ingredientHeader: {
     flexDirection: 'row',

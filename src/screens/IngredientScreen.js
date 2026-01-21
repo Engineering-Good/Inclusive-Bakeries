@@ -53,6 +53,29 @@ const IngredientScreen = ({ route, navigation }) => {
 
   console.log("[IngredientScreen] Ingredient:", ingredient);
 
+  const getIngredientImageSource = (imageUri) => {
+    if (!imageUri) {
+      return require('../assets/ingredients/ingredients_placeholder.png');
+    }
+    
+    if (typeof imageUri === 'string') {
+      // This could be a local asset path (though require is usually used directly)
+      // or a remote URL or base64 string.
+      // For local assets, if imageUri is a path like '../assets/...', you might need require.
+      // However, if it's stored as a string path from require, it's tricky.
+      // Assuming if it's a string, it's a URI (URL or base64).
+      // If local assets are stored as strings, they'd need to be converted back to require calls.
+      // For now, assume string means URI.
+      return { uri: imageUri };
+    }
+    
+    // If it's not a string, it might be a direct require() result or an object.
+    // If it's an object from require(), e.g., { uri: "path" } is not typical for require.
+    // require() usually returns the image module itself.
+    // Let's assume if it's not a string, it's already in a format Image can use (e.g., require output)
+    return imageUri;
+  };
+
   useEffect(() => {
 
     // Clear any existing interval when the effect re-runs (e.g., for a new ingredient)
@@ -241,12 +264,11 @@ const IngredientScreen = ({ route, navigation }) => {
             style={styles.ingredientImage}
           />
         ) : (
-          fullIngredient && fullIngredient.imageUri && (
-            <Image
-              source={{ uri: fullIngredient.imageUri }}
-              style={styles.ingredientImage}
-            />
-          )
+          <Image
+            source={getIngredientImageSource(ingredient.imageUri)}
+            style={styles.ingredientImage}
+            onError={(e) => console.log("[IngredientScreen] Error loading ingredient image:", e.nativeEvent.error)}
+          />
         )}
         <IngredientColumns
           ingredient={ingredient}

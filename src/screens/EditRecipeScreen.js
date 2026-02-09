@@ -268,6 +268,15 @@ export default function EditRecipeScreen({ route, navigation }) {
         }
       }
 
+      // If changing gathering step type, ensure gathering unit is correct
+      if (key === 'gatheringStepType') {
+        if (value === 'weight') {
+          updated.gatheringUnit = 'g';
+        } else if (value === 'weighable') {
+          updated.gatheringUnit = 'eggs';
+        }
+      }
+
       console.log('Updated ingredient:', updated);
       return updated;
     });
@@ -324,7 +333,14 @@ export default function EditRecipeScreen({ route, navigation }) {
   };
 
   const openIngredientEditor = (ingredient) => {
-    setSelectedIngredient(ingredient);
+    // Apply defaults for gathering fields to ensure they're saved properly
+    setSelectedIngredient({
+      ...ingredient,
+      ingredientGathering: ingredient.ingredientGathering || false,
+      gatheringStepType: ingredient.gatheringStepType || 'weight',
+      gatheringUnit: ingredient.gatheringUnit || 'g',
+      gatheringQuantity: ingredient.gatheringQuantity || ''
+    });
   };
 
   const closeIngredientEditor = () => {
@@ -696,14 +712,7 @@ export default function EditRecipeScreen({ route, navigation }) {
                         <Text style={styles.label}>Gathering Step Type</Text>
                         <Picker
                           selectedValue={ingredientWithDefaults.gatheringStepType}
-                          onValueChange={(itemValue) => {
-                            updateIngredient(ingredientWithDefaults.id, 'gatheringStepType', itemValue);
-                            if (itemValue === 'weight') {
-                              updateIngredient(ingredientWithDefaults.id, 'gatheringUnit', 'g');
-                            } else if (itemValue === 'weighable') {
-                              updateIngredient(ingredientWithDefaults.id, 'gatheringUnit', 'eggs');
-                            }
-                          }}
+                          onValueChange={(itemValue) => updateIngredient(ingredientWithDefaults.id, 'gatheringStepType', itemValue)}
                           style={{ height: 44 }}
                         >
                           <Picker.Item label="Weight-based" value="weight" />

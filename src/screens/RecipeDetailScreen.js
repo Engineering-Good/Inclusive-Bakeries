@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   ingredientCard: {
-    width: '45%',
+    width: '40%',
     aspectRatio: 1,
     backgroundColor: '#f5f5f5',
     borderRadius: 12,
@@ -239,20 +239,20 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   ingredientCardImage: {
-    width: 80,
-    height: 80,
+    width: 320,
+    height: 320,
     borderRadius: 8,
     resizeMode: 'cover',
     marginBottom: 8,
   },
   ingredientCardName: {
-    fontSize: 16,
+    fontSize: 48,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 4,
   },
   ingredientCardAmount: {
-    fontSize: 14,
+    fontSize: 36,
     color: '#666',
     textAlign: 'center',
   },

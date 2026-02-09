@@ -54,7 +54,10 @@ export default function EditRecipeScreen({ route, navigation }) {
   const handleDiscardChanges = () => {
     setIsNavigating(true);
     setUnsavedChangesDialog({ visible: false });
-    navigation.goBack();
+    // Use setImmediate or setTimeout to ensure state updates before navigation
+    setTimeout(() => {
+      navigation.goBack();
+    }, 0);
   };
 
   const handleSaveAndExit = async () => {

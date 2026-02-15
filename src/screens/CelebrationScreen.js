@@ -14,7 +14,12 @@ const CelebrationScreen = ({ route, navigation }) => {
     }, [navigation]);
 
   const handleBackToRecipes = () => {
-    navigation.navigate('Recipes'); // Navigate to the recipe list screen
+    // Return to the root of the stack (recipes) so no back button remains
+    if (navigation.popToTop) {
+      navigation.popToTop();
+    } else {
+      navigation.navigate('Recipes');
+    }
   };
 
 

@@ -52,6 +52,20 @@ export default function RecipeDetailScreen({ route, navigation }) {
       let displayUnit = unit;
       if (displayUnit === 'g') {
         displayUnit = 'grams';
+      } else if (displayUnit === 'eggs') {
+        displayUnit = 'eggs';
+      } else if (displayUnit === 'tsp') {
+        displayUnit = 'teaspoons';
+      } else if (displayUnit === 'tbsp') {
+        displayUnit = 'tablespoons';
+      } else if (displayUnit === 'sticks') {
+        displayUnit = 'sticks';
+      } else if (displayUnit === 'trays') {
+        displayUnit = 'trays';
+      } else if (displayUnit === 'packs') {
+        displayUnit = 'packs';
+      } else if (displayUnit === 'bottle') {
+        displayUnit = 'bottles';
       }
       const announcement = `${amount} ${displayUnit} of ${ingredient.name}`;
       SpeechService.speak(announcement);

@@ -632,6 +632,14 @@ export default function EditRecipeScreen({ route, navigation }) {
           return 'Tolerance (teaspoons)';
         case 'tbsp':
           return 'Tolerance (tablespoons)';
+        case 'sticks':
+          return 'Tolerance (sticks)';
+        case 'trays':
+          return 'Tolerance (trays)';
+        case 'packs':
+          return 'Tolerance (packs)';
+        case 'bottle':
+          return 'Tolerance (bottles)';
         default:
           return `Tolerance (${unit})`;
       }
@@ -647,6 +655,14 @@ export default function EditRecipeScreen({ route, navigation }) {
           return 'e.g. 0.5';
         case 'tbsp':
           return 'e.g. 0.5';
+        case 'sticks':
+          return 'e.g. 1';
+        case 'trays':
+          return 'e.g. 1';
+        case 'packs':
+          return 'e.g. 1';
+        case 'bottle':
+          return 'e.g. 1';
         default:
           return 'e.g. 1';
       }
@@ -737,6 +753,10 @@ export default function EditRecipeScreen({ route, navigation }) {
                               <Picker.Item label="Eggs" value="eggs" />
                               <Picker.Item label="Teaspoons" value="tsp" />
                               <Picker.Item label="Tablespoons" value="tbsp" />
+                              <Picker.Item label="Sticks" value="sticks" />
+                              <Picker.Item label="Trays" value="trays" />
+                              <Picker.Item label="Packs" value="packs" />
+                              <Picker.Item label="Bottles" value="bottles" />
                             </>
                           )}
                         </Picker>

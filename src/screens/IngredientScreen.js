@@ -34,20 +34,33 @@ import { Animated, Easing } from 'react-native';
 
 const IngredientScreen = ({ route, navigation }) => {
   const { ingredientIndex, recipe } = route.params;
+  // Track which ingredient indices have been completed in this session. This
+  // may be passed between replacements via route.params.completedIndices.
+  const initialCompleted = (route.params && route.params.completedIndices) || [];
+  const [completedIndices, setCompletedIndices] = useState(initialCompleted);
   const ingredient = recipe.ingredients[ingredientIndex];
   const [currentWeight, setCurrentWeight] = useState(0);
   const [isStable, setIsStable] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const hasSpokenRef = useRef('');
   const addMoreIntervalRef = useRef(null);
-  const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
+  // Determine if this ingredient is the last remaining (i.e., after
+  // marking the current index completed there are no uncompleted indices).
+  const isFinalStep = (() => {
+    const completedSet = new Set(completedIndices || []);
+    completedSet.add(ingredientIndex);
+    for (let i = 0; i < recipe.ingredients.length; i++) {
+      if (!completedSet.has(i)) return false;
+    }
+    return true;
+  })();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const animationRef = useRef(null);
 
   // Determine if the ingredient requires scale interaction
   const requireScale = ingredient.stepType === 'weight' || ingredient.stepType === 'weighable';
   const { isMockScaleActive } = useScale(requireScale);
-  const { replayInstruction } = useSpeech(ingredient, ingredientIndex, isLastIngredient);
+  const { replayInstruction } = useSpeech(ingredient, ingredientIndex, isFinalStep);
   const { weightReached, getBackgroundColor } = useIngredientStep(ingredient, currentWeight, isStable);
   const [tareStatus, setTareStatus] = useState(false);
 
@@ -108,14 +121,35 @@ const IngredientScreen = ({ route, navigation }) => {
   
 
   const proceedToNextStep = () => {
-    if (isLastIngredient) {
-      SpeechService.stop();
-      ScaleServiceFactory.unsubscribeAll();
+    // Always stop speech and unsubscribe before navigating
+    SpeechService.stop();
+    ScaleServiceFactory.unsubscribeAll();
+
+    // Mark current ingredient as completed
+    const prevCompleted = (route.params && route.params.completedIndices) || completedIndices || [];
+    const completedSet = new Set(prevCompleted);
+    completedSet.add(ingredientIndex);
+    const newCompleted = Array.from(completedSet).sort((a, b) => a - b);
+    setCompletedIndices(newCompleted);
+
+    // Find the next uncompleted ingredient (lowest index not in set)
+    const total = recipe.ingredients.length;
+    let nextIndex = -1;
+    for (let i = 0; i < total; i++) {
+      if (!completedSet.has(i)) {
+        nextIndex = i;
+        break;
+      }
+    }
+
+    if (nextIndex === -1) {
+      // All ingredients completed
       navigation.replace("Celebration");
     } else {
       navigation.replace("Ingredient", {
-        ingredientIndex: ingredientIndex + 1,
+        ingredientIndex: nextIndex,
         recipe,
+        completedIndices: newCompleted,
       });
     }
   };
@@ -150,7 +184,7 @@ const IngredientScreen = ({ route, navigation }) => {
       headerTitleAlign: "center",
       headerRight: () => <></>,
     });
-  }, [navigation, ingredient, weightReached, isLastIngredient]);
+  }, [navigation, ingredient, weightReached, isFinalStep]);
 
   const fullIngredient = ingredientDatabase[ingredient.name];
 
@@ -210,10 +244,10 @@ const IngredientScreen = ({ route, navigation }) => {
               disabled={!weightReached}
             >
               <Text style={styles.nextButtonText}>
-                {isLastIngredient ? 'FINISH' : 'NEXT'}
+                {isFinalStep ? 'FINISH' : 'NEXT'}
               </Text>
               <Icon
-                name={isLastIngredient ? "check-circle" : "arrow-forward"}
+                name={isFinalStep ? "check-circle" : "arrow-forward"}
                 size={24}
                 color="white"
               />
@@ -229,10 +263,10 @@ const IngredientScreen = ({ route, navigation }) => {
             disabled={!weightReached && !nextButtonEnabled}
           >
             <Text style={styles.nextButtonText}>
-              {isLastIngredient ? 'FINISH' : 'NEXT'}
+              {isFinalStep ? 'FINISH' : 'NEXT'}
             </Text>
             <Icon
-              name={isLastIngredient ? "check-circle" : "arrow-forward"}
+              name={isFinalStep ? "check-circle" : "arrow-forward"}
               size={24}
               color="white"
             />

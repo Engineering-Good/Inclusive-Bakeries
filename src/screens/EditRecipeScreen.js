@@ -317,7 +317,7 @@ export default function EditRecipeScreen({ route, navigation }) {
       // Update AsyncStorage
       AsyncStorage.getItem('recipes')
         .then(storedRecipesStr => {
-          const storedRecipes = JSON.parse(storedRecipesStr);
+          const storedRecipes = storedRecipesStr ? JSON.parse(storedRecipesStr) : [];
           const updatedRecipes = storedRecipes.map(r => 
             r.id === initialRecipe.id ? updatedRecipe : r
           );
@@ -511,7 +511,7 @@ export default function EditRecipeScreen({ route, navigation }) {
         case 'weight':
           return 'Weight-based';
         case 'weighable':
-          return 'Eggs';
+          return 'Unit-based';
 
         default:
           return 'Unknown Type';
@@ -522,7 +522,7 @@ export default function EditRecipeScreen({ route, navigation }) {
       if (ingredient.stepType === 'weight') {
         return `${ingredient.amount}g ± ${ingredient.tolerance || '0'}g`;
       } else if (ingredient.stepType === 'weighable') {
-        return `${ingredient.amount} eggs`;
+        return `${ingredient.amount} ${ingredient.unit}`;
       }
       return '';
     };
@@ -747,17 +747,17 @@ export default function EditRecipeScreen({ route, navigation }) {
                           style={{ height: 44 }}
                         >
                           {ingredientWithDefaults.gatheringStepType === 'weight' ? (
-                            <Picker.Item label="Grams" value="g" />
+                            <Picker.Item key="grams" label="Grams" value="g" />
                           ) : (
-                            <>
-                              <Picker.Item label="Eggs" value="eggs" />
-                              <Picker.Item label="Teaspoons" value="tsp" />
-                              <Picker.Item label="Tablespoons" value="tbsp" />
-                              <Picker.Item label="Sticks" value="sticks" />
-                              <Picker.Item label="Trays" value="trays" />
-                              <Picker.Item label="Packs" value="packs" />
-                              <Picker.Item label="Bottles" value="bottles" />
-                            </>
+                            [
+                              <Picker.Item key="eggs" label="Eggs" value="eggs" />,
+                              <Picker.Item key="tsp" label="Teaspoons" value="tsp" />,
+                              <Picker.Item key="tbsp" label="Tablespoons" value="tbsp" />,
+                              <Picker.Item key="sticks" label="Sticks" value="sticks" />,
+                              <Picker.Item key="trays" label="Trays" value="trays" />,
+                              <Picker.Item key="packs" label="Packs" value="packs" />,
+                              <Picker.Item key="bottles" label="Bottles" value="bottles" />,
+                            ]
                           )}
                         </Picker>
                       </View>
@@ -808,13 +808,13 @@ export default function EditRecipeScreen({ route, navigation }) {
                       style={{ height: 44 }}
                     >
                       {ingredientWithDefaults.stepType === 'weight' ? (
-                        <Picker.Item label="Grams" value="g" />
+                        <Picker.Item key="grams" label="Grams" value="g" />
                       ) : (
-                        <>
-                          <Picker.Item label="Eggs" value="eggs" />
-                          <Picker.Item label="Teaspoons" value="tsp" />
-                          <Picker.Item label="Tablespoons" value="tbsp" />
-                        </>
+                        [
+                          <Picker.Item key="eggs" label="Eggs" value="eggs" />,
+                          <Picker.Item key="tsp" label="Teaspoons" value="tsp" />,
+                          <Picker.Item key="tbsp" label="Tablespoons" value="tbsp" />,
+                        ]
                       )}
                     </Picker>
                   </View>

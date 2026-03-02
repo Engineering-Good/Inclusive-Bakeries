@@ -638,7 +638,7 @@ export default function EditRecipeScreen({ route, navigation }) {
           return 'Tolerance (trays)';
         case 'packs':
           return 'Tolerance (packs)';
-        case 'bottle':
+        case 'bottles':
           return 'Tolerance (bottles)';
         default:
           return `Tolerance (${unit})`;
@@ -661,7 +661,7 @@ export default function EditRecipeScreen({ route, navigation }) {
           return 'e.g. 1';
         case 'packs':
           return 'e.g. 1';
-        case 'bottle':
+        case 'bottles':
           return 'e.g. 1';
         default:
           return 'e.g. 1';
@@ -751,8 +751,6 @@ export default function EditRecipeScreen({ route, navigation }) {
                           ) : (
                             [
                               <Picker.Item key="eggs" label="Eggs" value="eggs" />,
-                              <Picker.Item key="tsp" label="Teaspoons" value="tsp" />,
-                              <Picker.Item key="tbsp" label="Tablespoons" value="tbsp" />,
                               <Picker.Item key="sticks" label="Sticks" value="sticks" />,
                               <Picker.Item key="trays" label="Trays" value="trays" />,
                               <Picker.Item key="packs" label="Packs" value="packs" />,

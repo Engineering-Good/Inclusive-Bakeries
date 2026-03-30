@@ -42,21 +42,29 @@ export default function RecipeListScreen({ navigation }) {
   }, [searchQuery, recipes]);
 
   useEffect(() => {
-    // Set up the header right button
-    navigation.setOptions({
-      headerTitle: () => <View><Text>My Recipes</Text></View>, // Empty view as header title
-      headerBackVisible: false,
-      headerRight: () => (
-        <View>
-          <IconButton
-            icon="cog"
-            size={48}
-            onPress={() => navigation.navigate('Settings')}
-            style={styles.headerButton}
-          />
-        </View>
-      ),
-    });
+    // Re-apply header options whenever the screen gains focus so the back
+    // button is always hidden and the left header is empty.
+    const applyHeaderOptions = () => {
+      navigation.setOptions({
+        headerTitle: () => <View><Text>My Recipes</Text></View>,
+        headerLeft: () => null,
+        headerBackVisible: false,
+        headerRight: () => (
+          <View>
+            <IconButton
+              icon="cog"
+              size={48}
+              onPress={() => navigation.navigate('Settings')}
+              style={styles.headerButton}
+            />
+          </View>
+        ),
+      });
+    };
+
+    applyHeaderOptions();
+    const unsubscribe = navigation.addListener('focus', applyHeaderOptions);
+    return unsubscribe;
   }, [navigation]);
 
   const onChangeSearch = query => setSearchQuery(query);

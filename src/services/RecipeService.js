@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sampleRecipes } from '../data/sampleRecipes';
+import ingredientDatabase from '../data/ingredientDatabase';
 
 const RECIPES_STORAGE_KEY = 'app_recipes';
 
@@ -43,40 +44,65 @@ class RecipeService {
       const originalSampleRecipe = sampleRecipes.find(sample => sample.id === recipeFromStorage.id);
 
       // Process recipe image
+      // Prioritize the stored imageUri. If it's an object, extract the uri.
+      // Only fall back to the originalSampleRecipe.imageUri if recipeFromStorage.imageUri is not set (or invalid)
+      // AND it's a recipe that originated from samples.
       let finalImageUri = recipeFromStorage.imageUri;
-      if (originalSampleRecipe) {
-        // This recipe was originally a sample recipe.
-        // Restore its imageUri from the canonical sampleRecipes list
-        console.log(`[RecipeService] Rehydrating image for sample recipe: ${recipeFromStorage.title} (ID: ${recipeFromStorage.id}) using image from original sample.`);
+      if (recipeFromStorage.imageUri) { // If an imageUri is stored for the recipe
+        if (typeof recipeFromStorage.imageUri === 'object' && recipeFromStorage.imageUri.uri) {
+          finalImageUri = recipeFromStorage.imageUri.uri;
+        }
+        // If it's already a string (path, URL, or base64), use it directly.
+      } else if (originalSampleRecipe) { // No imageUri stored for recipe, but it was a sample
+        console.log(`[RecipeService] Recipe ${recipeFromStorage.title} (ID: ${recipeFromStorage.id}) has no stored imageUri, using original sample.`);
         finalImageUri = originalSampleRecipe.imageUri;
-      } else if (typeof finalImageUri === 'object') {
-        // Handle case where imageUri is an object with uri property
-        finalImageUri = finalImageUri.uri;
       }
+      // If no stored imageUri and not a sample (or sample has no imageUri), finalImageUri will be undefined.
+      // The UI should handle undefined with a placeholder.
 
       // Process ingredient images
       const rehydratedIngredients = recipeFromStorage.ingredients.map(ingredient => {
-        let ingredientImageUri = ingredient.imageUri;
-        if (originalSampleRecipe) {
-          // Try to find matching ingredient in sample recipe
-          const originalIngredient = originalSampleRecipe.ingredients.find(i => i.id === ingredient.id);
-          if (originalIngredient) {
-            ingredientImageUri = originalIngredient.imageUri;
+        let ingredientImageUri = ingredient.imageUri; // Start with the stored imageUri for this ingredient
+
+        // If an imageUri is stored for the ingredient, prioritize it.
+        // This handles strings (URLs, base64, local asset paths) and extracts 'uri' from objects.
+        if (ingredient.imageUri) {
+          if (typeof ingredient.imageUri === 'object' && ingredient.imageUri.uri) {
+            ingredientImageUri = ingredient.imageUri.uri;
           }
-        } else if (typeof ingredientImageUri === 'object') {
-          // Handle case where imageUri is an object with uri property
-          ingredientImageUri = ingredientImageUri.uri;
+          // If it's a valid string (local path, URL, or base64), use it directly.
+          // No need to check ingredientDatabase here, as the user's saved choice should be respected.
+        } else {
+          // No imageUri stored for this specific ingredient.
+          // Check if it's a recipe that originated from samples and try to use the sample's ingredient image.
+          if (originalSampleRecipe) {
+            const originalIngredient = originalSampleRecipe.ingredients.find(i => i.id === ingredient.id);
+            if (originalIngredient && originalIngredient.imageUri) {
+              console.log(`[RecipeService] Ingredient ${ingredient.name} (ID: ${ingredient.id}) has no stored imageUri, using original sample's image.`);
+              ingredientImageUri = originalIngredient.imageUri;
+            }
+          }
+
+          // If still no imageUri, and the ingredient name exists in the database, use the database image.
+          // This provides a default if none was ever set or saved.
+          if (!ingredientImageUri && ingredient.name && ingredientDatabase[ingredient.name] && ingredientDatabase[ingredient.name].imageUri) {
+            console.log(`[RecipeService] Ingredient ${ingredient.name} (ID: ${ingredient.id}) using image from ingredientDatabase as a fallback.`);
+            ingredientImageUri = ingredientDatabase[ingredient.name].imageUri;
+          }
         }
+        
+        // If, after all checks, ingredientImageUri is still not set (e.g., no saved image, not from sample, not in DB),
+        // it will be undefined. The UI should handle this with a placeholder.
 
         return {
           ...ingredient,
-          imageUri: ingredientImageUri
+          imageUri: ingredientImageUri // This will be a string (uri/path/base64) or undefined.
         };
       });
 
       return {
         ...recipeFromStorage,
-        imageUri: finalImageUri,
+        imageUri: finalImageUri, // This will be a string (uri/path/base64) or undefined.
         ingredients: rehydratedIngredients
       };
     });
@@ -152,27 +178,37 @@ class RecipeService {
   static async getRecipeById(id) {
     try {
       console.log('Getting recipe by ID:', id);
-      const recipes = await this.getRecipes();
-      const recipe = recipes.find(recipe => recipe.id === id);
+      const recipes = await this.getRecipes(); // This call already rehydrates images
+      const recipe = recipes.find(r => r.id === id);
       
       if (!recipe) {
         console.log('Recipe not found:', id);
         return null;
       }
 
-      // If it's a sample recipe, use the original image
+      // Check if the recipe (already rehydrated) has a valid imageUri.
+      // The `getRecipes` call via `rehydrateRecipeImages` should have already
+      // prioritized any saved imageUri.
+      // We only need to override if the rehydrated recipe's imageUri is somehow not set
+      // AND it's a known sample recipe.
+      if (recipe.imageUri) {
+        console.log(`[RecipeService] Recipe ${recipe.title} (ID: ${recipe.id}) has a valid imageUri: ${recipe.imageUri}. Using it.`);
+        return recipe;
+      }
+
+      // If recipe.imageUri is not set (e.g., undefined or empty string) after rehydration,
+      // and it's a sample recipe, try to use the original sample's image.
       const originalSampleRecipe = sampleRecipes.find(sample => sample.id === recipe.id);
-      if (originalSampleRecipe) {
-        console.log('Found original sample recipe, using its image');
+      if (originalSampleRecipe && originalSampleRecipe.imageUri) {
+        console.log(`[RecipeService] Recipe ${recipe.title} (ID: ${recipe.id}) has no valid stored imageUri, but is a sample. Using original sample's image: ${originalSampleRecipe.imageUri}`);
         return {
           ...recipe,
           imageUri: originalSampleRecipe.imageUri
         };
       }
 
-      // For user-created recipes, use the stored imageUri
-      console.log('Using stored recipe data for user-created recipe');
-      return recipe;
+      console.log(`[RecipeService] Recipe ${recipe.title} (ID: ${recipe.id}) has no valid imageUri and is not a sample (or sample has no image). Using recipe as is (imageUri will be undefined).`);
+      return recipe; // Return as is, imageUri will be undefined if not set.
     } catch (error) {
       console.error(`Error getting recipe with ID ${id}:`, error);
       return null;

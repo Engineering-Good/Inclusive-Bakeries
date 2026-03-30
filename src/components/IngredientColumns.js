@@ -12,6 +12,7 @@ const IngredientColumns = ({
   requireScale,
   styles,
   isMockScaleActive,
+  onTareStatusChange,
 }) => {
   const isWeighable = ingredient.stepType === 'weighable';
   const isWeightBased = ingredient.stepType === 'weight';
@@ -28,6 +29,7 @@ const IngredientColumns = ({
               onWeightChange={onWeightChange}
               onTare={onTare}
               requireTare={ingredient.requireTare}
+              onTareStatusChange={onTareStatusChange}
             />
             <Divider style={{ height: 1, backgroundColor: 'black' }} />
             <Text style={styles.addMoreText}></Text>

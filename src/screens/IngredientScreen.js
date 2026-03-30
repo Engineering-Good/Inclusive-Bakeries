@@ -34,23 +34,60 @@ import { Animated, Easing } from 'react-native';
 
 const IngredientScreen = ({ route, navigation }) => {
   const { ingredientIndex, recipe } = route.params;
+  // Track which ingredient indices have been completed in this session. This
+  // may be passed between replacements via route.params.completedIndices.
+  const initialCompleted = (route.params && route.params.completedIndices) || [];
+  const [completedIndices, setCompletedIndices] = useState(initialCompleted);
   const ingredient = recipe.ingredients[ingredientIndex];
   const [currentWeight, setCurrentWeight] = useState(0);
   const [isStable, setIsStable] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const hasSpokenRef = useRef('');
   const addMoreIntervalRef = useRef(null);
-  const isLastIngredient = ingredientIndex === recipe.ingredients.length - 1;
+  // Determine if this ingredient is the last remaining (i.e., after
+  // marking the current index completed there are no uncompleted indices).
+  const isFinalStep = (() => {
+    const completedSet = new Set(completedIndices || []);
+    completedSet.add(ingredientIndex);
+    for (let i = 0; i < recipe.ingredients.length; i++) {
+      if (!completedSet.has(i)) return false;
+    }
+    return true;
+  })();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const animationRef = useRef(null);
 
   // Determine if the ingredient requires scale interaction
   const requireScale = ingredient.stepType === 'weight' || ingredient.stepType === 'weighable';
   const { isMockScaleActive } = useScale(requireScale);
-  const { replayInstruction } = useSpeech(ingredient, ingredientIndex, isLastIngredient);
+  const { replayInstruction } = useSpeech(ingredient, ingredientIndex, isFinalStep);
   const { weightReached, getBackgroundColor } = useIngredientStep(ingredient, currentWeight, isStable);
+  const [tareStatus, setTareStatus] = useState(false);
 
   console.log("[IngredientScreen] Ingredient:", ingredient);
+
+  const getIngredientImageSource = (imageUri) => {
+    if (!imageUri) {
+      return require('../assets/ingredients/ingredients_placeholder.png');
+    }
+    
+    if (typeof imageUri === 'string') {
+      // This could be a local asset path (though require is usually used directly)
+      // or a remote URL or base64 string.
+      // For local assets, if imageUri is a path like '../assets/...', you might need require.
+      // However, if it's stored as a string path from require, it's tricky.
+      // Assuming if it's a string, it's a URI (URL or base64).
+      // If local assets are stored as strings, they'd need to be converted back to require calls.
+      // For now, assume string means URI.
+      return { uri: imageUri };
+    }
+    
+    // If it's not a string, it might be a direct require() result or an object.
+    // If it's an object from require(), e.g., { uri: "path" } is not typical for require.
+    // require() usually returns the image module itself.
+    // Let's assume if it's not a string, it's already in a format Image can use (e.g., require output)
+    return imageUri;
+  };
 
   useEffect(() => {
 
@@ -84,14 +121,35 @@ const IngredientScreen = ({ route, navigation }) => {
   
 
   const proceedToNextStep = () => {
-    if (isLastIngredient) {
-      SpeechService.stop();
-      ScaleServiceFactory.unsubscribeAll();
+    // Always stop speech and unsubscribe before navigating
+    SpeechService.stop();
+    ScaleServiceFactory.unsubscribeAll();
+
+    // Mark current ingredient as completed
+    const prevCompleted = (route.params && route.params.completedIndices) || completedIndices || [];
+    const completedSet = new Set(prevCompleted);
+    completedSet.add(ingredientIndex);
+    const newCompleted = Array.from(completedSet).sort((a, b) => a - b);
+    setCompletedIndices(newCompleted);
+
+    // Find the next uncompleted ingredient (lowest index not in set)
+    const total = recipe.ingredients.length;
+    let nextIndex = -1;
+    for (let i = 0; i < total; i++) {
+      if (!completedSet.has(i)) {
+        nextIndex = i;
+        break;
+      }
+    }
+
+    if (nextIndex === -1) {
+      // All ingredients completed
       navigation.replace("Celebration");
     } else {
       navigation.replace("Ingredient", {
-        ingredientIndex: ingredientIndex + 1,
+        ingredientIndex: nextIndex,
         recipe,
+        completedIndices: newCompleted,
       });
     }
   };
@@ -126,7 +184,7 @@ const IngredientScreen = ({ route, navigation }) => {
       headerTitleAlign: "center",
       headerRight: () => <></>,
     });
-  }, [navigation, ingredient, weightReached, isLastIngredient]);
+  }, [navigation, ingredient, weightReached, isFinalStep]);
 
   const fullIngredient = ingredientDatabase[ingredient.name];
 
@@ -186,10 +244,10 @@ const IngredientScreen = ({ route, navigation }) => {
               disabled={!weightReached}
             >
               <Text style={styles.nextButtonText}>
-                {isLastIngredient ? 'FINISH' : 'NEXT'}
+                {isFinalStep ? 'FINISH' : 'NEXT'}
               </Text>
               <Icon
-                name={isLastIngredient ? "check-circle" : "arrow-forward"}
+                name={isFinalStep ? "check-circle" : "arrow-forward"}
                 size={24}
                 color="white"
               />
@@ -205,10 +263,10 @@ const IngredientScreen = ({ route, navigation }) => {
             disabled={!weightReached && !nextButtonEnabled}
           >
             <Text style={styles.nextButtonText}>
-              {isLastIngredient ? 'FINISH' : 'NEXT'}
+              {isFinalStep ? 'FINISH' : 'NEXT'}
             </Text>
             <Icon
-              name={isLastIngredient ? "check-circle" : "arrow-forward"}
+              name={isFinalStep ? "check-circle" : "arrow-forward"}
               size={24}
               color="white"
             />
@@ -226,10 +284,24 @@ const IngredientScreen = ({ route, navigation }) => {
           },
         ]}
       >
-        {fullIngredient && fullIngredient.imageUri && (
+        {/* {fullIngredient && fullIngredient.imageUri && (
           <Image
             source={{ uri: fullIngredient.imageUri }}
             style={styles.ingredientImage}
+          />
+        )} */}
+
+        {/* Conditionally show tare.png or ingredient image */}
+        {tareStatus === 'pending' ? (
+          <Image
+            source={require('../assets/Tare.png')}
+            style={styles.ingredientImage}
+          />
+        ) : (
+          <Image
+            source={getIngredientImageSource(ingredient.imageUri)}
+            style={styles.ingredientImage}
+            onError={(e) => console.log("[IngredientScreen] Error loading ingredient image:", e.nativeEvent.error)}
           />
         )}
         <IngredientColumns
@@ -240,6 +312,7 @@ const IngredientScreen = ({ route, navigation }) => {
           requireScale={requireScale}
           styles={styles}
           isMockScaleActive={isMockScaleActive}
+          onTareStatusChange={setTareStatus}
         />
       </View>
 

@@ -47,11 +47,27 @@ export default function RecipeDetailScreen({ route, navigation }) {
 
   const announceIngredient = (ingredient) => {
     try {
-      let displayUnit = ingredient.unit;
+      const amount = ingredient.ingredientGathering ? ingredient.gatheringQuantity : ingredient.amount;
+      const unit = ingredient.ingredientGathering ? ingredient.gatheringUnit : ingredient.unit;
+      let displayUnit = unit;
       if (displayUnit === 'g') {
         displayUnit = 'grams';
+      } else if (displayUnit === 'eggs') {
+        displayUnit = 'eggs';
+      } else if (displayUnit === 'tsp') {
+        displayUnit = 'teaspoons';
+      } else if (displayUnit === 'tbsp') {
+        displayUnit = 'tablespoons';
+      } else if (displayUnit === 'sticks') {
+        displayUnit = 'sticks';
+      } else if (displayUnit === 'trays') {
+        displayUnit = 'trays';
+      } else if (displayUnit === 'packs') {
+        displayUnit = 'packs';
+      } else if (displayUnit === 'bottle') {
+        displayUnit = 'bottles';
       }
-      const announcement = `${ingredient.amount} ${displayUnit} of ${ingredient.name}`;
+      const announcement = `${amount} ${displayUnit} of ${ingredient.name}`;
       SpeechService.speak(announcement);
     } catch (error) {
       console.error('Error announcing ingredient:', error);
@@ -120,34 +136,32 @@ export default function RecipeDetailScreen({ route, navigation }) {
 
       <Text style={styles.sectionTitle}>Ingredients</Text>
       <View style={styles.ingredientsContainer}>
-        
-      
         {recipe.ingredients && recipe.ingredients
           .filter(ingredient => ingredient.amount || ['g', 'eggs', 'tsp', 'tbsp'].includes(ingredient.unit))
-          .map((ingredient, index) => (
-            <TouchableOpacity 
-              key={index} 
-              style={styles.ingredientItem}
-              onPress={() => selectIngredient(index)}
-            >
-              <Image
-                source={
-                  typeof ingredient.imageUri === 'string'
-                    ? { uri: ingredient.imageUri }
-                    : null
-                }
-                style={styles.ingredientImage}
-              />
-              <Text style={styles.ingredientText}>
-                {ingredient.name}: {ingredient.amount} {ingredient.unit === 'g' ? 'grams' : ingredient.unit}
-              </Text>
-              <IconButton
-                icon="volume-high"
-                size={20}
-                onPress={() => announceIngredient(ingredient)}
-              />
-            </TouchableOpacity>
-        ))}
+          .map((ingredient, index) => {
+            const displayAmount = ingredient.ingredientGathering ? ingredient.gatheringQuantity : ingredient.amount;
+            const displayUnit = ingredient.ingredientGathering ? ingredient.gatheringUnit : ingredient.unit;
+            const unitLabel = displayUnit === 'g' ? 'grams' : displayUnit;
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={styles.ingredientCard}
+                onPress={() => selectIngredient(index)}
+              >
+                <Image
+                  source={
+                    typeof ingredient.imageUri === 'string'
+                      ? { uri: ingredient.imageUri }
+                      : require('../assets/ingredients/ingredients_placeholder.png')
+                  }
+                  style={styles.ingredientCardImage}
+                />
+                <Text style={styles.ingredientCardName}>{ingredient.name}</Text>
+                <Text style={styles.ingredientCardAmount}>{displayAmount} {unitLabel}</Text>
+              </TouchableOpacity>
+            );
+          })}
       </View>
 
       {recipe.instructions && recipe.instructions.length > 0 && (
@@ -218,26 +232,43 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   ingredientsContainer: {
-    paddingHorizontal: 16,
-  },
-  ingredientItem: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    gap: 12,
+  },
+  ingredientCard: {
+    width: '40%',
+    aspectRatio: 1,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
-  ingredientImage: {
-    width: 50,
-    height: 50,
-    resizeMode: 'contain',
-    marginRight: 10,
+  ingredientCardImage: {
+    width: 320,
+    height: 320,
+    borderRadius: 8,
+    resizeMode: 'cover',
+    marginBottom: 8,
   },
-  ingredientText: {
+  ingredientCardName: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  ingredientCardAmount: {
     fontSize: 36,
-    margin: 18,
-    flex: 1,
+    color: '#666',
+    textAlign: 'center',
   },
   divider: {
     marginVertical: 16,

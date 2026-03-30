@@ -27,7 +27,8 @@ const useIngredientStep = (ingredient, currentWeight, isStable) => {
     if (isWithinTolerance && isStable) {
       setWeightReached(true);
     } else {
-      setWeightReached(isOverTolerance);
+      // setWeightReached(isOverTolerance);
+      setWeightReached(false);
     }
   }, [ingredient, currentWeight, isStable, isWithinTolerance, isOverTolerance]);
 
@@ -62,10 +63,11 @@ const useIngredientStep = (ingredient, currentWeight, isStable) => {
   }, [message]); // Depend on the message string itself.
 
   const getBackgroundColor = () => {
-    if (isOverTolerance) return '#0900FF'; // Blue for over
+    if (isOverTolerance) return '#F44336'; // Red for over
+    if (isOverTolerance) return '#F44336'; // Red for over
     if (weightReached) return '#4CAF50'; // Green for perfect
-    if (currentWeight > 1) return '#F44336'; // Red for under
-    return '#F44336'; // Red for empty scale
+    if (currentWeight > 1) return '#F57C00'; // Yellow for under
+    return '#9E9E9E'; // Grey for empty scale
   };
 
   return { weightReached, getBackgroundColor };

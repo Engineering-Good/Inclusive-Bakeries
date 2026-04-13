@@ -222,7 +222,7 @@ const IngredientScreen = ({ route, navigation }) => {
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>
             {ingredient.name + '\n'}
-            {`${ingredient.amount} ${ingredient.unit}`}
+            {`${ingredient.amount} ${ingredient.unit === 'custom' ? (ingredient.customUnit || 'custom') : ingredient.unit}`}
           </Text>
         </View>
         <View

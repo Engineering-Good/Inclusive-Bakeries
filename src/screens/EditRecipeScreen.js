@@ -300,7 +300,9 @@ export default function EditRecipeScreen({ route, navigation }) {
       ingredientGathering: false,
       gatheringStepType: 'weight',
       gatheringUnit: 'g',
-      gatheringQuantity: ''
+      gatheringQuantity: '',
+      customUnit: '',
+      customGatheringUnit: ''
     };
     
     // Update local state
@@ -755,14 +757,25 @@ export default function EditRecipeScreen({ route, navigation }) {
                               <Picker.Item key="trays" label="Trays" value="trays" />,
                               <Picker.Item key="packs" label="Packs" value="packs" />,
                               <Picker.Item key="bottles" label="Bottles" value="bottles" />,
+                              <Picker.Item key="custom" label="Custom..." value="custom" />,
                             ]
                           )}
                         </Picker>
+                        {ingredientWithDefaults.gatheringUnit === 'custom' && (
+                          <TextInput
+                            style={[styles.input, { backgroundColor: '#fff' }]}
+                            value={ingredientWithDefaults.customGatheringUnit}
+                            onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'customGatheringUnit', text)}
+                            placeholder="Enter custom unit (e.g. cups)"
+                          />
+                        )}
                       </View>
 
                       <Text style={styles.label}>
                         {ingredientWithDefaults.gatheringUnit === 'g'
                           ? 'Gathering Quantity (grams)'
+                          : ingredientWithDefaults.gatheringUnit === 'custom'
+                          ? `Gathering Quantity (${ingredientWithDefaults.customGatheringUnit || 'custom'})`
                           : `Gathering Quantity (${ingredientWithDefaults.gatheringUnit})`}
                       </Text>
                       <TextInput
@@ -812,21 +825,38 @@ export default function EditRecipeScreen({ route, navigation }) {
                           <Picker.Item key="eggs" label="Eggs" value="eggs" />,
                           <Picker.Item key="tsp" label="Teaspoons" value="tsp" />,
                           <Picker.Item key="tbsp" label="Tablespoons" value="tbsp" />,
+                          <Picker.Item key="custom" label="Custom..." value="custom" />,
                         ]
                       )}
                     </Picker>
+                    {ingredientWithDefaults.unit === 'custom' && (
+                      <TextInput
+                        style={[styles.input, { backgroundColor: '#fff' }]}
+                        value={ingredientWithDefaults.customUnit}
+                        onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'customUnit', text)}
+                        placeholder="Enter custom unit (e.g. cups)"
+                      />
+                    )}
                   </View>
 
                   <Text style={styles.label}>
                     {ingredientWithDefaults.unit === 'g'
                       ? 'Mass (grams)'
+                      : ingredientWithDefaults.unit === 'custom'
+                      ? `Quantity (${ingredientWithDefaults.customUnit || 'custom'})`
                       : `Quantity (${ingredientWithDefaults.unit})`}
                   </Text>
                   <TextInput
                     style={styles.input}
                     value={ingredientWithDefaults.amount}
                     onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'amount', text)}
-                    placeholder={ingredientWithDefaults.unit === 'g' ? "Mass (grams)" : `Quantity (${ingredientWithDefaults.unit})`}
+                    placeholder={
+                      ingredientWithDefaults.unit === 'g'
+                        ? 'Mass (grams)'
+                        : ingredientWithDefaults.unit === 'custom'
+                        ? `Quantity (${ingredientWithDefaults.customUnit || 'custom'})`
+                        : `Quantity (${ingredientWithDefaults.unit})`
+                    }
                     keyboardType="numeric"
                   />
 

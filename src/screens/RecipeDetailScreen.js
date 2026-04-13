@@ -66,6 +66,10 @@ export default function RecipeDetailScreen({ route, navigation }) {
         displayUnit = 'packs';
       } else if (displayUnit === 'bottle') {
         displayUnit = 'bottles';
+      } else if (displayUnit === 'custom') {
+        displayUnit = ingredient.ingredientGathering
+          ? (ingredient.customGatheringUnit || 'custom')
+          : (ingredient.customUnit || 'custom');
       }
       const announcement = `${amount} ${displayUnit} of ${ingredient.name}`;
       SpeechService.speak(announcement);
@@ -137,11 +141,15 @@ export default function RecipeDetailScreen({ route, navigation }) {
       <Text style={styles.sectionTitle}>Ingredients</Text>
       <View style={styles.ingredientsContainer}>
         {recipe.ingredients && recipe.ingredients
-          .filter(ingredient => ingredient.amount || ['g', 'eggs', 'tsp', 'tbsp'].includes(ingredient.unit))
+          .filter(ingredient => ingredient.amount || ['g', 'eggs', 'tsp', 'tbsp', 'custom'].includes(ingredient.unit))
           .map((ingredient, index) => {
             const displayAmount = ingredient.ingredientGathering ? ingredient.gatheringQuantity : ingredient.amount;
-            const displayUnit = ingredient.ingredientGathering ? ingredient.gatheringUnit : ingredient.unit;
-            const unitLabel = displayUnit === 'g' ? 'grams' : displayUnit;
+            const rawUnit = ingredient.ingredientGathering ? ingredient.gatheringUnit : ingredient.unit;
+            const unitLabel = rawUnit === 'g'
+              ? 'grams'
+              : rawUnit === 'custom'
+              ? (ingredient.ingredientGathering ? ingredient.customGatheringUnit : ingredient.customUnit) || 'custom'
+              : rawUnit;
 
             return (
               <TouchableOpacity

@@ -222,7 +222,7 @@ const ScaleDisplayComponent = ({
                 <Text style={styles.weightText}>
                   {targetIngredient && tareStatus === "pending"
                     ? "Press TARE Button"
-                    : `${Number(currentWeight).toFixed(1)}${targetIngredient.unit}`}
+                    : `${Number(currentWeight).toFixed(1)}${targetIngredient.unit === 'custom' ? (targetIngredient.customUnit || 'custom') : targetIngredient.unit}`}
                 </Text>
               </View>
               {targetIngredient && (tareStatus === 'tared' || tareStatus === 'not_required') && (
@@ -236,9 +236,16 @@ const ScaleDisplayComponent = ({
                   }
                   style={styles.progressBar}
                 />
-                <Text style={styles.targetText}>
-                  Target: {targetWeight}{targetIngredient.unit} ± {tolerance}{targetIngredient.unit}
-                </Text>
+                {(() => {
+                  const unitLabel = targetIngredient.unit === 'custom'
+                    ? (targetIngredient.customUnit || 'custom')
+                    : targetIngredient.unit;
+                  return (
+                    <Text style={styles.targetText}>
+                      Target: {targetWeight}{unitLabel} ± {tolerance}{unitLabel}
+                    </Text>
+                  );
+                })()}
               </View>
               )}
             </>

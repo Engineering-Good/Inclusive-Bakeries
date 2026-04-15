@@ -19,12 +19,8 @@ import speechService from '../services/SpeechService'
 const SPEECH_RATE_OPTIONS = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
 const SPEECH_DELAY_OPTIONS = [0, 500, 1000, 2000, 3000, 5000]
 
-const nearest = (value, options) =>
-	options.reduce(
-		(best, opt) =>
-			Math.abs(opt - value) < Math.abs(best - value) ? opt : best,
-		options[0]
-	)
+const resolvePickerOption = (value, fallback, options) =>
+	options.includes(value) ? value : fallback
 
 const formatDelayLabel = (ms) => {
 	if (ms === 0) return '0ms'
@@ -43,10 +39,10 @@ const SettingsScreen = ({ navigation }) => {
 	const [scaleMenuVisible, setScaleMenuVisible] = useState(false)
 
 	const [speechRate, setSpeechRate] = useState(
-		nearest(speechService.getSpeechRate(), SPEECH_RATE_OPTIONS)
+		resolvePickerOption(speechService.getSpeechRate(), 1.0, SPEECH_RATE_OPTIONS)
 	)
 	const [speechDelay, setSpeechDelay] = useState(
-		nearest(speechService.getSpeechDelay(), SPEECH_DELAY_OPTIONS)
+		resolvePickerOption(speechService.getSpeechDelay(), 1000, SPEECH_DELAY_OPTIONS)
 	)
 	const [shouldSpeakWordByWord, setShouldSpeakWordByWord] = useState(
 		speechService.getSpeakWordByWord()
@@ -92,8 +88,8 @@ const SettingsScreen = ({ navigation }) => {
 
 	const loadSpeechSettings = async () => {
 		try {
-			const delay = nearest(speechService.getSpeechDelay(), SPEECH_DELAY_OPTIONS)
-			const rate = nearest(speechService.getSpeechRate(), SPEECH_RATE_OPTIONS)
+			const delay = resolvePickerOption(speechService.getSpeechDelay(), 1000, SPEECH_DELAY_OPTIONS)
+			const rate = resolvePickerOption(speechService.getSpeechRate(), 1.0, SPEECH_RATE_OPTIONS)
 			setSpeechDelay(delay)
 			setSpeechRate(rate)
 			setShouldSpeakWordByWord(speechService.getSpeakWordByWord())

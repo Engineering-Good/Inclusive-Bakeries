@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
-import React, { Fragment, useEffect, useState } from 'react' // Import Fragment
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import React, { Fragment, useEffect, useState } from 'react'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import {
 	Button,
 	Divider,
@@ -10,12 +10,29 @@ import {
 	Snackbar,
 	Switch,
 } from 'react-native-paper'
-import Slider from '@react-native-community/slider'
 import ScaleConnectButton from '../components/ScaleConnectButton'
 import { SCALE_SERVICES } from '../constants/ScaleServices'
-import RecipeService from '../services/RecipeService' // Import RecipeService
+import RecipeService from '../services/RecipeService'
 import ScaleServiceFactory from '../services/ScaleServiceFactory'
 import speechService from '../services/SpeechService'
+
+const SPEECH_RATE_OPTIONS = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+const SPEECH_DELAY_OPTIONS = [0, 500, 1000, 2000, 3000, 5000]
+
+const nearest = (value, options) =>
+	options.reduce(
+		(best, opt) =>
+			Math.abs(opt - value) < Math.abs(best - value) ? opt : best,
+		options[0]
+	)
+
+const formatDelayLabel = (ms) => {
+	if (ms === 0) return '0ms'
+	if (ms >= 1000) return `${ms / 1000}s`
+	return `${ms}ms`
+}
+
+const formatRateLabel = (rate) => `${rate}x`
 
 const SettingsScreen = ({ navigation }) => {
 	const [selectedScale, setSelectedScale] = useState(SCALE_SERVICES.MOCK)
@@ -25,9 +42,12 @@ const SettingsScreen = ({ navigation }) => {
 	const [snackbarMessage, setSnackbarMessage] = useState('')
 	const [scaleMenuVisible, setScaleMenuVisible] = useState(false)
 
-	// Speech settings states
-	const [speechDelay, setSpeechDelay] = useState(speechService.getSpeechDelay())
-	const [speechRate, setSpeechRate] = useState(speechService.getSpeechRate())
+	const [speechRate, setSpeechRate] = useState(
+		nearest(speechService.getSpeechRate(), SPEECH_RATE_OPTIONS)
+	)
+	const [speechDelay, setSpeechDelay] = useState(
+		nearest(speechService.getSpeechDelay(), SPEECH_DELAY_OPTIONS)
+	)
 	const [shouldSpeakWordByWord, setShouldSpeakWordByWord] = useState(
 		speechService.getSpeakWordByWord()
 	)
@@ -35,6 +55,8 @@ const SettingsScreen = ({ navigation }) => {
 		speechService.getPreferredVoice()?.identifier || ''
 	)
 	const [availableVoices, setAvailableVoices] = useState([])
+	const [rateMenuVisible, setRateMenuVisible] = useState(false)
+	const [delayMenuVisible, setDelayMenuVisible] = useState(false)
 	const [voiceMenuVisible, setVoiceMenuVisible] = useState(false)
 
 	const version = Constants.expoConfig.version
@@ -45,18 +67,13 @@ const SettingsScreen = ({ navigation }) => {
 		loadSpeechSettings()
 	}, [])
 
-	// Check connection status periodically
 	useEffect(() => {
 		const checkConnection = () => {
 			const status = ScaleServiceFactory.getConnectionStatus()
 			setIsConnected(status.isConnected)
 			setCurrentDevice(status.currentDevice)
 		}
-
-		// Check immediately
 		checkConnection()
-
-		// Check every 2 seconds
 		const interval = setInterval(checkConnection, 2000)
 		return () => clearInterval(interval)
 	}, [])
@@ -64,10 +81,7 @@ const SettingsScreen = ({ navigation }) => {
 	const loadSettings = async () => {
 		try {
 			const scale = await AsyncStorage.getItem('selectedScale')
-
 			if (scale) setSelectedScale(scale)
-
-			// Get initial connection status
 			const status = ScaleServiceFactory.getConnectionStatus()
 			setIsConnected(status.isConnected)
 			setCurrentDevice(status.currentDevice)
@@ -78,14 +92,16 @@ const SettingsScreen = ({ navigation }) => {
 
 	const loadSpeechSettings = async () => {
 		try {
-			setSpeechDelay(speechService.getSpeechDelay())
-			setSpeechRate(speechService.getSpeechRate())
+			const delay = nearest(speechService.getSpeechDelay(), SPEECH_DELAY_OPTIONS)
+			const rate = nearest(speechService.getSpeechRate(), SPEECH_RATE_OPTIONS)
+			setSpeechDelay(delay)
+			setSpeechRate(rate)
 			setShouldSpeakWordByWord(speechService.getSpeakWordByWord())
 			const voices = speechService.getAvailableVoices()
 			setAvailableVoices(voices)
-			const currentPreferredVoice = speechService.getPreferredVoice()
-			if (currentPreferredVoice) {
-				setPreferredVoiceIdentifier(currentPreferredVoice.identifier)
+			const voice = speechService.getPreferredVoice()
+			if (voice) {
+				setPreferredVoiceIdentifier(voice.identifier)
 			}
 		} catch (error) {
 			console.error('Error loading speech settings:', error)
@@ -100,10 +116,6 @@ const SettingsScreen = ({ navigation }) => {
 		} catch (error) {
 			console.error('Error saving scale setting:', error)
 		}
-	}
-
-	const handleScaleLoad = ({ nativeEvent }) => {
-		console.log('Scale view loaded:', nativeEvent.url)
 	}
 
 	const onDismissSnackBar = () => setSnackbarVisible(false)
@@ -132,16 +144,16 @@ const SettingsScreen = ({ navigation }) => {
 		}
 	}
 
-	const handleSpeechDelayChange = (value) => {
-		const delay = parseInt(value, 10)
-		setSpeechDelay(delay)
-		speechService.setSpeechDelay(delay)
+	const handleDelaySelect = (value) => {
+		setSpeechDelay(value)
+		speechService.setSpeechDelay(value)
+		setDelayMenuVisible(false)
 	}
 
-	const handleSpeechRateChange = (value) => {
-		const rate = parseFloat(value.toFixed(1))
-		setSpeechRate(rate)
-		speechService.setSpeechRate(rate)
+	const handleRateSelect = (value) => {
+		setSpeechRate(value)
+		speechService.setSpeechRate(value)
+		setRateMenuVisible(false)
 	}
 
 	const handlePreferredVoiceChange = (voiceIdentifier) => {
@@ -154,17 +166,6 @@ const SettingsScreen = ({ navigation }) => {
 		setShouldSpeakWordByWord(value)
 		speechService.setSpeakWordByWord(value)
 	}
-
-	const openVoiceMenu = () => setVoiceMenuVisible(true)
-	const closeVoiceMenu = () => setVoiceMenuVisible(false)
-
-	const getVoiceDisplayName = (identifier) => {
-		const voice = availableVoices.find((v) => v.identifier === identifier)
-		return voice ? `${voice.name} (${voice.language})` : 'Default Voice'
-	}
-
-	const openScaleMenu = () => setScaleMenuVisible(true)
-	const closeScaleMenu = () => setScaleMenuVisible(false)
 
 	const getScaleDisplayName = (scale) => {
 		switch (scale) {
@@ -181,6 +182,11 @@ const SettingsScreen = ({ navigation }) => {
 		}
 	}
 
+	const getVoiceDisplayName = (identifier) => {
+		const voice = availableVoices.find((v) => v.identifier === identifier)
+		return voice ? `${voice.name} (${voice.language})` : 'Default Voice'
+	}
+
 	return (
 		<Fragment>
 			<ScrollView style={styles.container}>
@@ -188,24 +194,25 @@ const SettingsScreen = ({ navigation }) => {
 					<List.Subheader>Scale Settings</List.Subheader>
 					<Menu
 						visible={scaleMenuVisible}
-						onDismiss={closeScaleMenu}
+						onDismiss={() => setScaleMenuVisible(false)}
 						anchor={
 							<List.Item
 								title="Selected Scale"
 								description={getScaleDisplayName(selectedScale)}
-								left={(props) => <List.Icon {...props} icon="scale" />}
-								right={(props) => <List.Icon {...props} icon="chevron-down" />}
-								onPress={openScaleMenu}
+								left={(props) =>
+									<List.Icon {...props} icon="scale" />
+								}
+								right={(props) =>
+									<List.Icon {...props} icon="chevron-down" />
+								}
+								onPress={() => setScaleMenuVisible(true)}
 							/>
 						}
 					>
 						{Object.values(SCALE_SERVICES).map((scale) => (
 							<Menu.Item
 								key={scale}
-								onPress={() => {
-									handleScaleChange(scale)
-									closeScaleMenu()
-								}}
+								onPress={() => handleScaleChange(scale)}
 								title={getScaleDisplayName(scale)}
 								style={
 									selectedScale === scale
@@ -249,44 +256,67 @@ const SettingsScreen = ({ navigation }) => {
 
 				<List.Section>
 					<List.Subheader>Speech Settings</List.Subheader>
-					<List.Item
-						title="Speech Delay (ms)"
-						description="Delay between speech segments in milliseconds"
-						left={(props) => <List.Icon {...props} icon="timer-sand" />}
-						right={() => (
-							<View style={styles.sliderContainer}>
-								<Slider
-									style={styles.slider}
-									minimumValue={1000}
-									maximumValue={5000}
-									step={100}
-									value={speechDelay}
-									onValueChange={handleSpeechDelayChange}
-								/>
-								<Text style={styles.sliderValue}>{speechDelay}ms</Text>
-							</View>
-						)}
-					/>
-					<List.Item
-						title="Speech Rate"
-						description="Speed of speech (0.1 - 2.0)"
-						left={(props) => <List.Icon {...props} icon="speedometer" />}
-						right={() => (
-							<View style={styles.sliderContainer}>
-								<Slider
-									style={styles.slider}
-									minimumValue={0.1}
-									maximumValue={2.0}
-									step={0.1}
-									value={speechRate}
-									onValueChange={handleSpeechRateChange}
-								/>
-								<Text style={styles.sliderValue}>
-									{speechRate.toFixed(1)}x
-								</Text>
-							</View>
-						)}
-					/>
+
+					<Menu
+						visible={delayMenuVisible}
+						onDismiss={() => setDelayMenuVisible(false)}
+						anchor={
+							<List.Item
+								title="Speech Delay"
+								description={formatDelayLabel(speechDelay)}
+								left={(props) => <List.Icon {...props} icon="timer-sand" />}
+								right={(props) =>
+									<List.Icon {...props} icon="chevron-down" />
+								}
+								onPress={() => setDelayMenuVisible(true)}
+							/>
+						}
+					>
+						{SPEECH_DELAY_OPTIONS.map((delay) => (
+							<Menu.Item
+								key={delay}
+								onPress={() => handleDelaySelect(delay)}
+								title={formatDelayLabel(delay)}
+								style={
+									speechDelay === delay
+										? { backgroundColor: '#e0e0e0' }
+										: {}
+								}
+							/>
+						))}
+					</Menu>
+
+					<Menu
+						visible={rateMenuVisible}
+						onDismiss={() => setRateMenuVisible(false)}
+						anchor={
+							<List.Item
+								title="Speech Rate"
+								description={formatRateLabel(speechRate)}
+								left={(props) =>
+									<List.Icon {...props} icon="speedometer" />
+								}
+								right={(props) =>
+									<List.Icon {...props} icon="chevron-down" />
+								}
+								onPress={() => setRateMenuVisible(true)}
+							/>
+						}
+					>
+						{SPEECH_RATE_OPTIONS.map((rate) => (
+							<Menu.Item
+								key={rate}
+								onPress={() => handleRateSelect(rate)}
+								title={formatRateLabel(rate)}
+								style={
+									speechRate === rate
+										? { backgroundColor: '#e0e0e0' }
+										: {}
+								}
+							/>
+						))}
+					</Menu>
+
 					<List.Item
 						title="Speak Word by Word"
 						description="Speak text word by word instead of entire sentences"
@@ -300,16 +330,21 @@ const SettingsScreen = ({ navigation }) => {
 							/>
 						)}
 					/>
+
 					<Menu
 						visible={voiceMenuVisible}
-						onDismiss={closeVoiceMenu}
+						onDismiss={() => setVoiceMenuVisible(false)}
 						anchor={
 							<List.Item
 								title="Preferred Voice"
 								description={getVoiceDisplayName(preferredVoiceIdentifier)}
-								left={(props) => <List.Icon {...props} icon="account-voice" />}
-								right={(props) => <List.Icon {...props} icon="chevron-down" />}
-								onPress={openVoiceMenu}
+								left={(props) =>
+									<List.Icon {...props} icon="account-voice" />
+								}
+								right={(props) =>
+									<List.Icon {...props} icon="chevron-down" />
+								}
+								onPress={() => setVoiceMenuVisible(true)}
 							/>
 						}
 					>
@@ -361,9 +396,7 @@ const SettingsScreen = ({ navigation }) => {
 				duration={Snackbar.DURATION_SHORT}
 				action={{
 					label: 'Dismiss',
-					onPress: () => {
-						// Do something
-					},
+					onPress: () => {},
 				}}
 			>
 				{snackbarMessage}
@@ -380,43 +413,13 @@ const styles = StyleSheet.create({
 	connectContainer: {
 		padding: 16,
 	},
-	scaleContainer: {
-		flex: 1,
-		marginVertical: 10,
-	},
-	sectionTitle: {
-		fontSize: 18,
-		fontWeight: '600',
-		marginBottom: 10,
-	},
-	scaleView: {
-		flex: 1,
-		borderWidth: 1,
-		borderColor: '#ddd',
-		borderRadius: 8,
-		overflow: 'hidden',
-	},
 	buttonContainer: {
-
 		paddingHorizontal: 16,
 		paddingBottom: 16,
 	},
 	button: {
 		alignSelf: 'center',
 		marginTop: 10,
-	},
-	sliderContainer: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		width: 400,
-	},
-	slider: {
-		flex: 1,
-	},
-	sliderValue: {
-		width: 60,
-		textAlign: 'right',
-		paddingLeft: 10,
 	},
 })
 

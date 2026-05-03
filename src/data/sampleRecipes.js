@@ -7,6 +7,7 @@ const recipeImages = {
   brownies: require('../assets/recipes/brownies.webp'),
   portugueseeggtarts: require('../assets/recipes/portugueseeggtarts.png'),
   butter: require('../assets/ingredients/butter.png'),
+  chocolatecake: require('../assets/recipes/placeholder.png'),
 };
 
 export const sampleRecipes = [
@@ -160,5 +161,121 @@ export const sampleRecipes = [
 
     ],
     imageUri: recipeImages.brownies,
+  },
+  {
+    id: '5',
+    title: 'Comprehensive Chocolate Cake',
+    ingredients: [
+      {
+        id: '5001',
+        name: 'Flour',
+        amount: 200,
+        unit: 'g',
+        requireTare: true,
+        stepType: 'weight',
+        tolerance: 5,
+        instructionText: 'Measure flour precisely for best results.',
+        ingredientGathering: true,
+        gatheringStepType: 'weighable',
+        gatheringUnit: 'packs',
+        gatheringQuantity: '1'
+      },
+      {
+        id: '5002',
+        name: 'Butter',
+        amount: 150,
+        unit: 'g',
+        requireTare: true,
+        stepType: 'weight',
+        tolerance: 2,
+        instructionText: 'Use softened butter at room temperature.',
+        ingredientGathering: false,
+        gatheringStepType: 'weight',
+        gatheringUnit: 'g',
+        gatheringQuantity: ''
+      },
+      {
+        id: '5003',
+        name: 'Sugar',
+        amount: 200,
+        unit: 'g',
+        requireTare: true,
+        stepType: 'weight',
+        tolerance: 3,
+        instructionText: 'Granulated sugar works best for this recipe.',
+        ingredientGathering: true,
+        gatheringStepType: 'weighable',
+        gatheringUnit: 'packs',
+        gatheringQuantity: '1'
+      },
+      {
+        id: '5004',
+        name: 'Eggs',
+        amount: 3,
+        unit: 'eggs',
+        requireTare: false,
+        stepType: 'weighable',
+        instructionText: 'Crack eggs gently and add one at a time.',
+        ingredientGathering: false,
+        gatheringStepType: 'weight',
+        gatheringUnit: 'g',
+        gatheringQuantity: ''
+      },
+      {
+        id: '5005',
+        name: 'Cocoa Powder',
+        amount: 30,
+        unit: 'g',
+        requireTare: true,
+        stepType: 'weight',
+        tolerance: 1,
+        instructionText: 'Use unsweetened cocoa powder.',
+        ingredientGathering: true,
+        gatheringStepType: 'weighable',
+        gatheringUnit: 'bottles',
+        gatheringQuantity: '1'
+      },
+      {
+        id: '5006',
+        name: 'Milk',
+        amount: 100,
+        unit: 'g',
+        requireTare: false,
+        stepType: 'weight',
+        tolerance: 5,
+        instructionText: 'Room temperature milk is preferred.',
+        ingredientGathering: false,
+        gatheringStepType: 'weight',
+        gatheringUnit: 'g',
+        gatheringQuantity: ''
+      },
+      {
+        id: '5007',
+        name: 'Baking Powder',
+        amount: 5,
+        unit: 'tsp',
+        requireTare: false,
+        stepType: 'weighable',
+        instructionText: 'Level teaspoons for accurate measurement.',
+        ingredientGathering: true,
+        gatheringStepType: 'weighable',
+        gatheringUnit: 'packs',
+        gatheringQuantity: '1'
+      },
+      {
+        id: '5008',
+        name: 'Vanilla Extract',
+        amount: 2,
+        unit: 'tsp',
+        requireTare: false,
+        stepType: 'weighable',
+        instructionText: 'Pure vanilla extract for best flavor.',
+        ingredientGathering: true,
+        gatheringStepType: 'weighable',
+        gatheringUnit: 'bottles',
+        gatheringQuantity: '1'
+      }
+    ],
+    imageUri: recipeImages.chocolatecake,
   }
 ];

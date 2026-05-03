@@ -1,70 +1,55 @@
-import React, {
-  useEffect,
-  useLayoutEffect,
-  useState,
-  useRef,
-} from "react";
+import React, { useEffect, useLayoutEffect, useCallback, useState } from "react";
+import { Animated } from 'react-native';
 import {
-  StyleSheet,
   View,
   Text,
   TouchableOpacity,
   Image,
-  Dimensions
 } from "react-native";
-import {
-  Dialog,
-  Portal,
-  Button,
-  Paragraph,
-} from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import IngredientColumns from '../components/IngredientColumns';
-import useScale from '../hooks/useScale';
-import useSpeech from '../hooks/useSpeech';
-import useIngredientStep from '../hooks/useIngredientStep';
-import ScaleServiceFactory from "../services/ScaleServiceFactory";
-import SpeechService from "../services/SpeechService";
-import { INGREDIENT_MESSAGES } from "../constants/speechText";
+import ConfirmationDialog from '../components/ConfirmationDialog';
+import useIngredientWeighing from '../hooks/useIngredientWeighing';
+import useAppState from '../hooks/useAppState';
+import useUIState from '../hooks/useUIState';
+import useRecipeProgress from '../hooks/useRecipeProgress';
+import usePulseAnimation from '../hooks/usePulseAnimation';
 import ingredientDatabase from "../data/ingredientDatabase";
-import { Animated, Easing } from 'react-native';
-
-
-   
+import { INGREDIENT_MESSAGES } from "../constants/speechText";
+import styles from './IngredientScreen.styles';
 
 const IngredientScreen = ({ route, navigation }) => {
   const { ingredientIndex, recipe } = route.params;
-  // Track which ingredient indices have been completed in this session. This
-  // may be passed between replacements via route.params.completedIndices.
-  const initialCompleted = (route.params && route.params.completedIndices) || [];
-  const [completedIndices, setCompletedIndices] = useState(initialCompleted);
-  const ingredient = recipe.ingredients[ingredientIndex];
-  const [currentWeight, setCurrentWeight] = useState(0);
-  const [isStable, setIsStable] = useState(false);
-  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
-  const hasSpokenRef = useRef('');
-  const addMoreIntervalRef = useRef(null);
-  // Determine if this ingredient is the last remaining (i.e., after
-  // marking the current index completed there are no uncompleted indices).
-  const isFinalStep = (() => {
-    const completedSet = new Set(completedIndices || []);
-    completedSet.add(ingredientIndex);
-    for (let i = 0; i < recipe.ingredients.length; i++) {
-      if (!completedSet.has(i)) return false;
-    }
-    return true;
-  })();
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const animationRef = useRef(null);
 
-  // Determine if the ingredient requires scale interaction
-  const requireScale = ingredient.stepType === 'weight' || ingredient.stepType === 'weighable';
-  const { isMockScaleActive } = useScale(requireScale);
-  const { replayInstruction } = useSpeech(ingredient, ingredientIndex, isFinalStep);
-  const { weightReached, getBackgroundColor } = useIngredientStep(ingredient, currentWeight, isStable);
+  const {
+    isFinalStep,
+    ingredient,
+    proceedToNextStep,
+  } = useRecipeProgress({ ingredientIndex, recipe, navigation, route });
+
+  const {
+    currentWeight,
+    weightReached,
+    isMockScaleActive,
+    isConnected,
+    speak,
+    replay,
+    getBackgroundColor
+  } = useIngredientWeighing(ingredient);
+  
+  useAppState();
+
+  const { 
+    showConfirmationDialog, 
+    setShowConfirmationDialog,
+    isProcessingNext,
+    setIsProcessingNext,
+    resetProcessingNextAfterDelay
+  } = useUIState();
+
+  const { scaleAnim, startPulse, stopPulse } = usePulseAnimation(weightReached);
+  
   const [tareStatus, setTareStatus] = useState(false);
-
-  console.log("[IngredientScreen] Ingredient:", ingredient);
 
   const getIngredientImageSource = (imageUri) => {
     if (!imageUri) {
@@ -72,43 +57,17 @@ const IngredientScreen = ({ route, navigation }) => {
     }
     
     if (typeof imageUri === 'string') {
-      // This could be a local asset path (though require is usually used directly)
-      // or a remote URL or base64 string.
-      // For local assets, if imageUri is a path like '../assets/...', you might need require.
-      // However, if it's stored as a string path from require, it's tricky.
-      // Assuming if it's a string, it's a URI (URL or base64).
-      // If local assets are stored as strings, they'd need to be converted back to require calls.
-      // For now, assume string means URI.
       return { uri: imageUri };
     }
     
-    // If it's not a string, it might be a direct require() result or an object.
-    // If it's an object from require(), e.g., { uri: "path" } is not typical for require.
-    // require() usually returns the image module itself.
-    // Let's assume if it's not a string, it's already in a format Image can use (e.g., require output)
     return imageUri;
   };
 
   useEffect(() => {
-
-    // Clear any existing interval when the effect re-runs (e.g., for a new ingredient)
-    if (addMoreIntervalRef.current) {
-      clearInterval(addMoreIntervalRef.current);
-      addMoreIntervalRef.current = null;
-    }
-
-    // Reset states when component mounts or ingredient changes
-    setCurrentWeight(0);
-    setIsStable(false);
-    hasSpokenRef.current = null; // Reset the spoken ref
-
-    // Cleanup function for unmount
-    // Cleanup function for unmount
     return () => {
-      SpeechService.stop();
-      ScaleServiceFactory.unsubscribeAll();
+      stopPulse();
     };
-  }, [ingredient, ingredientIndex]);
+  }, []);
 
   useEffect(() => {
     if (weightReached) {
@@ -116,67 +75,7 @@ const IngredientScreen = ({ route, navigation }) => {
     } else {
       stopPulse();
     }
-    return stopPulse;
   }, [weightReached]);
-  
-
-  const proceedToNextStep = () => {
-    // Always stop speech and unsubscribe before navigating
-    SpeechService.stop();
-    ScaleServiceFactory.unsubscribeAll();
-
-    // Mark current ingredient as completed
-    const prevCompleted = (route.params && route.params.completedIndices) || completedIndices || [];
-    const completedSet = new Set(prevCompleted);
-    completedSet.add(ingredientIndex);
-    const newCompleted = Array.from(completedSet).sort((a, b) => a - b);
-    setCompletedIndices(newCompleted);
-
-    // Find the next uncompleted ingredient (lowest index not in set)
-    const total = recipe.ingredients.length;
-    let nextIndex = -1;
-    for (let i = 0; i < total; i++) {
-      if (!completedSet.has(i)) {
-        nextIndex = i;
-        break;
-      }
-    }
-
-    if (nextIndex === -1) {
-      // All ingredients completed
-      navigation.replace("Celebration");
-    } else {
-      navigation.replace("Ingredient", {
-        ingredientIndex: nextIndex,
-        recipe,
-        completedIndices: newCompleted,
-      });
-    }
-  };
-
-  const handleNext = () => {
-    console.log("[IngredientScreen] Next button pressed");
-
-    if (!requireScale) {
-      setShowConfirmationDialog(true);
-      SpeechService.speak(
-        `${INGREDIENT_MESSAGES.CONFIRM_ADDED} ${ingredient.name}?`
-      );
-    } else {
-      proceedToNextStep();
-    }
-  };
-
-  const handleWeightChange = (weight, stable) => {
-    setCurrentWeight(weight);
-    setIsStable(stable);
-  };
-
-  const handleTare = () => {
-    // The tare event is handled within ScaleReadingComponent for speech,
-    // but we could add logic here if the screen needs to react to a tare.
-    console.log("Tare event received in IngredientScreen");
-  };
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -184,38 +83,30 @@ const IngredientScreen = ({ route, navigation }) => {
       headerTitleAlign: "center",
       headerRight: () => <></>,
     });
-  }, [navigation, ingredient, weightReached, isFinalStep]);
+  }, [navigation]);
 
-  const fullIngredient = ingredientDatabase[ingredient.name];
+  ingredientDatabase[ingredient.name];
 
-  const startPulse = () => {
-    animationRef.current = Animated.loop(
-      Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 1.15,
-          duration: 500,
-          useNativeDriver: true,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-          easing: Easing.inOut(Easing.ease),
-        }),
-      ])
-    );
-    animationRef.current.start();
-  };
-  
-  const stopPulse = () => {
-    if (animationRef.current) {
-      animationRef.current.stop();
-      animationRef.current = null;
+  const handleNext = useCallback(() => {
+    if (isProcessingNext) return;
+    setIsProcessingNext(true);
+
+    try {
+      const requireScale = ingredient.stepType === 'weight' || ingredient.stepType === 'weighable';
+      if (!requireScale || !isConnected) {
+        setShowConfirmationDialog(true);
+        speak(`${INGREDIENT_MESSAGES.CONFIRM_ADDED} ${ingredient.name}?`);
+      } else {
+        proceedToNextStep();
+      }
+    } finally {
+      resetProcessingNextAfterDelay(500);
     }
-    scaleAnim.setValue(1); // Reset scale
+  }, [isConnected, ingredient, isProcessingNext, setIsProcessingNext, resetProcessingNextAfterDelay, speak, proceedToNextStep, setShowConfirmationDialog]);
+
+  const handleTare = () => {
+    console.log("Tare event received in IngredientScreen");
   };
-  
 
   return (
     <View style={[styles.container]}>
@@ -253,258 +144,69 @@ const IngredientScreen = ({ route, navigation }) => {
               />
             </TouchableOpacity>
           </Animated.View>
-
-          {/* <TouchableOpacity
-            style={[
-              styles.nextButton,
-              (!weightReached && !nextButtonEnabled) && styles.nextButtonDisabled
-            ]}
-            onPress={handleNext}
-            disabled={!weightReached && !nextButtonEnabled}
-          >
-            <Text style={styles.nextButtonText}>
-              {isFinalStep ? 'FINISH' : 'NEXT'}
-            </Text>
-            <Icon
-              name={isFinalStep ? "check-circle" : "arrow-forward"}
-              size={24}
-              color="white"
-            />
-          </TouchableOpacity> */}
         </View>
 
-      {/* Middle Section */}
-      <View
-        style={[
-          styles.middleSection,
-          {
-            backgroundColor: requireScale
-              ? getBackgroundColor()
-              : "#4CAF50",
-          },
-        ]}
-      >
-        {/* {fullIngredient && fullIngredient.imageUri && (
-          <Image
-            source={{ uri: fullIngredient.imageUri }}
-            style={styles.ingredientImage}
-          />
-        )} */}
-
-        {/* Conditionally show tare.png or ingredient image */}
-        {tareStatus === 'pending' ? (
-          <Image
-            source={require('../assets/Tare.png')}
-            style={styles.ingredientImage}
-          />
-        ) : (
-          <Image
-            source={getIngredientImageSource(ingredient.imageUri)}
-            style={styles.ingredientImage}
-            onError={(e) => console.log("[IngredientScreen] Error loading ingredient image:", e.nativeEvent.error)}
-          />
-        )}
-        <IngredientColumns
-          ingredient={ingredient}
-          currentWeight={currentWeight}
-          onWeightChange={handleWeightChange}
-          onTare={handleTare}
-          requireScale={requireScale}
-          styles={styles}
-          isMockScaleActive={isMockScaleActive}
-          onTareStatusChange={setTareStatus}
-        />
-      </View>
-
-      {/* Bottom Section */}
-      <View style={styles.bottomSection}>
-        <Text style={styles.addMoreText}>'.'</Text>
-
-        <TouchableOpacity
-          onPress={replayInstruction}
-          style={{
-            backgroundColor: "#FFFFFFAA",
-            borderRadius: 50,
-            padding: 10,
-            alignItems: "center",
-          }}
+        <View
+          style={[
+            styles.middleSection,
+            {
+              backgroundColor: isConnected && (ingredient.stepType === 'weight' || ingredient.stepType === 'weighable')
+                ? getBackgroundColor()
+                : "#4CAF50",
+            },
+          ]}
         >
-          <Icon name="volume-up" size={64} color="black" />
-        </TouchableOpacity>
-      </View>
+          {tareStatus ? (
+            <Image
+              source={require('../assets/Tare.png')}
+              style={styles.ingredientImage}
+            />
+          ) : (
+            <Image
+              source={getIngredientImageSource(ingredient.imageUri)}
+              style={styles.ingredientImage}
+              onError={(e) => console.log("[IngredientScreen] Error loading ingredient image:", e.nativeEvent.error)}
+            />
+          )}
+          <IngredientColumns
+            ingredient={ingredient}
+            currentWeight={currentWeight}
+            onWeightChange={() => {}}
+            onTare={handleTare}
+            requireScale={(ingredient.stepType === 'weight' || ingredient.stepType === 'weighable')}
+            styles={styles}
+            isMockScaleActive={isMockScaleActive}
+            onTareStatusChange={setTareStatus}
+          />
+        </View>
 
-      <Portal>
-        <Dialog
+        <View style={styles.bottomSection}>
+          <Text style={styles.addMoreText}>'.'</Text>
+          
+          <TouchableOpacity
+            onPress={replay}
+            style={{
+              backgroundColor: "#FFFFFFAA",
+              borderRadius: 50,
+              padding: 10,
+              alignItems: "center",
+            }}
+          >
+            <Icon name="volume-up" size={64} color="black" />
+          </TouchableOpacity>
+        </View>
+
+        <ConfirmationDialog
           visible={showConfirmationDialog}
+          ingredientName={ingredient.name}
           onDismiss={() => setShowConfirmationDialog(false)}
-          style={styles.confirmationDialog}
-        >
-          <Dialog.Title>Confirm {`${ingredient.name}`}</Dialog.Title>
-          <Dialog.Content>
-            <Paragraph>Have you completed this step?</Paragraph>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button
-              mode="contained"
-              buttonColor="red"
-              onPress={() => {
-                setShowConfirmationDialog(false);
-              }}
-              style={styles.dialogButton}
-            >
-              No
-            </Button>
-            <Button
-              mode="contained"
-              buttonColor="green"
-              onPress={() => {
-                setShowConfirmationDialog(false);
-                proceedToNextStep();
-              }}
-              style={styles.dialogButton}
-            >
-              Yes
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+          onConfirm={() => {
+            setShowConfirmationDialog(false);
+            proceedToNextStep();
+          }}
+        />
     </View>
   );
 };
-
-const screenHeight = Dimensions.get('window').height;
-const ingredientImageMaxHeight = screenHeight * 0.20; // 20% of screen height
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "white", // Assuming a white background for the overall page
-    justifyContent: "center",
-  },
-  topSection: {
-    backgroundColor: "white",
-    padding: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    alignContent: "center",
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  headerTitleContainer: {
-    //flex: 1,
-    alignItems: "center",
-    paddingVertical: 10,
-  },
-  headerTitle: {
-    fontSize: 48,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 18,
-    color: "white", // Changed to white for better visibility on colored backgrounds
-    textAlign: "center",
-    marginBottom: 10, // Add some space below the subtitle
-  },
-  nextButton: {
-    alignSelf: "flex-end",
-    backgroundColor: "#007AFF",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-    flexDirection: "row",
-    alignItems: "center",
-    zIndex: 999, // Ensure button is above other content
-    elevation: 5, // Add elevation for Android
-    shadowColor: "#000", // Add shadow for iOS
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  nextButtonDisabled: {
-    backgroundColor: "#cccccc",
-  },
-  nextButtonText: {
-    color: "white",
-    fontSize: 50,
-    fontWeight: "bold",
-    marginRight: 8, // Space between text and icon
-  },
-  middleSection: {
-    flex: 1,
-    backgroundColor: "#F44336",
-    flexDirection: "column", // Arrange children in a row
-    justifyContent: "center", // Distribute space evenly
-    alignItems: "center", // Center items vertically
-    paddingHorizontal: 10, // Add some horizontal padding
-  },
-  column: {
-    flex: 1, // Each column takes equal space
-    flexDirection: "column",
-    justifyContent: "flex-start",
-    alignItems: "center",
-  },
-  ingredientImage: {
-    width: 300,
-    height: 300,
-    margin: 12,
-    marginTop: 20,
-    maxHeight: ingredientImageMaxHeight,
-    resizeMode: 'contain', // Ensure the image scales down to fit within the maxHeight
-  },
-  targetWeightText: {
-    color: "white",
-    fontSize: 48,
-    fontWeight: "bold",
-    alignSelf: "center",
-  },
-  addMoreText: {
-    color: "white",
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  quantityText: {
-    color: "white",
-    fontSize: 48,
-    fontWeight: "bold",
-  },
-  bottomSection: {
-    backgroundColor: "white", // Or any color for the bottom section
-    padding: 0,
-    alignItems: "flex-end",
-  },
-  confirmationDialog: {
-    maxWidth: 350, // Adjust as needed
-    alignSelf: "center",
-  },
-  dialogButton: {
-    flex: 1,
-    marginHorizontal: 5, // Add some space between buttons
-    paddingVertical: 5, // Adjust padding to match Next button's height
-    paddingHorizontal: 10, // Adjust padding to match Next button's width
-  },
-  imageContainer: {
-    width: "100%",
-    height: 150, // Same height as recipeImage
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: "hidden", // Ensure image doesn't overflow rounded corners
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  columnsContainer: {
-    flexDirection: 'row',
-    flex: 1,
-    justifyContent: 'space-around',
-    alignItems: 'flex-start',
-  }
-});
 
 export default IngredientScreen;

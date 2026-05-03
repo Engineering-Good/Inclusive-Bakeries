@@ -26,7 +26,7 @@ npm run android       # local Android build via expo run:android
 - Speech: `expo-speech`
 - Storage: `@react-native-async-storage/async-storage`
 - Image picker: `expo-image-picker`
-- State persistence hook: `react-native-mmkv` (used in `useNavigationSafety`)
+- State persistence hook: `react-native-mmkv` (used in `useAppState`)
 
 ## Project Structure
 
@@ -36,14 +36,26 @@ index.js               # registerRootComponent(App)
 src/
   screens/             # RecipeList, RecipeDetail, Ingredient, EditRecipe,
                        # Settings, Instructor, Celebration
+  screens/             # ~200 lines each, pure presentation
+  IngredientScreen.styles.js  # Extracted styles for IngredientScreen
   components/          # IngredientColumns, ScaleDisplayComponent,
-                       # ScaleConnectButton, MockScaleComponent
+                       # ScaleConnectButton, MockScaleComponent,
+                       # ConfirmationDialog (extracted from IngredientScreen)
   services/            # RecipeService, SpeechService, ScaleServiceFactory,
                        # BluetoothScaleService, EtekcityBluetoothService,
                        # LefuScaleService, MockScaleService, EventEmitterService
-  hooks/               # useWeighingWorkflow (primary), useNavigationSafety,
-                       # useUIState, plus legacy hooks (useWeighingFlow,
-                       # useScaleSubscription, useSpeechManagement, etc.)
+  hooks/
+    # Orchestration
+    useIngredientWeighing.js    # Composes scale + calc + speech
+    useRecipeProgress.js        # Navigation & multi-step progress tracking
+    # Domain Logic
+    useScaleConnection.js       # Scale subscription, debouncing, connection state
+    useWeightCalculations.js    # Pure computation: tolerance, progress, color
+    useIngredientSpeech.js      # Speech queue, interruption, replay timer
+    # Cross-cutting
+    useAppState.js              # AppState listener + MMKV persistence
+    useUIState.js               # Dialog flags, button debouncing
+    usePulseAnimation.js        # Animated pulse on weight reached
   constants/           # theme.js, speechText.js, ScaleServices.js
   data/                # sampleRecipes.js, ingredientDatabase.js
   utils/permissions/   # bluetooth.ts (Android BLE permission requests)
@@ -82,11 +94,18 @@ assets/                # Images, fonts, static files
 - `EditRecipeScreen` and `InstructorScreen` both save via `RecipeService.saveRecipes()` or `saveRecipe()`.
 
 ### IngredientScreen Hook Composition
-- The active implementation uses **`useWeighingWorkflow`** (consolidates scale subscription, weighing logic, speech messages, and color states).
+- The active implementation uses **`useIngredientWeighing`** (consolidates scale subscription, weighing logic, speech messages, and color states).
 - Supporting hooks:
-  - `useNavigationSafety` — AppState + focus effect handling with MMKV persistence.
+  - `useAppState` — AppState + focus effect handling with MMKV persistence.
   - `useUIState` — dialog visibility and button-debounce flags.
-- **Legacy hooks exist but are not currently used by `IngredientScreen`**: `useWeighingFlow`, `useScaleSubscription`, `useSpeechManagement`, `useIngredientStep`, `useSpeech`, `useScale`, `useWeighingLogic`, `useSpeechLogic`. They were created during a refactor and may be referenced or partially imported; verify imports before deleting.
+  - `useRecipeProgress` — navigation logic, completed-indices tracking, next/celebration routing.
+  - `usePulseAnimation` — `Animated.loop` pulse on weight-reached state.
+- **Internal composition**: `useIngredientWeighing` composes three domain hooks:
+  1. `useScaleConnection` — BLE/mock scale subscription, weight debouncing (0.5g threshold + 300ms delay), connection status.
+  2. `useWeightCalculations` — Pure-computation of `isWithinTolerance`, `isOverTolerance`, `progress`, `getBackgroundColor`.
+  3. `useIngredientSpeech` — Speech queue with interruption (stop-before-speak), replay, repeat timer using `PROMPT_DELAY`.
+- **ConfirmationDialog** component extracted from IngredientScreen into its own file under `components/`.
+- **All legacy hooks have been removed**: `useWeighingFlow`, `useScaleSubscription`, `useSpeechManagement`, `useIngredientStep`, `useSpeech`, `useScale`, `useWeighingLogic`, `useSpeechLogic`, `useNavigationSafety`, `useWeighingWorkflow` are no longer present.
 
 ## Important Conventions
 
@@ -125,12 +144,25 @@ assets/                # Images, fonts, static files
 
 ## Testing / Verification
 
-- There is **no test runner configured** (no Jest, no test scripts in `package.json`).
-- Manual verification checklist after changes:
-  1. Web build: `npm run web` — check RecipeList → RecipeDetail → Ingredient flow.
-  2. Mock scale: select Mock in Settings, verify weight changes and speech prompts.
-  3. IngredientScreen: confirm tare → weighing → completion → navigation to next ingredient or Celebration.
-  4. EditRecipe: create/save recipe, verify image handling and unsaved-changes dialog.
+### Test Framework
+- **Jest** configured with Expo compatibility (`jest-expo` preset alternative)
+- **@testing-library/react-native** for component and hook testing
+- Test scripts: `npm test`, `npm run test:watch`, `npm run test:coverage`
+- Coverage thresholds: 70% for statements, branches, functions, and lines
+- Comprehensive mocks for AsyncStorage, expo-speech, react-native-ble-plx, and other native modules
+
+### Current Test Coverage
+- **RecipeService**: 91% coverage (34 tests covering all methods: initializeRecipes, getRecipes, saveRecipes, rehydrateRecipeImages, saveRecipe, getRecipeById, resetRecipesToSampleData)
+- **Permissions utilities**: 100% coverage (9 tests for Bluetooth permission handling)
+- Test files: `src/services/__tests__/RecipeService.test.js`, `src/utils/permissions/__tests__/bluetooth.test.js`
+
+### Manual Verification Checklist
+After changes:
+1. Web build: `npm run web` — check RecipeList → RecipeDetail → Ingredient flow.
+2. Mock scale: select Mock in Settings, verify weight changes and speech prompts.
+3. IngredientScreen: confirm tare → weighing → completion → navigation to next ingredient or Celebration.
+4. EditRecipe: create/save recipe, verify image handling and unsaved-changes dialog.
+5. Tests: `npm test` — ensure all tests pass and coverage meets thresholds.
 
 ## Common Pitfalls
 
@@ -143,7 +175,7 @@ assets/                # Images, fonts, static files
 
 ## Related Docs
 
-- `README.md` — setup, platforms, project structure.
+- `README.md` — setup, platforms, project structure, architecture with hook data flow diagram.
 - `GettingStarted.md` — detailed Windows/Linux/WSL2 setup, EAS build steps, known issues.
-- `REFACTORING_PLAN.md` — original plan for IngredientScreen hook decomposition (partially implemented; current state uses `useWeighingWorkflow`).
+- `REFACTORING_PLAN.md` — original plan for IngredientScreen hook decomposition (partially implemented; current state uses `useIngredientWeighing`).
 - `.kilo/plans/` — additional agent plans (check for active work before large refactors).

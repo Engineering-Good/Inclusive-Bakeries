@@ -121,14 +121,72 @@ Note: Development builds require a physical Android device for testing. The Expo
 ```
 InclusiveBakerApp/
 ├── src/
-│   ├── components/     # Reusable UI components
-│   ├── screens/        # Screen components
-│   └── services/       # Business logic and services
-├── modules/            # Native modules
-├── assets/             # Images, fonts, and other static files
-├── App.js              # Application entry point
-└── package.json        # Project dependencies and scripts
+│   ├── components/         # Reusable UI components
+│   │   ├── ConfirmationDialog/  # Extracted dialog for ingredient confirmation
+│   │   └── ...             # IngredientColumns, ScaleDisplay, etc.
+│   ├── screens/            # Screen components (~180-200 lines each)
+│   │   ├── IngredientScreen.js  # Pure presentation (~200 lines)
+│   │   └── ...             # RecipeList, RecipeDetail, Settings, etc.
+│   ├── hooks/              # Composable business-logic hooks
+│   │   ├── useIngredientWeighing.js  # Orchestrator: composes scale + calc + speech
+│   │   ├── useScaleConnection.js     # Scale subscription, debouncing, connection state
+│   │   ├── useWeightCalculations.js  # Pure computation: tolerance, progress, color
+│   │   ├── useIngredientSpeech.js    # Speech queue, interruption, replay timer
+│   │   ├── useAppState.js            # AppState listener (background/foreground)
+│   │   ├── useUIState.js             # Dialog flags, button debouncing
+│   │   ├── useRecipeProgress.js      # Navigation & multi-step progress tracking
+│   │   └── usePulseAnimation.js      # Animated pulse on weight reached
+│   ├── services/           # Singleton service classes
+│   │   ├── SpeechService.js
+│   │   ├── ScaleServiceFactory.js
+│   │   └── ...
+│   ├── constants/          # Theme, speech text, scale config
+│   ├── data/               # Sample recipes, ingredient database
+│   └── utils/              # Permission helpers, etc.
+├── modules/                # Native modules (Lefu scale AARs)
+├── assets/                 # Images, fonts, and other static files
+├── App.js                  # Application entry point
+└── package.json            # Project dependencies and scripts
 ```
+
+## Architecture
+
+### Separation of Concerns via Custom Hooks
+
+`IngredientScreen.js` was refactored from ~550 lines to ~200 lines by extracting responsibilities into focused, composable hooks:
+
+| Hook | Responsibility | Lines |
+|------|---------------|-------|
+| `useIngredientWeighing` | Orchestrator — composes scale, calculations, and speech | ~95 |
+| `useScaleConnection` | BLE/mock scale subscription, debouncing, connection state | ~50 |
+| `useWeightCalculations` | Pure-computation: `isWithinTolerance`, `progress`, `getBackgroundColor` | ~30 |
+| `useIngredientSpeech` | Speech queue with interruption (stop-before-speak), replay, repeat timer | ~60 |
+| `useAppState` | AppState listener, MMKV persistence for interruption resilience | ~40 |
+| `useUIState` | Dialog visibility, `isProcessingNext` flag for rapid-click prevention | ~40 |
+| `useRecipeProgress` | Navigation logic, completed-indices tracking, next/celebration routing | ~50 |
+| `usePulseAnimation` | `Animated.loop` pulse on weight-reached state | ~20 |
+
+### Data Flow
+
+```
+User Action → IngredientScreen (presentation)
+                  │
+                  ├── useRecipeProgress → navigation/next ingredient
+                  │
+                  └── useIngredientWeighing (orchestrator)
+                        │
+                        ├── useScaleConnection → weight, stable, connected
+                        ├── useWeightCalculations → tolerance, progress, color
+                        └── useIngredientSpeech → speak, replay, stop
+```
+
+### Key Design Decisions
+
+- **Debouncing**: Weight changes are debounced at 300ms with a 0.5g threshold to prevent jittery UI updates
+- **Speech Interruption**: `SpeechService.stop()` is always called before `SpeechService.speak()` to prevent audio overlap
+- **Rapid-Click Prevention**: `useUIState` provides an `isProcessingNext` ref with a 500ms cooldown to block double-taps
+- **Singleton Services**: `SpeechService` and `ScaleServiceFactory` are static singletons — hooks never instantiate them directly
+- **Mock Scale**: Default scale service is `MOCK`; switchable in Settings for development
 
 ## Technology Stack
 - React Native - Core framework

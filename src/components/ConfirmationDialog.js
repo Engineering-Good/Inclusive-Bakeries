@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { Dialog, Portal, Button, Paragraph } from 'react-native-paper';
-import styles from './IngredientScreen.styles';
+import styles from '../screens/IngredientScreen.styles';
 
 const ConfirmationDialog = ({ visible, ingredientName, onDismiss, onConfirm }) => {
   return (

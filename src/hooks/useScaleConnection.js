@@ -21,30 +21,49 @@ const useScaleConnection = (requireScale = true) => {
 
   // Debounce weight updates to avoid jitter
   const handleWeightUpdate = useCallback((weightData) => {
-    const weight = typeof weightData === 'number' ? weightData : weightData.value;
-    const isStableReading = weightData.isStable !== undefined ? weightData.isStable : true;
+    try {
+      console.log('[useScaleConnection] handleWeightUpdate called with:', weightData)
+      const weight = typeof weightData === 'number' ? weightData : weightData.value;
+      const isStableReading = weightData.isStable !== undefined ? weightData.isStable : true;
+      console.log('[useScaleConnection] weight:', weight, 'isStableReading:', isStableReading)
 
-    // Clear previous debounced update
-    if (weightUpdateRef.current) {
-      clearTimeout(weightUpdateRef.current);
+      // Clear previous debounced update
+      if (weightUpdateRef.current) {
+        clearTimeout(weightUpdateRef.current);
+      }
+
+      // Only process significant changes (>0.5g threshold)
+      const shouldProcess = Math.abs(weight - lastStableWeightRef.current) > 0.5;
+
+      console.log('[useScaleConnection] shouldProcess:', shouldProcess, 'weight:', weight, 'lastStable:', lastStableWeightRef.current)
+
+      if (!shouldProcess && !isStableReading) return;
+
+      if (isStableReading) {
+        // Immediate update for stable readings
+        console.log('[useScaleConnection] setting currentWeight to:', weight)
+        setCurrentWeight(weight);
+        setIsStable(isStableReading);
+        lastStableWeightRef.current = weight;
+      } else {
+        // Debounce for unstable readings
+        weightUpdateRef.current = setTimeout(() => {
+          console.log('[useScaleConnection] setting currentWeight to:', weight)
+          setCurrentWeight(weight);
+          setIsStable(isStableReading);
+          lastStableWeightRef.current = weight;
+        }, 300);
+      }
+    } catch (error) {
+      console.error('Error in handleWeightUpdate:', error)
     }
-
-    // Only process significant changes (>0.5g threshold)
-    const shouldProcess = Math.abs(weight - lastStableWeightRef.current) > 0.5;
-
-    if (!shouldProcess && !isStableReading) return;
-
-    weightUpdateRef.current = setTimeout(() => {
-      setCurrentWeight(weight);
-      setIsStable(isStableReading);
-      lastStableWeightRef.current = weight;
-    }, 300); // 300ms debounce for unstable readings
   }, []);
 
   // Initialize scale connection and subscription
   useEffect(() => {
     let isActive = true;
     let scaleService = null;
+    let unsubscribe = null;
 
     const initializeScale = async () => {
       try {
@@ -64,9 +83,10 @@ const useScaleConnection = (requireScale = true) => {
           setIsMockScaleActive(mockActive);
         }
 
-        // Subscribe to weight updates
-        const unsubscribe = scaleService.subscribe(handleWeightUpdate);
+        // Subscribe to weight updates via the factory's event emitter
+        unsubscribe = ScaleServiceFactory.subscribeToWeightUpdates(handleWeightUpdate);
         subscriptionRef.current = unsubscribe;
+        console.log('[useScaleConnection] Subscribed to weight updates, unsubscribe:', typeof unsubscribe)
 
         // Update connection status
         const checkConnection = async () => {
@@ -75,22 +95,6 @@ const useScaleConnection = (requireScale = true) => {
           setIsConnected(status.isConnected || mockActive);
         };
         checkConnection();
-
-        // Cleanup on unmount or deactivation
-        return () => {
-          isActive = false;
-          if (subscriptionRef.current) {
-            subscriptionRef.current();
-            subscriptionRef.current = null;
-          }
-          if (scaleService && scaleService.setActive) {
-            scaleService.setActive(false);
-          }
-          if (weightUpdateRef.current) {
-            clearTimeout(weightUpdateRef.current);
-            weightUpdateRef.current = null;
-          }
-        };
       } catch (error) {
         console.error('[useScaleConnection] Failed to initialize scale:', error);
         if (isActive) {
@@ -101,6 +105,27 @@ const useScaleConnection = (requireScale = true) => {
     };
 
     initializeScale();
+
+    // Return cleanup function
+    return () => {
+      console.log('[useScaleConnection] Cleanup running')
+      isActive = false;
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = null;
+      }
+      if (subscriptionRef.current) {
+        subscriptionRef.current();
+        subscriptionRef.current = null;
+      }
+      if (scaleService && scaleService.setActive) {
+        scaleService.setActive(false);
+      }
+      if (weightUpdateRef.current) {
+        clearTimeout(weightUpdateRef.current);
+        weightUpdateRef.current = null;
+      }
+    };
   }, [requireScale, handleWeightUpdate]);
 
   // Reset function to clear state

@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { MMKV } from 'react-native-mmkv';
+import { createMMKV } from 'react-native-mmkv';
 
 // Module-level singleton for MMKV instance
-const storage = new MMKV();
+const storage = createMMKV();
 
 /**
  * Custom hook to handle interruptions and preserve navigation state.

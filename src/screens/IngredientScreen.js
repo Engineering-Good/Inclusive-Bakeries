@@ -35,7 +35,7 @@ const IngredientScreen = ({ route, navigation }) => {
     speak,
     replay,
     getBackgroundColor
-  } = useIngredientWeighing(ingredient);
+  } = useIngredientWeighing(ingredient, ingredientIndex);
   
   useAppState();
 
@@ -177,6 +177,7 @@ const IngredientScreen = ({ route, navigation }) => {
             styles={styles}
             isMockScaleActive={isMockScaleActive}
             onTareStatusChange={setTareStatus}
+            tareStatus={tareStatus}
           />
         </View>
 

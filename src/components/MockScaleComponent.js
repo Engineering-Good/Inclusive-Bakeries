@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Text, View, Button, StyleSheet } from 'react-native';
 import ScaleServiceFactory from '../services/ScaleServiceFactory';
 
-const MockScaleComponent = () => {
+const MockScaleComponent = ({ tareStatus }) => {
   const [mockScaleService, setMockScaleService] = useState(null);
 
   useEffect(() => {
@@ -34,12 +34,14 @@ const MockScaleComponent = () => {
     mockScaleService.mockTare();
   };
 
+  const isTared = tareStatus === "tared" || tareStatus === "not_required";
+
   return (
     <View style={styles.container}>
       <Text>Mock Scale Controls (Only shown with Mock Scale)</Text>
-      <Button title="Weight Up" onPress={handleWeightUp} />
-      <Button title="Weight Down" onPress={handleWeightDown} />
-      <Button title="Stable Weight" onPress={handleStableWeight} />
+      <Button title="Weight Up" onPress={handleWeightUp} disabled={!isTared} />
+      <Button title="Weight Down" onPress={handleWeightDown} disabled={!isTared} />
+      <Button title="Stable Weight" onPress={handleStableWeight} disabled={!isTared} />
       <Button title="Tare" onPress={handleTare} />
     </View>
   );

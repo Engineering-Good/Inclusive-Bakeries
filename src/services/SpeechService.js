@@ -9,7 +9,6 @@ const SPEAK_WORD_BY_WORD_KEY = 'speakWordByWord';
 
 class SpeechService {
   constructor() {
-    console.log('SpeechService initialized.');
     this.speechDelay = 2500; // Default value
     this.speechRate = 0.7; // Default value
     this.speakWordByWord = false; // Default value
@@ -43,7 +42,6 @@ class SpeechService {
       }
       // Ensure preferredVoiceIdentifier is not null for debugging/initial load
       this.preferredVoiceIdentifier = storedVoiceIdentifier || ''; 
-      console.log('Speech settings loaded:', {
         delay: this.speechDelay,
         rate: this.speechRate,
         voice: this.preferredVoiceIdentifier,
@@ -63,18 +61,15 @@ class SpeechService {
   }
 
   async _initVoices() {
-    console.log('init voices...');
     try {
       const allVoices = await Speech.getAvailableVoicesAsync();
       this.availableVoices = this._processVoices(allVoices);
-      console.log('Processed available voices:', this.availableVoices.length);
 
       if (this.preferredVoiceIdentifier) {
         this.preferredVoice = this.availableVoices.find(
           (voice) => voice.identifier === this.preferredVoiceIdentifier
         );
         if (this.preferredVoice) {
-          console.log('Preferred voice loaded from storage:', this.preferredVoice.name);
         } else {
           console.warn('Stored preferred voice not found among available voices. Using default.');
           this._setDefaultPreferredVoice();
@@ -143,7 +138,6 @@ class SpeechService {
     );
 
     if (this.preferredVoice) {
-      console.log('Default preferred voice set to:', this.preferredVoice.name);
       this.preferredVoiceIdentifier = this.preferredVoice.identifier;
       this._saveSetting(PREFERRED_VOICE_KEY, this.preferredVoiceIdentifier);
     } else {
@@ -152,11 +146,9 @@ class SpeechService {
         (voice) => voice.language.startsWith('en')
       );
       if (this.preferredVoice) {
-        console.log('No preferred female English voice found, using first available English voice:', this.preferredVoice.name);
         this.preferredVoiceIdentifier = this.preferredVoice.identifier;
         this._saveSetting(PREFERRED_VOICE_KEY, this.preferredVoiceIdentifier);
       } else {
-        console.log('No English voices found, using first available voice.');
         if (this.availableVoices.length > 0) {
           this.preferredVoice = this.availableVoices[0];
           this.preferredVoiceIdentifier = this.preferredVoice.identifier;
@@ -175,7 +167,6 @@ class SpeechService {
       await this.stop();
     }
     if (!text) {
-      console.log('Attempted to speak empty text, returning.');
       return; // Don't try to speak empty text
     }
 
@@ -183,11 +174,9 @@ class SpeechService {
 
     // Check for minimum time between same speech
     if (this.lastSpokenText === text && (now - this.lastSpokenTime < this.minTimeBetweenSameSpeech)) {
-      console.log(`Too soon to repeat same speech. Skipping: "${text}"`);
       return;
     }
 
-    console.log('Speaking:', text);
     // Update last spoken info immediately before speaking
     this.lastSpokenText = text;
     this.lastSpokenTime = now;
@@ -229,22 +218,17 @@ class SpeechService {
 
   async processSpeechQueue(options = {}) {
     if (this.isSpeaking) {
-      console.log('Already speaking, the queue will be processed later. Current queue length:', this.speechQueue.length);
       return; // Prevent overlapping speech
     }
     this.isSpeaking = true; // Set speaking flag
-    console.log('Processing speech queue. Current queue length:', this.speechQueue.length);
     while (this.speechQueue.length > 0) {
       const item = this.speechQueue.shift(); // Get the next item from the queue (could be a word or a full sentence)
 
-      console.log('Speaking queued item:', item);
       try {
         if (item === ' . ') {
-          console.log('Pausing for a moment after sentence/segment.');
           await this.delay(this.speechDelay); // Use configurable speech delay
           continue; // Skip to next item in queue
         }
-        console.log('Speaking:', item, options);
         await Speech.speak(item, options);
         await this.waitUntilDone(); // Wait until speech is done
       } catch (error) {
@@ -252,11 +236,9 @@ class SpeechService {
       }
     }
     this.isSpeaking = false; // Reset speaking flag
-    console.log('Finished processing speech queue.');
   }
 
   async stop() {
-    console.log('Stopping speech.');
     try {
       this.speechQueue = [];
       await Speech.stop();
@@ -285,7 +267,6 @@ class SpeechService {
     }
     const waitedMs = waitIterations * 100;
     if (waitedMs > 0) {
-      console.log(`Speech is done, continuing... Waited ${waitedMs} ms (${waitIterations} loops).`);
     }
     // Add a small, fixed delay after speech is reported as done to ensure full completion
     await this.delay(150);
@@ -293,19 +274,16 @@ class SpeechService {
 
   // Speaks a list of instructions with pauses between each step
   async speakInstructions(instructions, options = {}) {
-    console.log('Speaking instructions sequence. Total steps:', instructions.length);
     let index = 0;
 
     const speakNext = async () => {
       if (index < instructions.length) {
         const currentStep = `Step ${index + 1}: ${instructions[index]};`;
-        console.log('Speaking step:', currentStep);
         await this.speak(currentStep, options);
         await this.delay(this.speechDelay); // Use configurable speech delay
         index++;
         await speakNext();
       } else {
-        console.log('Finished speaking all instructions.');
       }
     };
 
@@ -323,7 +301,6 @@ class SpeechService {
       // Implies count-based
       announcement = `${amount} ${ingredientName}`;
     }
-    console.log('Announcing ingredient (legacy):', announcement);
     await this.speak(announcement);
   }
 
@@ -352,7 +329,6 @@ class SpeechService {
       this.preferredVoice = voice;
       this.preferredVoiceIdentifier = voiceIdentifier;
       this._saveSetting(PREFERRED_VOICE_KEY, voiceIdentifier);
-      console.log('Preferred voice updated to:', voiceIdentifier);
     } else {
       console.warn('Voice not found:', voiceIdentifier);
     }

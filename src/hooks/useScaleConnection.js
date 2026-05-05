@@ -22,10 +22,8 @@ const useScaleConnection = (requireScale = true) => {
   // Debounce weight updates to avoid jitter
   const handleWeightUpdate = useCallback((weightData) => {
     try {
-      console.log('[useScaleConnection] handleWeightUpdate called with:', weightData)
       const weight = typeof weightData === 'number' ? weightData : weightData.value;
       const isStableReading = weightData.isStable !== undefined ? weightData.isStable : true;
-      console.log('[useScaleConnection] weight:', weight, 'isStableReading:', isStableReading)
 
       // Clear previous debounced update
       if (weightUpdateRef.current) {
@@ -35,20 +33,16 @@ const useScaleConnection = (requireScale = true) => {
       // Only process significant changes (>0.5g threshold)
       const shouldProcess = Math.abs(weight - lastStableWeightRef.current) > 0.5;
 
-      console.log('[useScaleConnection] shouldProcess:', shouldProcess, 'weight:', weight, 'lastStable:', lastStableWeightRef.current)
-
       if (!shouldProcess && !isStableReading) return;
 
       if (isStableReading) {
         // Immediate update for stable readings
-        console.log('[useScaleConnection] setting currentWeight to:', weight)
         setCurrentWeight(weight);
         setIsStable(isStableReading);
         lastStableWeightRef.current = weight;
       } else {
         // Debounce for unstable readings
         weightUpdateRef.current = setTimeout(() => {
-          console.log('[useScaleConnection] setting currentWeight to:', weight)
           setCurrentWeight(weight);
           setIsStable(isStableReading);
           lastStableWeightRef.current = weight;
@@ -86,7 +80,6 @@ const useScaleConnection = (requireScale = true) => {
         // Subscribe to weight updates via the factory's event emitter
         unsubscribe = ScaleServiceFactory.subscribeToWeightUpdates(handleWeightUpdate);
         subscriptionRef.current = unsubscribe;
-        console.log('[useScaleConnection] Subscribed to weight updates, unsubscribe:', typeof unsubscribe)
 
         // Update connection status
         const checkConnection = async () => {
@@ -108,7 +101,6 @@ const useScaleConnection = (requireScale = true) => {
 
     // Return cleanup function
     return () => {
-      console.log('[useScaleConnection] Cleanup running')
       isActive = false;
       if (unsubscribe) {
         unsubscribe();

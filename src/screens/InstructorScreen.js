@@ -15,9 +15,7 @@ export default function InstructorScreen({ navigation }) {
   useEffect(() => {
     const loadRecipes = async () => {
       try {
-        console.log('[InstructorScreen] Loading recipes...');
         const loadedRecipes = await RecipeService.getRecipes();
-        console.log('[InstructorScreen] Recipes loaded:', loadedRecipes.length);
         setRecipes(loadedRecipes);
       } catch (error) {
         console.error('[InstructorScreen] Failed to load recipes:', error);
@@ -39,10 +37,8 @@ export default function InstructorScreen({ navigation }) {
 
   const saveRecipes = async (newRecipes) => {
     try {
-      console.log('[InstructorScreen] Saving recipes, count:', newRecipes.length);
       const savedRecipes = await RecipeService.saveRecipes(newRecipes);
       setRecipes(savedRecipes);
-      console.log('[InstructorScreen] Recipes saved successfully');
     } catch (error) {
       console.error('[InstructorScreen] Error saving recipes:', error);
       throw error;
@@ -51,9 +47,7 @@ export default function InstructorScreen({ navigation }) {
 
   const deleteRecipe = async (id, title) => {
     try {
-      console.log('[InstructorScreen] Deleting recipe:', id, title);
       const filtered = recipes.filter((recipe) => recipe.id !== id);
-      console.log('[InstructorScreen] Filtered recipes length:', filtered.length);
       await saveRecipes(filtered);
       showSnackbar(`${title} deleted successfully`);
       
@@ -69,18 +63,15 @@ export default function InstructorScreen({ navigation }) {
   };
 
   const confirmDelete = (id, title) => {
-    console.log('Showing delete confirmation for:', id, title);
     setDeleteDialog({ visible: true, id, title });
   };
 
   const handleDeleteConfirm = () => {
-    console.log('Delete confirmed for:', deleteDialog.id, deleteDialog.title);
     deleteRecipe(deleteDialog.id, deleteDialog.title);
     setDeleteDialog({ visible: false, id: null, title: '' });
   };
 
   const handleDeleteCancel = () => {
-    console.log('Delete cancelled');
     setDeleteDialog({ visible: false, id: null, title: '' });
   };
 
@@ -107,7 +98,6 @@ export default function InstructorScreen({ navigation }) {
               recipe: null,
               onSave: async (newRecipe) => {
                 try {
-                  console.log('[InstructorScreen] Creating new recipe:', newRecipe);
                   // Ensure the recipe has a unique ID
                   const recipeToSave = {
                     ...newRecipe,
@@ -160,7 +150,6 @@ export default function InstructorScreen({ navigation }) {
             source={typeof item.imageUri === 'string' && item.imageUri.startsWith('http') ? { uri: item.imageUri } : (item.imageUri || require('../assets/recipes/placeholder.png'))}
             style={styles.image} 
             defaultSource={require('../assets/recipes/placeholder.png')}
-            onError={(error) => console.log('[InstructorScreen] Image loading error for', item.title, ':', error.nativeEvent?.error)}
             resizeMode="cover"
           />
           <Text style={styles.title}>{item.title}</Text>
@@ -169,7 +158,6 @@ export default function InstructorScreen({ navigation }) {
           <Button 
             mode="contained" 
             onPress={() => {
-              console.log('Delete button pressed for recipe:', item.id, item.title);
               confirmDelete(item.id, item.title);
             }} 
             style={styles.deleteBtn}
@@ -214,13 +202,11 @@ export default function InstructorScreen({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[InstructorScreen] Attempting to reset recipes to sample data...');
               await RecipeService.resetRecipesToSampleData();
               // Reload recipes in this screen after reset
               const reloadedRecipes = await RecipeService.getRecipes();
               setRecipes(reloadedRecipes);
               showSnackbar('Recipes have been reset to sample data.');
-              console.log('[InstructorScreen] Recipes reset and reloaded.', reloadedRecipes);
             } catch (error) {
               console.error('[InstructorScreen] Failed to reset recipes:', error);
               Alert.alert('Error', 'Could not reset recipe data.');

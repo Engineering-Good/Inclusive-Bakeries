@@ -26,7 +26,6 @@ class EventEmitterService {
   }
 
   emit(event, data) {
-    console.log('EventEmitter emit:', event, data, 'listeners count:', this.listeners.has(event) ? this.listeners.get(event).length : 0)
     if (this.listeners.has(event)) {
       this.listeners.get(event).forEach(callback => {
         callback(data);

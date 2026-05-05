@@ -105,7 +105,6 @@ const IngredientScreen = ({ route, navigation }) => {
   }, [isConnected, ingredient, isProcessingNext, setIsProcessingNext, resetProcessingNextAfterDelay, speak, proceedToNextStep, setShowConfirmationDialog]);
 
   const handleTare = () => {
-    console.log("Tare event received in IngredientScreen");
   };
 
   return (
@@ -165,7 +164,7 @@ const IngredientScreen = ({ route, navigation }) => {
             <Image
               source={getIngredientImageSource(ingredient.imageUri)}
               style={styles.ingredientImage}
-              onError={(e) => console.log("[IngredientScreen] Error loading ingredient image:", e.nativeEvent.error)}
+              onError={(e) => console.error("[IngredientScreen] Error loading ingredient image:", e.nativeEvent.error)}
             />
           )}
           <IngredientColumns

@@ -107,7 +107,6 @@ const ScaleDisplayComponent = ({
     };
 
     const handleWeightUpdate = (weightData) => {
-      console.log('[ScaleDisplayComponent] handleWeightUpdate received:', weightData);
       if (weightData.isTare) {
         setTareStatus("tared");
         onTare();
@@ -118,7 +117,6 @@ const ScaleDisplayComponent = ({
         weightData.value > 0 &&
         (!hasSpokenRef.current || hasSpokenRef.current !== "tare")
       ) {
-        console.log("[ScaleDisplayComponent] Attempting to speak TARE_NEEDED.");
         SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
         hasSpokenRef.current = "tare";
       }
@@ -153,8 +151,6 @@ const ScaleDisplayComponent = ({
   ]);
 
   const displayProgress = (tareStatus === 'tared' || tareStatus === 'not_required') ? progress : 0;
-  
-  console.log('[ScaleDisplayComponent] Render. currentWeight:', currentWeight, 'tareStatus:', tareStatus, 'tolerance:', tolerance);
 
   return (
     <View style={styles.container}>

@@ -93,12 +93,9 @@ export default function EditRecipeScreen({ route, navigation }) {
         instructions
       };
 
-      console.log('[EditRecipeScreen] Saving recipe:', updatedRecipe);
-      
       // Save the recipe using RecipeService
       const savedRecipe = await RecipeService.saveRecipe(updatedRecipe);
-      console.log('[EditRecipeScreen] Recipe saved successfully:', savedRecipe);
-      
+
       // Call onSave callback if provided
       if (onSave) {
         await onSave(savedRecipe);
@@ -137,8 +134,6 @@ export default function EditRecipeScreen({ route, navigation }) {
   }, []);
 
   const handleDeleteIngredient = useCallback(async (ingredientId) => {
-    console.log('Attempting to delete ingredient:', ingredientId);
-    
     if (ingredients.length <= 1) {
       Alert.alert('Error', 'Recipe must have at least one ingredient');
       return;
@@ -175,11 +170,9 @@ export default function EditRecipeScreen({ route, navigation }) {
   useEffect(() => {
     const loadRecipes = async () => {
       try {
-        console.log('Loading recipes from storage in EditRecipeScreen...');
-        const storedRecipes = await AsyncStorage.getItem('recipes');
+        const storedRecipes = await AsyncStorage.getItem('app_recipes');
         if (storedRecipes) {
           const parsedRecipes = JSON.parse(storedRecipes);
-          console.log('Loaded recipes:', parsedRecipes.length);
           setRecipes(parsedRecipes);
         }
       } catch (error) {
@@ -241,7 +234,7 @@ export default function EditRecipeScreen({ route, navigation }) {
   };
 
   const updateIngredient = useCallback((id, key, value) => {
-    console.log('Updating ingredient:', { id, key, value });
+    
     const processedValue = key === 'imageUri' && typeof value === 'object' && value.uri 
       ? value.uri 
       : value;
@@ -280,7 +273,7 @@ export default function EditRecipeScreen({ route, navigation }) {
         }
       }
 
-      console.log('Updated ingredient:', updated);
+      
       return updated;
     });
   }, []);
@@ -324,7 +317,7 @@ export default function EditRecipeScreen({ route, navigation }) {
           return AsyncStorage.setItem('recipes', JSON.stringify(updatedRecipes));
         })
         .then(() => {
-          console.log('Recipe updated in storage after adding ingredient');
+          
         })
         .catch(error => {
           console.error('Error saving new ingredient:', error);
@@ -351,22 +344,22 @@ export default function EditRecipeScreen({ route, navigation }) {
   };
 
   const saveIngredientChanges = async () => {
-    console.log('Starting saveIngredientChanges...');
-    console.log('Selected ingredient:', selectedIngredient);
+    
+    
     
     if (!selectedIngredient || !selectedIngredient.name || !selectedIngredient.amount) {
-      console.log('Validation failed: missing selected ingredient, or its name or amount');
+      
       Alert.alert('Error', 'Ingredient details, name, and amount are required');
       return;
     }
 
     try {
-      console.log('Updating ingredients state...');
+      
       // Update ingredients state
       const updatedIngredients = ingredients.map(ing => 
         ing.id === selectedIngredient.id ? selectedIngredient : ing
       );
-      console.log('Updated ingredients (local state):', updatedIngredients);
+      
       setIngredients(updatedIngredients);
 
       // Update AsyncStorage
@@ -392,13 +385,13 @@ export default function EditRecipeScreen({ route, navigation }) {
         }
 
         await AsyncStorage.setItem('recipes', JSON.stringify(updatedRecipes));
-        console.log('Recipe saved to storage successfully');
+        
         setRecipes(updatedRecipes);
       }
 
       // Show success message
       showSnackbar('Ingredient saved successfully');
-      console.log('Closing ingredient editor...');
+      
       closeIngredientEditor();
     } catch (error) {
       console.error('Error in saveIngredientChanges:', error);
@@ -426,14 +419,14 @@ export default function EditRecipeScreen({ route, navigation }) {
         gatheringUnit: selectedIngredient.gatheringUnit || 'g',
         gatheringQuantity: selectedIngredient.gatheringQuantity || ''
       };
-      console.log('Setting original ingredient:', original);
+      
       setOriginalIngredient(original);
     }
   }, [selectedIngredient?.id]);
 
   const hasIngredientChanges = useCallback(() => {
     if (!selectedIngredient || !originalIngredient) {
-      console.log('No ingredient or original ingredient to compare');
+      
       return false;
     }
     
@@ -454,53 +447,47 @@ export default function EditRecipeScreen({ route, navigation }) {
     };
 
     const hasChanges = Object.values(changes).some(change => change);
-    
-    console.log('Checking ingredient changes:', {
-      selectedIngredient,
-      originalIngredient,
-      changes,
-      hasChanges
-    });
-    
+
+
     return hasChanges;
   }, [selectedIngredient, originalIngredient]);
 
   const handleCloseIngredientEditor = useCallback(() => {
-    console.log('Close ingredient editor clicked');
+    
     const changes = hasIngredientChanges();
-    console.log('Has changes:', changes);
+    
     
     if (changes) {
-      console.log('Showing unsaved changes dialog');
+      
       setUnsavedIngredientDialog({ visible: true });
     } else {
-      console.log('No changes, closing editor');
+      
       setSelectedIngredient(null);
     }
   }, [hasIngredientChanges]);
 
   const handleIngredientBackPress = useCallback(() => {
-    console.log('Back button pressed in ingredient editor');
+    
     const changes = hasIngredientChanges();
-    console.log('Has changes:', changes);
+    
     
     if (changes) {
-      console.log('Showing unsaved changes dialog');
+      
       setUnsavedIngredientDialog({ visible: true });
     } else {
-      console.log('No changes, closing editor');
+      
       setSelectedIngredient(null);
     }
   }, [hasIngredientChanges]);
 
   const handleDiscardIngredientChanges = () => {
-    console.log('Discarding ingredient changes');
+    
     setUnsavedIngredientDialog({ visible: false });
     setSelectedIngredient(null);
   };
 
   const handleSaveIngredientChanges = async () => {
-    console.log('Saving ingredient changes');
+    
     setUnsavedIngredientDialog({ visible: false });
     await saveIngredientChanges();
   };
@@ -560,7 +547,7 @@ export default function EditRecipeScreen({ route, navigation }) {
               size={20} 
               color="#666"
               onPress={() => {
-                console.log('Pressed delete for', ingredient);
+                
                 setDeleteIngredientDialog({
                   visible: true,
                   ingredient,
@@ -612,7 +599,7 @@ export default function EditRecipeScreen({ route, navigation }) {
 
   // Update the ingredient editor modal layout
   if (selectedIngredient) {
-    console.log('Rendering ingredient editor with selected ingredient:', selectedIngredient);
+    
     const ingredientWithDefaults = {
       ...selectedIngredient,
       tolerance: selectedIngredient.tolerance || '',

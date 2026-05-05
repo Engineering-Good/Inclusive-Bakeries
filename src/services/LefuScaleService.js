@@ -41,7 +41,6 @@ class LefuScaleService extends ScaleInterface {
 		})
 
 		LefuScaleModule.addErrorListener((e) => {
-			console.log('LefuScale Error received: ', e.errorMessage)
 		})
 
 		// Early BLE failure listeners
@@ -93,11 +92,9 @@ class LefuScaleService extends ScaleInterface {
 		LefuScaleModule.addBleStateChangeListener((event) => {
 			switch (event.state) {
 				case 'CustomPPBWorkSearchDeviceFound':
-					console.log('Device is found')
 					// TODO: Clear the overlay component
 					break
 				case 'CustomPPBWorkSearchNotFound':
-					console.log('Device is not found — triggering alert.')
 					// TODO: Handle an overlay component to reconnect that will go away after x seconds.
 					// this.handleNotFound()
 					break
@@ -117,7 +114,6 @@ class LefuScaleService extends ScaleInterface {
 		})
 
 		LefuScaleModule.addErrorListener((e) => {
-			console.log('LefuScale Error received: ', e.errorMessage)
 		})
 
 		// Set isActive to true to prevent disconnection
@@ -132,7 +128,6 @@ class LefuScaleService extends ScaleInterface {
 			LefuScaleModule.removeAllListener()
 			this.isActive = false
 			this.device = null
-			console.log('Successfully disconnected from scale')
 		} else {
 			console.error('Failed to disconnect from scale')
 		}
@@ -170,7 +165,6 @@ class LefuScaleService extends ScaleInterface {
 
 	handleNotFound() {
 		if (!this.isActive) {
-			console.log('LefuScale service is not active. Skip alert.')
 			return
 		}
 

@@ -11,10 +11,8 @@ class RecipeService {
       if (storedRecipes === null) {
         // No recipes found, initialize with sample data
         await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(sampleRecipes));
-        console.log('Recipes initialized with sample data.');
         return sampleRecipes;
       }
-      console.log('Recipes already initialized.');
       const parsedRecipes = JSON.parse(storedRecipes);
       return this.rehydrateRecipeImages(parsedRecipes);
     } catch (error) {
@@ -39,7 +37,6 @@ class RecipeService {
   }
 
   static rehydrateRecipeImages(recipes) {
-    console.log('[RecipeService] Rehydrating images for recipes:', recipes);
     const rehydrated = recipes.map(recipeFromStorage => {
       const originalSampleRecipe = sampleRecipes.find(sample => sample.id === recipeFromStorage.id);
 
@@ -53,9 +50,8 @@ class RecipeService {
           finalImageUri = recipeFromStorage.imageUri.uri;
         }
         // If it's already a string (path, URL, or base64), use it directly.
-      } else if (originalSampleRecipe) { // No imageUri stored for recipe, but it was a sample
-        console.log(`[RecipeService] Recipe ${recipeFromStorage.title} (ID: ${recipeFromStorage.id}) has no stored imageUri, using original sample.`);
-        finalImageUri = originalSampleRecipe.imageUri;
+       } else if (originalSampleRecipe) { // No imageUri stored for recipe, but it was a sample
+         finalImageUri = originalSampleRecipe.imageUri;
       }
       // If no stored imageUri and not a sample (or sample has no imageUri), finalImageUri will be undefined.
       // The UI should handle undefined with a placeholder.
@@ -77,17 +73,15 @@ class RecipeService {
           // Check if it's a recipe that originated from samples and try to use the sample's ingredient image.
           if (originalSampleRecipe) {
             const originalIngredient = originalSampleRecipe.ingredients.find(i => i.id === ingredient.id);
-            if (originalIngredient && originalIngredient.imageUri) {
-              console.log(`[RecipeService] Ingredient ${ingredient.name} (ID: ${ingredient.id}) has no stored imageUri, using original sample's image.`);
-              ingredientImageUri = originalIngredient.imageUri;
+             if (originalIngredient && originalIngredient.imageUri) {
+               ingredientImageUri = originalIngredient.imageUri;
             }
           }
 
           // If still no imageUri, and the ingredient name exists in the database, use the database image.
           // This provides a default if none was ever set or saved.
-          if (!ingredientImageUri && ingredient.name && ingredientDatabase[ingredient.name] && ingredientDatabase[ingredient.name].imageUri) {
-            console.log(`[RecipeService] Ingredient ${ingredient.name} (ID: ${ingredient.id}) using image from ingredientDatabase as a fallback.`);
-            ingredientImageUri = ingredientDatabase[ingredient.name].imageUri;
+           if (!ingredientImageUri && ingredient.name && ingredientDatabase[ingredient.name] && ingredientDatabase[ingredient.name].imageUri) {
+             ingredientImageUri = ingredientDatabase[ingredient.name].imageUri;
           }
         }
         
@@ -106,14 +100,11 @@ class RecipeService {
         ingredients: rehydratedIngredients
       };
     });
-    console.log('[RecipeService] Rehydration complete. Result:', rehydrated);
     return rehydrated;
   }
 
   static async saveRecipes(recipes) {
     try {
-      console.log('[RecipeService] Saving recipes:', recipes.length);
-      
       // Process recipes before saving
       const processedRecipes = recipes.map(recipe => ({
         ...recipe,
@@ -125,7 +116,6 @@ class RecipeService {
       }));
       
       await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(processedRecipes));
-      console.log('[RecipeService] Recipes saved successfully');
       return this.rehydrateRecipeImages(processedRecipes);
     } catch (error) {
       console.error('[RecipeService] Error saving recipes:', error);
@@ -135,8 +125,6 @@ class RecipeService {
 
   static async saveRecipe(recipe) {
     try {
-      console.log('[RecipeService] Saving recipe:', recipe.title);
-      
       // Get current recipes
       const storedRecipesStr = await AsyncStorage.getItem(RECIPES_STORAGE_KEY);
       let recipes = storedRecipesStr ? JSON.parse(storedRecipesStr) : [];
@@ -165,8 +153,7 @@ class RecipeService {
       
       // Save all recipes
       await AsyncStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(recipes));
-      console.log('[RecipeService] Recipe saved successfully');
-      
+
       // Return the processed recipe
       return processedRecipe;
     } catch (error) {
@@ -177,12 +164,10 @@ class RecipeService {
 
   static async getRecipeById(id) {
     try {
-      console.log('Getting recipe by ID:', id);
       const recipes = await this.getRecipes(); // This call already rehydrates images
       const recipe = recipes.find(r => r.id === id);
       
       if (!recipe) {
-        console.log('Recipe not found:', id);
         return null;
       }
 
@@ -192,7 +177,6 @@ class RecipeService {
       // We only need to override if the rehydrated recipe's imageUri is somehow not set
       // AND it's a known sample recipe.
       if (recipe.imageUri) {
-        console.log(`[RecipeService] Recipe ${recipe.title} (ID: ${recipe.id}) has a valid imageUri: ${recipe.imageUri}. Using it.`);
         return recipe;
       }
 
@@ -200,14 +184,12 @@ class RecipeService {
       // and it's a sample recipe, try to use the original sample's image.
       const originalSampleRecipe = sampleRecipes.find(sample => sample.id === recipe.id);
       if (originalSampleRecipe && originalSampleRecipe.imageUri) {
-        console.log(`[RecipeService] Recipe ${recipe.title} (ID: ${recipe.id}) has no valid stored imageUri, but is a sample. Using original sample's image: ${originalSampleRecipe.imageUri}`);
         return {
           ...recipe,
           imageUri: originalSampleRecipe.imageUri
         };
       }
 
-      console.log(`[RecipeService] Recipe ${recipe.title} (ID: ${recipe.id}) has no valid imageUri and is not a sample (or sample has no image). Using recipe as is (imageUri will be undefined).`);
       return recipe; // Return as is, imageUri will be undefined if not set.
     } catch (error) {
       console.error(`Error getting recipe with ID ${id}:`, error);
@@ -219,7 +201,6 @@ class RecipeService {
     try {
       await AsyncStorage.removeItem(RECIPES_STORAGE_KEY); // Clear existing recipes
       const newRecipes = await this.initializeRecipes(); // Re-initialize with sample data
-      console.log('Recipes database reloaded with sample data.');
       return newRecipes;
     } catch (error) {
       console.error('Error reloading recipes with sample data:', error);

@@ -46,3 +46,12 @@ jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }),
   getCurrentPositionAsync: jest.fn().mockResolvedValue({ coords: { latitude: 0, longitude: 0 } }),
 }));
+
+// Suppress react-test-renderer deprecation warning
+const originalError = console.error;
+console.error = (...args) => {
+  if (typeof args[0] === 'string' && args[0].includes('react-test-renderer is deprecated')) {
+    return;
+  }
+  originalError.apply(console, args);
+};

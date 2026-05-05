@@ -9,7 +9,6 @@ const MockScaleComponent = ({ tareStatus }) => {
     const initializeScaleService = async () => {
       const service = await ScaleServiceFactory.getScaleService();
       setMockScaleService(service);
-      console.log('MockScaleComponent initialized with service:', service);
     };
     initializeScaleService();
   }, []);

@@ -81,7 +81,6 @@ class BluetoothScaleService extends ScaleInterface {
 			}
 
 			if (device && !this.devices.has(device.id)) {
-				//console.log('Device :', device.name);
 				this.devices.set(device.id, device)
 				onDeviceFound(device)
 			}
@@ -118,7 +117,6 @@ class BluetoothScaleService extends ScaleInterface {
 
 			// Check connection state
 			const isConnected = await connectedDevice.isConnected()
-			console.log('Connected:', isConnected)
 			if (!isConnected) {
 				throw new Error('Device disconnected after connection')
 			}

@@ -19,7 +19,6 @@ class MockScaleService extends ScaleInterface {
 			}
 
 			this.isScanning = true
-			console.log('Mock scale: Starting scan...')
 
 			// Simulate finding a device after 1 second
 			setTimeout(() => {
@@ -37,15 +36,12 @@ class MockScaleService extends ScaleInterface {
 
 	stopScan() {
 		this.isScanning = false
-		console.log('Mock scale: Stopping scan...')
 	}
 
 	async connect(device, onWeightUpdate) {
 		if (this.connectedDevice) {
 			throw new Error('Already connected to a device')
 		}
-
-		console.log('Mock scale: Connecting to device:', device.id)
 
 		// Simulate connection delay
 		await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -74,7 +70,6 @@ class MockScaleService extends ScaleInterface {
 	}
 
   mockWeightChange(delta) {
-    console.log('mockWeightChange called with delta:', delta, 'callback exists:', !!this.onWeightUpdateCallback)
     this.currentWeight += delta
     // Ensure weight doesn't go below zero
     this.currentWeight = Math.max(0, this.currentWeight)

@@ -32,6 +32,12 @@ describe('RecipeService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     AsyncStorage.clear();
+    // Suppress console.error for tests that intentionally trigger errors
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    console.error.mockRestore();
   });
 
   describe('initializeRecipes', () => {

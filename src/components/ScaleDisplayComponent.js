@@ -154,12 +154,10 @@ const ScaleDisplayComponent = ({
     }
 
     return () => {
-    // Cleanup all subscriptions on component unmount
-    unsubscribeConnection();
-    unsubscribeWeight();
-    ScaleServiceFactory.unsubscribeAll(); // Ensure all listeners are removed from ScaleServiceFactory
-    hasSpokenRef.current = false;
-    SpeechService.stop();
+      unsubscribeConnection();
+      unsubscribeWeight();
+      hasSpokenRef.current = false;
+      SpeechService.stop();
     };
   }, [
     targetIngredient,
@@ -280,6 +278,7 @@ const styles = StyleSheet.create({
     fontSize: 64,
     fontWeight: "bold",
     color: "white",
+    paddingHorizontal: 8,
   },
   unitText: {
     fontSize: 36,

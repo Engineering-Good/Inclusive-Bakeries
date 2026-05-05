@@ -67,7 +67,9 @@ export default function RecipeDetailScreen({ route, navigation }) {
       } else if (displayUnit === 'bottle') {
         displayUnit = 'bottles';
       }
-      const announcement = `${amount} ${displayUnit} of ${ingredient.name}`;
+      const announcement = displayUnit.toLowerCase() === ingredient.name.toLowerCase()
+        ? `${amount} ${displayUnit}`
+        : `${amount} ${displayUnit} of ${ingredient.name}`;
       SpeechService.speak(announcement);
     } catch (error) {
       console.error('Error announcing ingredient:', error);

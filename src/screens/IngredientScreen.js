@@ -3,6 +3,7 @@ import React, {
   useLayoutEffect,
   useState,
   useRef,
+  useCallback,
 } from "react";
 import {
   StyleSheet,
@@ -106,7 +107,6 @@ const IngredientScreen = ({ route, navigation }) => {
     // Cleanup function for unmount
     return () => {
       SpeechService.stop();
-      ScaleServiceFactory.unsubscribeAll();
     };
   }, [ingredient, ingredientIndex]);
 
@@ -167,10 +167,10 @@ const IngredientScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleWeightChange = (weight, stable) => {
+  const handleWeightChange = useCallback((weight, stable) => {
     setCurrentWeight(weight);
     setIsStable(stable);
-  };
+  }, []);
 
   const handleTare = () => {
     // The tare event is handled within ScaleReadingComponent for speech,

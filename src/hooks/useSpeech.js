@@ -14,15 +14,28 @@ const useSpeech = (ingredient, ingredientIndex, isLastIngredient) => {
   const instructionRef = useRef("");
 
   useEffect(() => {
+    let cancelled = false;
+
     const announceIngredientOrder = async () => {
+      // Take ownership of the speech channel and wait briefly so that any
+      // cleanup effects from the previous screen (which also call stop()) have
+      // a chance to fire before we begin speaking.  Because stop() now resets
+      // the deduplication timer, those subsequent stop() calls are no-ops and
+      // cannot silence our upcoming audio.
+      SpeechService.stop();
+      await SpeechService.delay(150);
+      if (cancelled) return;
+
       // First ingredient needs the "Let's start baking!" announcement
       if (ingredientIndex === 0) {
         await SpeechService.speak(RECIPE_MESSAGES.START_BAKING);
+        if (cancelled) return;
       }
 
       // Announce tare if needed for weight-based ingredients
       if (ingredient.stepType === 'weight' && ingredient.requireTare) {
         await SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
+        if (cancelled) return;
       }
 
       // Announce which ingredient number we're on
@@ -38,12 +51,18 @@ const useSpeech = (ingredient, ingredientIndex, isLastIngredient) => {
       }
 
       await SpeechService.speak(orderMessage);
+      if (cancelled) return;
 
-      // For weight-based and weighable ingredients, announce the quantity
-      const goalAnnouncement = `${ingredient.amount} ${ingredient.unit} of ${ingredient.name}`;
+      // For weight-based and weighable ingredients, announce the quantity.
+      // Omit "of [name]" when the unit already is the ingredient (e.g. "2 eggs", not "2 eggs of eggs").
+      const goalAnnouncement = ingredient.unit.toLowerCase() === ingredient.name.toLowerCase()
+        ? `${ingredient.amount} ${ingredient.unit}`
+        : `${ingredient.amount} ${ingredient.unit} of ${ingredient.name}`;
       await SpeechService.speak(goalAnnouncement);
+      if (cancelled) return;
       await SpeechService.waitUntilDone();
-      await SpeechService.delay(SpeechService.SPEECH_DELAY);
+      await SpeechService.delay(SpeechService.speechDelay);
+      if (cancelled) return;
 
       // Announce the instruction text
       let instructionLine = ingredient.instructionText?.trim();
@@ -65,12 +84,14 @@ const useSpeech = (ingredient, ingredientIndex, isLastIngredient) => {
 
       // Speak it
       await SpeechService.speak(instructionLine);
+      if (cancelled) return;
       await SpeechService.waitUntilDone();
     };
 
     announceIngredientOrder();
 
     return () => {
+      cancelled = true;
       SpeechService.stop();
     };
   }, [ingredient, ingredientIndex, isLastIngredient]);

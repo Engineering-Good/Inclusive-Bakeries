@@ -259,6 +259,8 @@ class SpeechService {
     console.log('Stopping speech.');
     try {
       this.speechQueue = [];
+      this.lastSpokenText = null;
+      this.lastSpokenTime = 0;
       await Speech.stop();
       this.isSpeaking = false; // Reset speaking flag
     } catch (error) {

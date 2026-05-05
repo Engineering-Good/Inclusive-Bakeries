@@ -173,6 +173,20 @@ After changes:
 - **ScaleServiceFactory static state**: `services`, `currentDevice`, and `isConnected` are static properties. Reset with `ScaleServiceFactory.resetServices()` if needed during testing.
 - **Lefu native module**: located in `modules/lefu-scale/`. It depends on two AARs (`ppbasekit`, `ppbluetoothkit`) referenced in `expo-module.config.json` and `android/build.gradle`. Do not modify AAR paths without updating both files.
 
+### Scale Subscription Rules (Critical)
+- **Always subscribe via `ScaleServiceFactory.subscribeToWeightUpdates(callback)`** — NEVER call `scaleService.subscribe()` directly. The mock scale emits events through `EventEmitterService`, and only the factory bridges this correctly. Direct scale service subscriptions will not receive mock weight updates.
+- **Do not duplicate weight subscriptions** — `ScaleDisplayComponent` receives `currentWeight` as a prop from `useIngredientWeighing` → `useScaleConnection`. It should NOT subscribe to weight updates for state management. It may only listen for tare and connection status events.
+- **useEffect cleanup must be returned from the effect callback** — When using async initialization inside `useEffect`, the cleanup function must be returned from the outer effect callback, NOT from the inner async function. Returning cleanup from inside an async function means it never runs.
+- **EventEmitterService uses Arrays, not Sets** — Listener storage uses `Array` with `push/splice` instead of `Set` with `add/delete`. This ensures `forEach` works correctly across all React Native environments.
+- **Mock weight changes are stable** — `mockWeightChange()` sends `isStable: true` to trigger immediate UI updates. Real scale readings may be unstable and use debounce delays.
+
+### Scale Subscription Rules (Critical)
+- **Always subscribe via `ScaleServiceFactory.subscribeToWeightUpdates(callback)`** — NEVER call `scaleService.subscribe()` directly. The mock scale emits events through `EventEmitterService`, and only the factory bridges this correctly. Direct scale service subscriptions will not receive mock weight updates.
+- **Do not duplicate weight subscriptions** — `ScaleDisplayComponent` receives `currentWeight` as a prop from `useIngredientWeighing` → `useScaleConnection`. It should NOT subscribe to weight updates for state management. It may only listen for tare and connection status events.
+- **useEffect cleanup must be returned from the effect callback** — When using async initialization inside `useEffect`, the cleanup function must be returned from the outer effect callback, NOT from the inner async function. Returning cleanup from inside an async function means it never runs.
+- **EventEmitterService uses Arrays, not Sets** — Listener storage uses `Array` with `push/splice` instead of `Set` with `add/delete`. This ensures `forEach` works correctly across all React Native environments.
+- **Mock weight changes are stable** — `mockWeightChange()` sends `isStable: true` to trigger immediate UI updates. Real scale readings may be unstable and use debounce delays.
+
 ## Related Docs
 
 - `README.md` — setup, platforms, project structure, architecture with hook data flow diagram.

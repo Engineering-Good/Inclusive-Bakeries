@@ -13,6 +13,7 @@ const IngredientColumns = ({
   styles,
   isMockScaleActive,
   onTareStatusChange,
+  tareStatus,
 }) => {
   const isWeighable = ingredient.stepType === 'weighable';
   const isWeightBased = ingredient.stepType === 'weight';
@@ -47,10 +48,10 @@ const IngredientColumns = ({
           />
         )}
       </View>
-       {/* Right Column */}
+        {/* Right Column */}
     {requireScale && isMockScaleActive && (
     <View style={styles.column}>
-       <MockScaleComponent />
+        <MockScaleComponent tareStatus={tareStatus} />
     </View>
     )}
   </View>

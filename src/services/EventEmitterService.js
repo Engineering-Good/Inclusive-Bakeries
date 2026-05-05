@@ -8,16 +8,20 @@ class EventEmitterService {
 
   on(event, callback) {
     if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
+      this.listeners.set(event, []);
     }
-    this.listeners.get(event).add(callback);
+    this.listeners.get(event).push(callback);
     // Return an unsubscribe function
     return () => this.off(event, callback);
   }
 
   off(event, callback) {
     if (this.listeners.has(event)) {
-      this.listeners.get(event).delete(callback);
+      const arr = this.listeners.get(event);
+      const index = arr.indexOf(callback);
+      if (index !== -1) {
+        arr.splice(index, 1);
+      }
     }
   }
 

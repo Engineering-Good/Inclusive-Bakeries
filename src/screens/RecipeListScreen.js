@@ -12,9 +12,7 @@ export default function RecipeListScreen({ navigation }) {
   useEffect(() => {
     const loadRecipes = async () => {
       try {
-        console.log('[RecipeListScreen] Loading recipes...');
         const loadedRecipes = await RecipeService.getRecipes();
-        console.log('[RecipeListScreen] Recipes loaded:', loadedRecipes.length);
         setRecipes(loadedRecipes);
       } catch (error) {
         console.error('[RecipeListScreen] Failed to load recipes:', error);

@@ -95,7 +95,7 @@ const ScaleDisplayComponent = ({
     const handleConnectionStatusChange = (status) => {
       setConnectionStatus(status);
       if (status === "connected") {
-        setError(null); // Clear any previous errors on successful connection
+        setError(null);
       } else if (
         status === "reconnectionFailed" ||
         status === "connectionFailed"
@@ -107,73 +107,50 @@ const ScaleDisplayComponent = ({
     };
 
     const handleWeightUpdate = (weightData) => {
-      if (!targetIngredient) {
-        return;
-      }
-      // Handle tare event
       if (weightData.isTare) {
         setTareStatus("tared");
-        onTare(); // Notify parent that tare occurred
+        onTare();
       }
 
-      // Announce tare needed if there's weight and tareStatus is pending
       if (
         tareStatus === "pending" &&
         weightData.value > 0 &&
         (!hasSpokenRef.current || hasSpokenRef.current !== "tare")
       ) {
-        console.log("[ScaleDisplayComponent] Attempting to speak TARE_NEEDED."); // Added log
         SpeechService.speak(SCALE_MESSAGES.TARE_NEEDED);
         hasSpokenRef.current = "tare";
-        return;
       }
-
-      if (tareStatus === "tared" || tareStatus === "not_required") {
-        onWeightChange(weightData.value, weightData.isStable);
-      }
-
-      forceUpdate({});
     };
 
-    // Subscribe to connection status updates
     const unsubscribeConnection = EventEmitterService.on(
       "connectionStatus",
       handleConnectionStatusChange
     );
-    // Subscribe to weight updates
     const unsubscribeWeight =
       ScaleServiceFactory.subscribeToWeightUpdates(handleWeightUpdate);
 
-    // Initial check for connection status
     const initialStatus = ScaleServiceFactory.getConnectionStatus();
     if (initialStatus.isConnected) {
       setConnectionStatus("connected");
     } else {
-      // Attempt to connect when component mounts if not already connected
       handleConnectPress();
     }
 
     return () => {
-    // Cleanup all subscriptions on component unmount
-    unsubscribeConnection();
-    unsubscribeWeight();
-    ScaleServiceFactory.unsubscribeAll(); // Ensure all listeners are removed from ScaleServiceFactory
-    hasSpokenRef.current = false;
-    SpeechService.stop();
+      unsubscribeConnection();
+      unsubscribeWeight();
+      hasSpokenRef.current = false;
+      SpeechService.stop();
     };
   }, [
     targetIngredient,
     requireTare,
-    onWeightChange,
+    onTare,
     handleConnectPress,
     tareStatus,
-    isWithinTolerance,
-    isOverTolerance,
   ]);
 
   const displayProgress = (tareStatus === 'tared' || tareStatus === 'not_required') ? progress : 0;
-  
-  console.log('[ScaleDisplayComponent] Render. currentWeight:', currentWeight, 'tareStatus:', tareStatus, 'tolerance:', tolerance);
 
   return (
     <View style={styles.container}>

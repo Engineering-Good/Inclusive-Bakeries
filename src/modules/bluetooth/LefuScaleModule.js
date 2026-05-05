@@ -56,7 +56,6 @@ class LefuScaleModule {
 			return this.events[eventName]
 		}
 
-		console.log("Adding active Event '" + eventName + "'.")
 		const subscription = this.lefuScale.addListener(eventName, callback)
 		this.events[eventName] = subscription
 		return subscription

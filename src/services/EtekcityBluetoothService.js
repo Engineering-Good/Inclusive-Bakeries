@@ -13,11 +13,9 @@ const LAST_CONNECTED_DEVICE_ID_KEY = 'lastConnectedEtekcityScaleDeviceId'
 class EtekcityScaleService extends ScaleInterface {
 	constructor() {
 		super()
-		console.log('[EtekcityScale] Initializing service')
 		this.manager = null
 		if (Platform.OS === 'android') {
 			this.manager = new BleManager()
-			console.log('[EtekcityScale] Created BleManager for Android')
 		}
 		this.device = null
 		this.weightCharacteristic = null
@@ -48,7 +46,6 @@ class EtekcityScaleService extends ScaleInterface {
 	async saveLastConnectedDeviceId(deviceId) {
 		try {
 			await AsyncStorage.setItem(LAST_CONNECTED_DEVICE_ID_KEY, deviceId)
-			console.log(`[EtekcityScale] Saved last connected device ID: ${deviceId}`)
 		} catch (error) {
 			console.error(
 				'[EtekcityScale] Error saving last connected device ID:',
@@ -60,7 +57,6 @@ class EtekcityScaleService extends ScaleInterface {
 	async retrieveLastConnectedDeviceId() {
 		try {
 			const deviceId = await AsyncStorage.getItem(LAST_CONNECTED_DEVICE_ID_KEY)
-			console.log(
 				`[EtekcityScale] Retrieved last connected device ID: ${deviceId}`
 			)
 			return deviceId
@@ -76,7 +72,6 @@ class EtekcityScaleService extends ScaleInterface {
 	async clearLastConnectedDeviceId() {
 		try {
 			await AsyncStorage.removeItem(LAST_CONNECTED_DEVICE_ID_KEY)
-			console.log('[EtekcityScale] Cleared last connected device ID')
 		} catch (error) {
 			console.error(
 				'[EtekcityScale] Error clearing last connected device ID:',
@@ -87,16 +82,13 @@ class EtekcityScaleService extends ScaleInterface {
 	// --- End AsyncStorage Helpers ---
 
 	async reconnectToLastDevice(onWeightUpdate) {
-		console.log('[EtekcityScale] Attempting to reconnect to last device...')
 		const lastDeviceId = await this.retrieveLastConnectedDeviceId()
 		if (lastDeviceId) {
 			try {
-				console.log(
 					`[EtekcityScale] Found last device ID: ${lastDeviceId}. Attempting direct connection.`
 				)
 				// Attempt to connect directly without scanning
 				this.device = await this.manager.connectToDevice(lastDeviceId)
-				console.log('[EtekcityScale] Reconnected to last device successfully.')
 
 				// Discover services and characteristics and set up notifications
 				await this.device.discoverAllServicesAndCharacteristics()
@@ -139,21 +131,17 @@ class EtekcityScaleService extends ScaleInterface {
 				return false // Reconnection failed
 			}
 		}
-		console.log('[EtekcityScale] No last connected device ID found.')
 		return false // No device ID to reconnect to
 	}
 
 	async startScan(callback) {
-		console.log('[EtekcityScale] Starting device scan')
 		if (!this.manager) {
 			console.error('[EtekcityScale] No BLE manager available')
 			throw new Error('Bluetooth is not supported on this platform')
 		}
 
 		try {
-			console.log('[EtekcityScale] Permissions granted, starting scan')
 
-			console.log('[EtekcityScale] Starting new scan.')
 			this.manager.startDeviceScan(
 				null, // null means scan for all services
 				{ allowDuplicates: false },
@@ -164,14 +152,12 @@ class EtekcityScaleService extends ScaleInterface {
 					}
 
 					if (device.name) {
-						console.log(
 							`[EtekcityScale] Found device: ${device.name} (${device.id})`
 						)
 					}
 
 					// Filter for Etekcity scale devices
 					if (device.name && device.name.includes('Etekcity')) {
-						console.log('[EtekcityScale] Found Etekcity device, stopping scan')
 						this.manager.stopDeviceScan()
 						callback(device)
 					}
@@ -184,14 +170,12 @@ class EtekcityScaleService extends ScaleInterface {
 	}
 
 	stopScan() {
-		console.log('[EtekcityScale] Stopping device scan')
 		if (this.manager) {
 			this.manager.stopDeviceScan()
 		}
 	}
 
 	async connect(device, onWeightUpdate) {
-		console.log(`[EtekcityScale] Attempting to connect to device: ${device.id}`)
 		if (!this.manager) {
 			console.error('[EtekcityScale] No BLE manager available')
 			throw new Error('Bluetooth is not supported on this platform')
@@ -199,12 +183,10 @@ class EtekcityScaleService extends ScaleInterface {
 
 		try {
 			this.device = await this.manager.connectToDevice(device.id)
-			console.log('[EtekcityScale] Connected to device')
 
 			// Save the device ID upon successful connection
 			await this.saveLastConnectedDeviceId(device.id)
 
-			console.log('[EtekcityScale] Discovering services and characteristics')
 			await this.device.discoverAllServicesAndCharacteristics()
 
 			// Get the specific service using the UUID
@@ -244,7 +226,6 @@ class EtekcityScaleService extends ScaleInterface {
 	}
 
 	async setupWeightNotifications(onWeightUpdate) {
-		console.log('[EtekcityScale] Setting up weight notifications')
 		if (!this.weightCharacteristic) {
 			console.error('[EtekcityScale] Weight characteristic not found')
 			throw new Error('Weight characteristic not found')
@@ -259,20 +240,15 @@ class EtekcityScaleService extends ScaleInterface {
 			if (characteristic && characteristic.value) {
 				// Convert the characteristic value to weight
 				const weight = this.parseWeightData(characteristic.value)
-				console.log(`[EtekcityScale] Received weight update: ${weight}`)
 				onWeightUpdate(weight)
 			}
 		})
-		console.log('[EtekcityScale] Weight notifications setup complete')
 	}
 
 	parseWeightData(value) {
-		console.log('[EtekcityScale] Parsing weight data', value)
 		const buffer = Buffer.from(value, 'base64')
 
 		// Debug the buffer contents
-		console.log('[EtekcityScale] Buffer length:', buffer.length)
-		console.log(
 			'[EtekcityScale] Buffer contents:',
 			Array.from(buffer)
 				.map((b) => '0x' + b.toString(16))
@@ -281,7 +257,6 @@ class EtekcityScaleService extends ScaleInterface {
 
 		// Check if this is a tare command (buffer[2] === 0x64 seems to indicate tare)
 		if (buffer.length === 11 && buffer[0] === 0xa5 && buffer[1] === 0x02) {
-			console.log('[EtekcityScale] Tare button pressed')
 			return {
 				value: 0,
 				isTare: true,
@@ -331,7 +306,6 @@ class EtekcityScaleService extends ScaleInterface {
 			if (isNegative) {
 				scaleValue *= -1
 			}
-			console.log(`[EtekcityScale] Parsed weight: ${scaleValue}${scaleUnit}`)
 
 			return {
 				value: scaleValue,
@@ -351,7 +325,6 @@ class EtekcityScaleService extends ScaleInterface {
 	}
 
 	async disconnect() {
-		console.log('[EtekcityScale] Disconnecting from device')
 		if (!this.manager) {
 			return
 		}
@@ -359,7 +332,6 @@ class EtekcityScaleService extends ScaleInterface {
 		try {
 			if (this.device) {
 				await this.device.cancelConnection()
-				console.log('[EtekcityScale] Successfully disconnected')
 				this.device = null
 				this.weightCharacteristic = null
 				await this.clearLastConnectedDeviceId() // Clear stored ID on explicit disconnect

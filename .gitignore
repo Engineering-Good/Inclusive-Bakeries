@@ -433,3 +433,5 @@ $RECYCLE.BIN/
 
 tmp
 node_modules
+
+.kilo/

@@ -62,7 +62,7 @@ const IngredientScreen = ({ route, navigation }) => {
   const requireScale = ingredient.stepType === 'weight' || ingredient.stepType === 'weighable';
   const { isMockScaleActive } = useScale(requireScale);
   const { replayInstruction } = useSpeech(ingredient, ingredientIndex, isFinalStep);
-  const { weightReached, getBackgroundColor } = useIngredientStep(ingredient, currentWeight, isStable);
+  const { weightReached, getBackgroundColor } = useIngredientStep(ingredient, currentWeight, isStable, isFinalStep);
   const [tareStatus, setTareStatus] = useState(false);
 
   console.log("[IngredientScreen] Ingredient:", ingredient);

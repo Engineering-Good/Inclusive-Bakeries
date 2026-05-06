@@ -8,6 +8,7 @@ import { Dialog, Portal } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import RecipeService from '../services/RecipeService';
 import ingredientDatabase from '../data/ingredientDatabase';
+import { PICKER_HEIGHT } from '../constants/responsive';
 
 const WEIGHABLE_UNITS = ['eggs', 'sticks', 'trays', 'packs', 'bottles'];
 
@@ -747,7 +748,7 @@ export default function EditRecipeScreen({ route, navigation }) {
                           <Picker
                             selectedValue={ingredientWithDefaults.gatheringStepType}
                             onValueChange={(itemValue) => updateIngredient(ingredientWithDefaults.id, 'gatheringStepType', itemValue)}
-                            style={{ height: 50 }}
+                            style={{ height: PICKER_HEIGHT }}
                           >
                             <Picker.Item label="Weight-based" value="weight" />
                             <Picker.Item label="Unit-based" value="weighable" />
@@ -773,7 +774,7 @@ export default function EditRecipeScreen({ route, navigation }) {
                                 updateIngredient(ingredientWithDefaults.id, 'gatheringUnit', itemValue);
                               }
                             }}
-                            style={{ height: 50 }}
+                            style={{ height: PICKER_HEIGHT }}
                           >
                             {ingredientWithDefaults.gatheringStepType === 'weight' ? (
                               <Picker.Item key="grams" label="Grams" value="g" />
@@ -829,7 +830,7 @@ export default function EditRecipeScreen({ route, navigation }) {
                           updateIngredient(ingredientWithDefaults.id, 'unit', 'eggs');
                         }
                       }}
-                      style={{ height: 44 }}
+                      style={{ height: PICKER_HEIGHT }}
                     >
                       <Picker.Item label="Weight-based" value="weight" />
                       <Picker.Item label="Unit-based" value="weighable" />
@@ -844,7 +845,7 @@ export default function EditRecipeScreen({ route, navigation }) {
                         updateIngredient(ingredientWithDefaults.id, 'unit', itemValue);
                         updateIngredient(ingredientWithDefaults.id, 'tolerance', '');
                       }}
-                      style={{ height: 44 }}
+                      style={{ height: PICKER_HEIGHT }}
                     >
                       {ingredientWithDefaults.stepType === 'weight' ? (
                         <Picker.Item key="grams" label="Grams" value="g" />

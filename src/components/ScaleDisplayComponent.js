@@ -12,6 +12,7 @@ import EventEmitterService from "../services/EventEmitterService"; // Import Eve
 import SpeechService from '../services/SpeechService';
 import { SCALE_MESSAGES } from "../constants/speechText";
 import useWeighingLogic from "../hooks/useWeighingLogic";
+import { scale, glyphPadding } from "../constants/responsive";
 
 // Add at the top of the file, after imports
 const screenWidth = Dimensions.get("window").width;
@@ -275,10 +276,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   weightText: {
-    fontSize: 64,
+    fontSize: scale(64),
     fontWeight: "bold",
     color: "white",
-    paddingHorizontal: 8,
+    paddingHorizontal: glyphPadding(scale(64)),
   },
   unitText: {
     fontSize: 36,

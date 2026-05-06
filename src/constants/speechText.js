@@ -9,6 +9,7 @@ export const INGREDIENT_MESSAGES = {
   PRESS_FINISH: 'Press finish to complete.',
   PRESS_NEXT: 'Press Next',
   WELL_DONE: 'Well done. Press Next',
+  WELL_DONE_FINISH: 'Well done. Press finish to complete.',
 };
 
 export const PROMPT_DELAY = 5000;
@@ -22,5 +23,6 @@ export const RECIPE_MESSAGES = {
   FIRST_INGREDIENT: "First ingredient",
   SECOND_INGREDIENT: "Second ingredient",
   THIRD_INGREDIENT: "Third ingredient",
-  NEXT_INGREDIENT: "Next ingredient"
+  NEXT_INGREDIENT: "Next ingredient",
+  LAST_INGREDIENT: "Last ingredient",
 };

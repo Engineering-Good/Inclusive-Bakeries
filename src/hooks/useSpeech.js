@@ -40,7 +40,9 @@ const useSpeech = (ingredient, ingredientIndex, isLastIngredient) => {
 
       // Announce which ingredient number we're on
       let orderMessage;
-      if (ingredientIndex === 0) {
+      if (isLastIngredient) {
+        orderMessage = RECIPE_MESSAGES.LAST_INGREDIENT;
+      } else if (ingredientIndex === 0) {
         orderMessage = RECIPE_MESSAGES.FIRST_INGREDIENT;
       } else if (ingredientIndex === 1) {
         orderMessage = RECIPE_MESSAGES.SECOND_INGREDIENT;
@@ -74,18 +76,21 @@ const useSpeech = (ingredient, ingredientIndex, isLastIngredient) => {
         }
       }
 
-      // // Append appropriate final instruction
-      // instructionLine += isLastIngredient
-      //   ? '. Press finish to complete.'
-      //   : '. Press next when ready.';
-
-      // Save it so we can replay later
+      // Save the instruction for replay without the navigation cue so that
+      // tapping the volume icon only repeats the actual step instruction.
       instructionRef.current = instructionLine;
 
-      // Speak it
+      // Speak the instruction
       await SpeechService.speak(instructionLine);
       if (cancelled) return;
       await SpeechService.waitUntilDone();
+      if (cancelled) return;
+
+      // Tell the user what to press next
+      const navigationCue = isLastIngredient
+        ? INGREDIENT_MESSAGES.PRESS_FINISH
+        : INGREDIENT_MESSAGES.PRESS_NEXT;
+      await SpeechService.speak(navigationCue);
     };
 
     announceIngredientOrder();

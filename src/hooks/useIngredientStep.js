@@ -4,14 +4,14 @@ import SpeechService from '../services/SpeechService';
 import { PROMPT_DELAY } from '../constants/speechText';
 import { useSpeechLogic } from './useSpeechLogic';
 
-const useIngredientStep = (ingredient, currentWeight, isStable) => {
+const useIngredientStep = (ingredient, currentWeight, isStable, isFinalStep) => {
   const [weightReached, setWeightReached] = useState(false);
   const {
     isWithinTolerance,
     isOverTolerance,
     progress
   } = useWeighingLogic(ingredient, currentWeight);
-  const { getSpeechMessage } = useSpeechLogic(isOverTolerance, isWithinTolerance, progress, isStable);
+  const { getSpeechMessage } = useSpeechLogic(isOverTolerance, isWithinTolerance, progress, isStable, isFinalStep);
   const timerRef = useRef(null);
 
   useEffect(() => {

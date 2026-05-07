@@ -316,7 +316,7 @@ export default function EditRecipeScreen({ route, navigation }) {
       ...ingredient,
       ingredientGathering: ingredient.ingredientGathering || false,
       gatheringStepType: ingredient.gatheringStepType || 'weight',
-      gatheringUnit: ingredient.gatheringUnit || 'g',
+      gatheringUnit: ingredient.gatheringUnit ?? 'g',
       gatheringQuantity: ingredient.gatheringQuantity || ''
     });
   };
@@ -399,7 +399,7 @@ export default function EditRecipeScreen({ route, navigation }) {
         requiresCheck: selectedIngredient.requiresCheck,
         ingredientGathering: selectedIngredient.ingredientGathering || false,
         gatheringStepType: selectedIngredient.gatheringStepType || 'weight',
-        gatheringUnit: selectedIngredient.gatheringUnit || 'g',
+        gatheringUnit: selectedIngredient.gatheringUnit ?? 'g',
         gatheringQuantity: selectedIngredient.gatheringQuantity || ''
       };
       console.log('Setting original ingredient:', original);
@@ -633,7 +633,7 @@ export default function EditRecipeScreen({ route, navigation }) {
       tolerance: selectedIngredient.tolerance || '',
       ingredientGathering: selectedIngredient.ingredientGathering || false,
       gatheringStepType: selectedIngredient.gatheringStepType || 'weight',
-      gatheringUnit: selectedIngredient.gatheringUnit || 'g',
+      gatheringUnit: selectedIngredient.gatheringUnit ?? 'g',
       gatheringQuantity: selectedIngredient.gatheringQuantity || ''
     };
 

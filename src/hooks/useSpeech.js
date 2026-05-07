@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import SpeechService from '../services/SpeechService';
-import { INGREDIENT_MESSAGES, RECIPE_MESSAGES, SCALE_MESSAGES } from '../constants/speechText';
+import { RECIPE_MESSAGES, SCALE_MESSAGES } from '../constants/speechText';
 
 /**
  * Custom hook to manage speech synthesis for ingredient instructions.
@@ -84,13 +84,6 @@ const useSpeech = (ingredient, ingredientIndex, isLastIngredient) => {
       await SpeechService.speak(instructionLine);
       if (cancelled) return;
       await SpeechService.waitUntilDone();
-      if (cancelled) return;
-
-      // Tell the user what to press next
-      const navigationCue = isLastIngredient
-        ? INGREDIENT_MESSAGES.PRESS_FINISH
-        : INGREDIENT_MESSAGES.PRESS_NEXT;
-      await SpeechService.speak(navigationCue);
     };
 
     announceIngredientOrder();

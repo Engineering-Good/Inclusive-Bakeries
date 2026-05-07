@@ -4,19 +4,24 @@ import SpeechService from '../services/SpeechService';
 import { PROMPT_DELAY } from '../constants/speechText';
 import { useSpeechLogic } from './useSpeechLogic';
 
-const useIngredientStep = (ingredient, currentWeight, isStable) => {
+const useIngredientStep = (ingredient, currentWeight, isStable, isFinalStep) => {
   const [weightReached, setWeightReached] = useState(false);
   const {
     isWithinTolerance,
     isOverTolerance,
     progress
   } = useWeighingLogic(ingredient, currentWeight);
-  const { getSpeechMessage } = useSpeechLogic(isOverTolerance, isWithinTolerance, progress, isStable);
+
+  // For weighable (unit-based) ingredients, treat "something on scale" as the
+  // equivalent of within-tolerance-and-stable so useSpeechLogic fires the cue.
+  const isWeighable = ingredient.stepType === 'weighable';
+  const effectiveWithinTolerance = isWeighable ? currentWeight > 1 : isWithinTolerance;
+  const effectiveStable = isWeighable ? currentWeight > 1 : isStable;
+
+  const { getSpeechMessage } = useSpeechLogic(isOverTolerance, effectiveWithinTolerance, progress, effectiveStable, isFinalStep);
   const timerRef = useRef(null);
 
   useEffect(() => {
-    const isWeighable = ingredient.stepType === 'weighable';
-
     if (isWeighable) {
       if (currentWeight > 1) {
         setWeightReached(true);

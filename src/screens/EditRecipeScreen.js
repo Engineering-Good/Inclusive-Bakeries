@@ -8,7 +8,9 @@ import { Dialog, Portal } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import RecipeService from '../services/RecipeService';
 import ingredientDatabase from '../data/ingredientDatabase';
+import { PICKER_HEIGHT } from '../constants/responsive';
 
+const WEIGHABLE_UNITS = ['eggs', 'sticks', 'trays', 'packs', 'bottles'];
 
 export default function EditRecipeScreen({ route, navigation }) {
   const { recipe: initialRecipe, onSave } = route.params || {};
@@ -26,6 +28,7 @@ export default function EditRecipeScreen({ route, navigation }) {
   const [isSaving, setIsSaving] = useState(false);
   const [originalIngredient, setOriginalIngredient] = useState(null);
   const [isIngredientNavigating, setIsIngredientNavigating] = useState(false);
+  const [isNewIngredient, setIsNewIngredient] = useState(false);
 
   // Handle back button/gesture navigation
   useEffect(() => {
@@ -290,48 +293,20 @@ export default function EditRecipeScreen({ route, navigation }) {
       id: Date.now().toString(),
       name: '',
       amount: '',
-      unit: 'g', // Default to grams
+      unit: 'g',
       tolerance: '',
       requireTare: false,
       instructionText: '',
       imageUri: null,
-      stepType: 'weight', // Default to weight-based step
+      stepType: 'weight',
       requiresCheck: false,
       ingredientGathering: false,
       gatheringStepType: 'weight',
       gatheringUnit: 'g',
       gatheringQuantity: ''
     };
-    
-    // Update local state
-    const updatedIngredients = [...ingredients, newIngredient];
-    setIngredients(updatedIngredients);
-    
-    // If we have an existing recipe, update AsyncStorage
-    if (initialRecipe?.id) {
-      const updatedRecipe = {
-        ...initialRecipe,
-        ingredients: updatedIngredients
-      };
-      
-      // Update AsyncStorage
-      AsyncStorage.getItem('recipes')
-        .then(storedRecipesStr => {
-          const storedRecipes = storedRecipesStr ? JSON.parse(storedRecipesStr) : [];
-          const updatedRecipes = storedRecipes.map(r => 
-            r.id === initialRecipe.id ? updatedRecipe : r
-          );
-          return AsyncStorage.setItem('recipes', JSON.stringify(updatedRecipes));
-        })
-        .then(() => {
-          console.log('Recipe updated in storage after adding ingredient');
-        })
-        .catch(error => {
-          console.error('Error saving new ingredient:', error);
-          Alert.alert('Error', 'Failed to save new ingredient');
-        });
-    }
-    
+    // Don't add to state or storage yet — defer until the user saves from the editor.
+    setIsNewIngredient(true);
     setSelectedIngredient(newIngredient);
   };
 
@@ -341,13 +316,14 @@ export default function EditRecipeScreen({ route, navigation }) {
       ...ingredient,
       ingredientGathering: ingredient.ingredientGathering || false,
       gatheringStepType: ingredient.gatheringStepType || 'weight',
-      gatheringUnit: ingredient.gatheringUnit || 'g',
+      gatheringUnit: ingredient.gatheringUnit ?? 'g',
       gatheringQuantity: ingredient.gatheringQuantity || ''
     });
   };
 
   const closeIngredientEditor = () => {
     setSelectedIngredient(null);
+    setIsNewIngredient(false);
   };
 
   const saveIngredientChanges = async () => {
@@ -362,10 +338,10 @@ export default function EditRecipeScreen({ route, navigation }) {
 
     try {
       console.log('Updating ingredients state...');
-      // Update ingredients state
-      const updatedIngredients = ingredients.map(ing => 
-        ing.id === selectedIngredient.id ? selectedIngredient : ing
-      );
+      // Update ingredients state — append for new ingredients, update in-place for existing ones.
+      const updatedIngredients = isNewIngredient
+        ? [...ingredients, selectedIngredient]
+        : ingredients.map(ing => ing.id === selectedIngredient.id ? selectedIngredient : ing);
       console.log('Updated ingredients (local state):', updatedIngredients);
       setIngredients(updatedIngredients);
 
@@ -423,7 +399,7 @@ export default function EditRecipeScreen({ route, navigation }) {
         requiresCheck: selectedIngredient.requiresCheck,
         ingredientGathering: selectedIngredient.ingredientGathering || false,
         gatheringStepType: selectedIngredient.gatheringStepType || 'weight',
-        gatheringUnit: selectedIngredient.gatheringUnit || 'g',
+        gatheringUnit: selectedIngredient.gatheringUnit ?? 'g',
         gatheringQuantity: selectedIngredient.gatheringQuantity || ''
       };
       console.log('Setting original ingredient:', original);
@@ -432,6 +408,10 @@ export default function EditRecipeScreen({ route, navigation }) {
   }, [selectedIngredient?.id]);
 
   const hasIngredientChanges = useCallback(() => {
+    // A brand-new ingredient always counts as having unsaved changes so the
+    // dialog is shown whenever the user tries to leave without saving.
+    if (isNewIngredient) return true;
+
     if (!selectedIngredient || !originalIngredient) {
       console.log('No ingredient or original ingredient to compare');
       return false;
@@ -463,7 +443,7 @@ export default function EditRecipeScreen({ route, navigation }) {
     });
     
     return hasChanges;
-  }, [selectedIngredient, originalIngredient]);
+  }, [selectedIngredient, originalIngredient, isNewIngredient]);
 
   const handleCloseIngredientEditor = useCallback(() => {
     console.log('Close ingredient editor clicked');
@@ -496,16 +476,35 @@ export default function EditRecipeScreen({ route, navigation }) {
   const handleDiscardIngredientChanges = () => {
     console.log('Discarding ingredient changes');
     setUnsavedIngredientDialog({ visible: false });
+    setIsNewIngredient(false);
     setSelectedIngredient(null);
   };
 
   const handleSaveIngredientChanges = async () => {
     console.log('Saving ingredient changes');
-    setUnsavedIngredientDialog({ visible: false });
     await saveIngredientChanges();
   };
 
-  const renderIngredientCard = useCallback((ingredient) => {
+  const handleMoveIngredient = useCallback((index, direction) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= ingredients.length) return;
+
+    const newIngredients = [...ingredients];
+    [newIngredients[index], newIngredients[newIndex]] = [newIngredients[newIndex], newIngredients[index]];
+    setIngredients(newIngredients);
+
+    if (initialRecipe?.id) {
+      AsyncStorage.setItem('recipes', JSON.stringify(recipes.map(r =>
+        r.id === initialRecipe.id ? { ...r, ingredients: newIngredients } : r
+      ))).catch(error => {
+        console.error('Error saving ingredient order:', error);
+        Alert.alert('Error', 'Failed to save ingredient order');
+        setIngredients(ingredients);
+      });
+    }
+  }, [ingredients, initialRecipe, recipes]);
+
+  const renderIngredientCard = useCallback((ingredient, index) => {
     const getStepTypeLabel = (stepType) => {
       switch (stepType) {
         case 'weight':
@@ -530,8 +529,24 @@ export default function EditRecipeScreen({ route, navigation }) {
     return (
       <Card style={[styles.ingredientCard, { backgroundColor: '#f5f5f5' }]} key={ingredient.id}>
         <View style={styles.ingredientHeader}>
-          <TouchableOpacity 
-            style={styles.cardMainContent} 
+          <View style={styles.moveButtons}>
+            <IconButton
+              icon="chevron-up"
+              size={20}
+              disabled={index === 0}
+              iconColor={index === 0 ? '#ccc' : '#666'}
+              onPress={() => handleMoveIngredient(index, -1)}
+            />
+            <IconButton
+              icon="chevron-down"
+              size={20}
+              disabled={index === ingredients.length - 1}
+              iconColor={index === ingredients.length - 1 ? '#ccc' : '#666'}
+              onPress={() => handleMoveIngredient(index, 1)}
+            />
+          </View>
+          <TouchableOpacity
+            style={styles.cardMainContent}
             onPress={() => openIngredientEditor(ingredient)}
           >
             <Image
@@ -608,7 +623,7 @@ export default function EditRecipeScreen({ route, navigation }) {
         </View>
       </Card>
     );
-  }, [openIngredientEditor, handleDeleteIngredient, ingredients, initialRecipe, recipes]);
+  }, [openIngredientEditor, handleDeleteIngredient, ingredients, initialRecipe, recipes, handleMoveIngredient]);
 
   // Update the ingredient editor modal layout
   if (selectedIngredient) {
@@ -618,7 +633,7 @@ export default function EditRecipeScreen({ route, navigation }) {
       tolerance: selectedIngredient.tolerance || '',
       ingredientGathering: selectedIngredient.ingredientGathering || false,
       gatheringStepType: selectedIngredient.gatheringStepType || 'weight',
-      gatheringUnit: selectedIngredient.gatheringUnit || 'g',
+      gatheringUnit: selectedIngredient.gatheringUnit ?? 'g',
       gatheringQuantity: selectedIngredient.gatheringQuantity || ''
     };
 
@@ -729,35 +744,62 @@ export default function EditRecipeScreen({ route, navigation }) {
                     <View style={styles.gatheringContainer}>
                       <View style={{ marginBottom: 16 }}>
                         <Text style={styles.label}>Gathering Step Type</Text>
-                        <Picker
-                          selectedValue={ingredientWithDefaults.gatheringStepType}
-                          onValueChange={(itemValue) => updateIngredient(ingredientWithDefaults.id, 'gatheringStepType', itemValue)}
-                          style={{ height: 44 }}
-                        >
-                          <Picker.Item label="Weight-based" value="weight" />
-                          <Picker.Item label="Unit-based" value="weighable" />
-                        </Picker>
+                        <View style={{ backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ccc' }}>
+                          <Picker
+                            selectedValue={ingredientWithDefaults.gatheringStepType}
+                            onValueChange={(itemValue) => updateIngredient(ingredientWithDefaults.id, 'gatheringStepType', itemValue)}
+                            style={{ height: PICKER_HEIGHT }}
+                          >
+                            <Picker.Item label="Weight-based" value="weight" />
+                            <Picker.Item label="Unit-based" value="weighable" />
+                          </Picker>
+                        </View>
                       </View>
 
                       <View style={{ marginBottom: 16 }}>
                         <Text style={styles.label}>Gathering Unit</Text>
-                        <Picker
-                          selectedValue={ingredientWithDefaults.gatheringUnit}
-                          onValueChange={(itemValue) => updateIngredient(ingredientWithDefaults.id, 'gatheringUnit', itemValue)}
-                          style={{ height: 44 }}
-                        >
-                          {ingredientWithDefaults.gatheringStepType === 'weight' ? (
-                            <Picker.Item key="grams" label="Grams" value="g" />
-                          ) : (
-                            [
-                              <Picker.Item key="eggs" label="Eggs" value="eggs" />,
-                              <Picker.Item key="sticks" label="Sticks" value="sticks" />,
-                              <Picker.Item key="trays" label="Trays" value="trays" />,
-                              <Picker.Item key="packs" label="Packs" value="packs" />,
-                              <Picker.Item key="bottles" label="Bottles" value="bottles" />,
-                            ]
-                          )}
-                        </Picker>
+                        <View style={{ backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ccc' }}>
+                          <Picker
+                            selectedValue={
+                              ingredientWithDefaults.gatheringStepType === 'weight'
+                                ? 'g'
+                                : WEIGHABLE_UNITS.includes(ingredientWithDefaults.gatheringUnit)
+                                  ? ingredientWithDefaults.gatheringUnit
+                                  : 'custom'
+                            }
+                            onValueChange={(itemValue) => {
+                              if (itemValue === 'custom') {
+                                updateIngredient(ingredientWithDefaults.id, 'gatheringUnit', '');
+                              } else {
+                                updateIngredient(ingredientWithDefaults.id, 'gatheringUnit', itemValue);
+                              }
+                            }}
+                            style={{ height: PICKER_HEIGHT }}
+                          >
+                            {ingredientWithDefaults.gatheringStepType === 'weight' ? (
+                              <Picker.Item key="grams" label="Grams" value="g" />
+                            ) : (
+                              [
+                                <Picker.Item key="eggs" label="Eggs" value="eggs" />,
+                                <Picker.Item key="sticks" label="Sticks" value="sticks" />,
+                                <Picker.Item key="trays" label="Trays" value="trays" />,
+                                <Picker.Item key="packs" label="Packs" value="packs" />,
+                                <Picker.Item key="bottles" label="Bottles" value="bottles" />,
+                                <Picker.Item key="custom" label="Custom..." value="custom" />,
+                              ]
+                            )}
+                          </Picker>
+                        </View>
+                        {ingredientWithDefaults.gatheringStepType !== 'weight' &&
+                          !WEIGHABLE_UNITS.includes(ingredientWithDefaults.gatheringUnit) && (
+                          <TextInput
+                            style={[styles.input, { backgroundColor: '#fff', marginTop: 8 }]}
+                            value={ingredientWithDefaults.gatheringUnit}
+                            onChangeText={(text) => updateIngredient(ingredientWithDefaults.id, 'gatheringUnit', text)}
+                            placeholder="Enter custom unit (e.g. blocks)"
+                            autoCapitalize="none"
+                          />
+                        )}
                       </View>
 
                       <Text style={styles.label}>
@@ -788,7 +830,7 @@ export default function EditRecipeScreen({ route, navigation }) {
                           updateIngredient(ingredientWithDefaults.id, 'unit', 'eggs');
                         }
                       }}
-                      style={{ height: 44 }}
+                      style={{ height: PICKER_HEIGHT }}
                     >
                       <Picker.Item label="Weight-based" value="weight" />
                       <Picker.Item label="Unit-based" value="weighable" />
@@ -803,7 +845,7 @@ export default function EditRecipeScreen({ route, navigation }) {
                         updateIngredient(ingredientWithDefaults.id, 'unit', itemValue);
                         updateIngredient(ingredientWithDefaults.id, 'tolerance', '');
                       }}
-                      style={{ height: 44 }}
+                      style={{ height: PICKER_HEIGHT }}
                     >
                       {ingredientWithDefaults.stepType === 'weight' ? (
                         <Picker.Item key="grams" label="Grams" value="g" />
@@ -899,22 +941,21 @@ export default function EditRecipeScreen({ route, navigation }) {
         >
           <Dialog.Title>Unsaved Changes</Dialog.Title>
           <Dialog.Content>
-            <Text>You have unsaved changes. Would you like to save them?</Text>
+            <Text>You have unsaved changes. Go back to continue editing, or discard your changes.</Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button 
+            <Button
+              onPress={() => setUnsavedIngredientDialog({ visible: false })}
+              textColor="black"
+            >
+              Back
+            </Button>
+            <Button
               onPress={handleDiscardIngredientChanges}
               disabled={isIngredientNavigating}
               textColor="red"
             >
-              Discard
-            </Button>
-            <Button 
-              onPress={handleSaveIngredientChanges}
-              disabled={isIngredientNavigating}
-              textColor="green"
-            >
-              Save
+              Discard Changes
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -1122,6 +1163,12 @@ const styles = StyleSheet.create({
   iconButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  moveButtons: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
   },
   ingredientInfo: {
     flex: 1,

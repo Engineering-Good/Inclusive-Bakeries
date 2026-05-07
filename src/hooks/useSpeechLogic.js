@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
 import { INGREDIENT_MESSAGES } from '../constants/speechText';
 
-export const useSpeechLogic = (isOverTolerance, isWithinTolerance, progress, isStable) => {
+export const useSpeechLogic = (isOverTolerance, isWithinTolerance, progress, isStable, isFinalStep) => {
   const getSpeechMessage = useCallback(() => {
     if (isOverTolerance) {
       return INGREDIENT_MESSAGES.TOO_MUCH;
     }
     if (isWithinTolerance && isStable) {
-      return INGREDIENT_MESSAGES.WELL_DONE;
+      return isFinalStep ? INGREDIENT_MESSAGES.WELL_DONE_FINISH : INGREDIENT_MESSAGES.WELL_DONE;
     }
     if (isWithinTolerance || progress >= 0.8) {
       return INGREDIENT_MESSAGES.ADD_SLOWLY;
@@ -16,7 +16,7 @@ export const useSpeechLogic = (isOverTolerance, isWithinTolerance, progress, isS
       return INGREDIENT_MESSAGES.ADD_MORE;
     }
     return null;
-  }, [isOverTolerance, isWithinTolerance, progress, isStable]);
+  }, [isOverTolerance, isWithinTolerance, progress, isStable, isFinalStep]);
 
   return {
     getSpeechMessage,

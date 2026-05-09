@@ -42,8 +42,6 @@ const useSpeech = (ingredient, ingredientIndex, isLastIngredient) => {
       // For weight-based and weighable ingredients, announce the quantity
       const goalAnnouncement = `${ingredient.amount} ${ingredient.unit} of ${ingredient.name}`;
       await SpeechService.speak(goalAnnouncement);
-      await SpeechService.waitUntilDone();
-      await SpeechService.delay(SpeechService.SPEECH_DELAY);
 
       // Announce the instruction text
       let instructionLine = ingredient.instructionText?.trim();
@@ -65,7 +63,6 @@ const useSpeech = (ingredient, ingredientIndex, isLastIngredient) => {
 
       // Speak it
       await SpeechService.speak(instructionLine);
-      await SpeechService.waitUntilDone();
     };
 
     announceIngredientOrder();

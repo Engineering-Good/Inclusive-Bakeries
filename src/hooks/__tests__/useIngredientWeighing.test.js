@@ -8,10 +8,8 @@ jest.mock('../../services/SpeechService', () => ({
   speak: jest.fn().mockResolvedValue(undefined),
   stop: jest.fn().mockResolvedValue(undefined),
   isSpeakingAsync: jest.fn().mockResolvedValue(false),
-  waitUntilDone: jest.fn().mockResolvedValue(undefined),
   delay: jest.fn().mockResolvedValue(undefined),
   getSpeechDelay: jest.fn().mockReturnValue(2500),
-  SPEECH_DELAY: 2500,
 }));
 
 jest.mock('../../services/ScaleServiceFactory', () => ({

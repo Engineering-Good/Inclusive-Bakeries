@@ -41,12 +41,7 @@ class SpeechService {
         this.speakWordByWord = storedSpeakWordByWord === 'true';
       }
       // Ensure preferredVoiceIdentifier is not null for debugging/initial load
-      this.preferredVoiceIdentifier = storedVoiceIdentifier || ''; 
-        delay: this.speechDelay,
-        rate: this.speechRate,
-        voice: this.preferredVoiceIdentifier,
-        speakWordByWord: this.speakWordByWord,
-      });
+      this.preferredVoiceIdentifier = storedVoiceIdentifier || '';
     } catch (error) {
       console.error('Error loading speech settings:', error);
     }
@@ -69,8 +64,7 @@ class SpeechService {
         this.preferredVoice = this.availableVoices.find(
           (voice) => voice.identifier === this.preferredVoiceIdentifier
         );
-        if (this.preferredVoice) {
-        } else {
+        if (!this.preferredVoice) {
           console.warn('Stored preferred voice not found among available voices. Using default.');
           this._setDefaultPreferredVoice();
         }
@@ -79,7 +73,7 @@ class SpeechService {
       }
     } catch (error) {
       console.error('Error fetching or processing available voices:', error);
-      this._setDefaultPreferredVoice(); // Fallback to default if fetching fails
+      this._setDefaultPreferredVoice();
     }
   }
 
@@ -206,14 +200,7 @@ class SpeechService {
       ...speechOptions, // Merge with any provided options
     };
 
-    // const defaultOptions = 
-    //    {
-    //     language: 'en',
-    //     pitch: 1,
-    //     rate: 0.8,
-    //   }
-    
-    this.processSpeechQueue(optionsWithDefaults);
+    await this.processSpeechQueue(optionsWithDefaults);
   }
 
   async processSpeechQueue(options = {}) {
@@ -230,7 +217,16 @@ class SpeechService {
           continue; // Skip to next item in queue
         }
         await Speech.speak(item, options);
-        await this.waitUntilDone(); // Wait until speech is done
+        let waitIterations = 0;
+        while (await Speech.isSpeakingAsync()) {
+          await this.delay(100);
+          waitIterations++;
+          if (waitIterations > 100) {
+            console.warn('Speech wait timeout exceeded, continuing...');
+            break;
+          }
+        }
+        await this.delay(150);
       } catch (error) {
         console.error('Error during speech:', error);
       }
@@ -253,25 +249,6 @@ class SpeechService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  // Helper method to wait until speech is done
-  async waitUntilDone() {
-    let waitIterations = 0;
-    while (await Speech.isSpeakingAsync()) {
-      await this.delay(100);
-      waitIterations++;
-      if (waitIterations > 100) {
-        // Timeout after 10 seconds
-        console.warn('Speech wait timeout exceeded, continuing...');
-        break; // Exit the loop
-      }
-    }
-    const waitedMs = waitIterations * 100;
-    if (waitedMs > 0) {
-    }
-    // Add a small, fixed delay after speech is reported as done to ensure full completion
-    await this.delay(150);
-  }
-
   // Speaks a list of instructions with pauses between each step
   async speakInstructions(instructions, options = {}) {
     let index = 0;
@@ -280,10 +257,9 @@ class SpeechService {
       if (index < instructions.length) {
         const currentStep = `Step ${index + 1}: ${instructions[index]};`;
         await this.speak(currentStep, options);
-        await this.delay(this.speechDelay); // Use configurable speech delay
+        await this.delay(this.speechDelay);
         index++;
         await speakNext();
-      } else {
       }
     };
 

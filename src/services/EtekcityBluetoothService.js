@@ -57,6 +57,7 @@ class EtekcityScaleService extends ScaleInterface {
 	async retrieveLastConnectedDeviceId() {
 		try {
 			const deviceId = await AsyncStorage.getItem(LAST_CONNECTED_DEVICE_ID_KEY)
+			console.log(
 				`[EtekcityScale] Retrieved last connected device ID: ${deviceId}`
 			)
 			return deviceId
@@ -85,8 +86,9 @@ class EtekcityScaleService extends ScaleInterface {
 		const lastDeviceId = await this.retrieveLastConnectedDeviceId()
 		if (lastDeviceId) {
 			try {
-					`[EtekcityScale] Found last device ID: ${lastDeviceId}. Attempting direct connection.`
-				)
+				console.log(
+				`[EtekcityScale] Found last device ID: ${lastDeviceId}. Attempting direct connection.`
+			)
 				// Attempt to connect directly without scanning
 				this.device = await this.manager.connectToDevice(lastDeviceId)
 
@@ -152,8 +154,9 @@ class EtekcityScaleService extends ScaleInterface {
 					}
 
 					if (device.name) {
-							`[EtekcityScale] Found device: ${device.name} (${device.id})`
-						)
+					console.log(
+						`[EtekcityScale] Found device: ${device.name} (${device.id})`
+					)
 					}
 
 					// Filter for Etekcity scale devices
@@ -249,6 +252,7 @@ class EtekcityScaleService extends ScaleInterface {
 		const buffer = Buffer.from(value, 'base64')
 
 		// Debug the buffer contents
+		console.debug(
 			'[EtekcityScale] Buffer contents:',
 			Array.from(buffer)
 				.map((b) => '0x' + b.toString(16))

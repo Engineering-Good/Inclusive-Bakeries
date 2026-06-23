@@ -18,7 +18,7 @@ const useIngredientStep = (ingredient, currentWeight, isStable, isFinalStep) => 
   const effectiveWithinTolerance = isWeighable ? currentWeight > 1 : isWithinTolerance;
   const effectiveStable = isWeighable ? currentWeight > 1 : isStable;
 
-  const { getSpeechMessage } = useSpeechLogic(isOverTolerance, effectiveWithinTolerance, progress, effectiveStable, isFinalStep);
+  const { getSpeechMessage } = useSpeechLogic(isOverTolerance, effectiveWithinTolerance, progress, effectiveStable, isFinalStep, weightReached);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -29,10 +29,21 @@ const useIngredientStep = (ingredient, currentWeight, isStable, isFinalStep) => 
       return;
     }
 
-    if (isWithinTolerance && isStable) {
-      setWeightReached(true);
+    if (isOverTolerance) {
+      // Genuine overfill always clears the latch, regardless of stability.
+      setWeightReached(false);
+      return;
+    }
+
+    if (isWithinTolerance) {
+      if (isStable) {
+        setWeightReached(true);
+      }
+      // A transient instability blip while still within the
+      // hysteresis-stabilized tolerance band is a no-op: it must not undo
+      // an already-reached state, only gate the initial transition to true.
     } else {
-      // setWeightReached(isOverTolerance);
+      // Genuinely out of tolerance (post-hysteresis).
       setWeightReached(false);
     }
   }, [ingredient, currentWeight, isStable, isWithinTolerance, isOverTolerance]);
@@ -68,7 +79,6 @@ const useIngredientStep = (ingredient, currentWeight, isStable, isFinalStep) => 
   }, [message]); // Depend on the message string itself.
 
   const getBackgroundColor = () => {
-    if (isOverTolerance) return '#F44336'; // Red for over
     if (isOverTolerance) return '#F44336'; // Red for over
     if (weightReached) return '#4CAF50'; // Green for perfect
     if (currentWeight > 1) return '#F57C00'; // Yellow for under

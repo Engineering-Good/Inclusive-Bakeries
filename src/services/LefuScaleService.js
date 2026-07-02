@@ -16,6 +16,9 @@ class LefuScaleService extends ScaleInterface {
 
 	async startScan(onDeviceFound) {
 		const { LEFU_API_KEY, LEFU_API_SECRET } = Constants.expoConfig?.extra ?? {}
+		if (!LEFU_API_KEY || !LEFU_API_SECRET) {
+			throw new Error('Lefu scale is not configured: missing API credentials.')
+		}
 		await LefuScaleModule.initializeScale(LEFU_API_KEY, LEFU_API_SECRET)
 		LefuScaleModule.removeAllListener()
 

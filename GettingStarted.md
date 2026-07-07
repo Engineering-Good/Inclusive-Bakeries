@@ -48,7 +48,7 @@ This guide will walk you through setting up your development environment on a Wi
     There will have vulnerabilities! Enter the following command to fix those vulunerabilites. 
     
     ```bash
-    npm aduit fix
+    npm audit fix
     ```
 
 3.  **Vulnerabilities cannot fix:**(Do not run it if you don't understand it) 
@@ -81,7 +81,6 @@ This guide will walk you through setting up your development environment on a Wi
 
 1.  **Install EAS CLI:**
 
-    If did not installed
     ```bash
     npm install -g eas-cli
     ```
@@ -150,17 +149,20 @@ This guide will walk you through setting up your development environment on a Wi
     ```
    
 ### 3. Running the app on the Expo client
+1.  **Download the APK:** Once the build is complete, download the `.apk` file from the link provided in the EAS build dashboard.
+2.  **Install the APK:** Transfer the `.apk` file to your Android device and install it. You may need to enable "Install from unknown sources" in your device settings.
 
-1.  **Start the development server:**
+3.  **Start the development server:**
     ```bash
     npx expo start
     ```
-2. **Will ses a list of menu:**
-    Enter/open web
+4. **Will ses a list of menu:**
+    Select Expo Go or development build
     ```bash
-    press e
+    press s
     ```
-    This will open a new tab in your web browser and building the application. Give it awhile running.
+5.  Open the installed app on your device. It should automatically connect to the development server if your computer and device are on the same Wi-Fi network. If not, you can scan the QR code from the terminal or the Expo Developer Tools to connect.
+    
 
 ## Part 3: Building and Debugging on Android Emulator (Not working with WSL2)
 
@@ -184,7 +186,7 @@ This guide will walk you through setting up your development environment on a Wi
     npx expo start
     ```
 3. **Will ses a list of menu:**
-    Enter/open Android
+    Select Android
     ```bash
     press a
     ```
@@ -201,7 +203,7 @@ This guide will walk you through setting up your development environment on a Wi
 
 1.  **Enable USB Debugging:** On your Android device, go to `Settings` > `About phone` and tap `Build number` seven times to enable Developer options. Then, go to `Settings` > `Developer options` and enable `USB debugging`.
 
-## Part 5: Build and Install the App on an Actual Device via Expo EAS
+## Part 5: Build and Install the App via Expo EAS
 
 ### 1. Prerequisites
 
@@ -210,8 +212,6 @@ This guide will walk you through setting up your development environment on a Wi
 ### 2. Building a Development Build
 
 1.  **Install EAS CLI:**
-
-    If did not installed
     ```bash
     npm install -g eas-cli
     ```
@@ -278,9 +278,32 @@ This guide will walk you through setting up your development environment on a Wi
 
 1.  **Download the APK:** Once the build is complete, download the `.apk` file from the link provided in the EAS build dashboard.
 2.  **Install the APK:** Transfer the `.apk` file to your Android device and install it. You may need to enable "Install from unknown sources" in your device settings.
-3.  **Connect to the development server:**
-    1.  Start the development server on your computer:
-        ```bash
-        npm start
-        ```
-    2.  Open the installed app on your device. It should automatically connect to the development server if your computer and device are on the same Wi-Fi network. If not, you can scan the QR code from the terminal or the Expo Developer Tools to connect.
+
+## Part 6: Build and Install the App via Local Device
+
+### 1. Prerequisites
+
+1.  Try to setup on local first on web browser and/or Expo Client.
+
+### 2. Building a Development Build
+
+1.  **Install EAS CLI:**
+    ```bash
+    npm install -g eas-cli
+    ```
+2. **Create .env**
+    ```bash
+        cp .env.template .env
+        nano .env 
+        edit the key and secret 
+        LEFU_API_KEY=<API_KEY>
+        LEFU_API_SECRET=<SECRET_KEY>
+    ```
+11. **Create a development build on development client:**
+    ```bash
+    eas build --profile development --platform android --local
+    ```
+   
+### 3. Installing the app
+
+1.  **Install the APK:** Transfer the `.apk` file to your Android device and install it. You may need to enable "Install from unknown sources" in your device settings.

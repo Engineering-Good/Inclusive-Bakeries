@@ -1,4 +1,5 @@
-import "dotenv/config";
+//import "dotenv/config";
+//require('dotenv').config();
 
 export default ({ config }) => {
   const baseConfig = config;
